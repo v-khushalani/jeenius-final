@@ -14,6 +14,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,        // ✅ must be true
     autoRefreshToken: true,      // ✅ keeps user logged in
     detectSessionInUrl: true,    // ✅ required for magic link / OAuth
-    storage: localStorage,       // ✅ Explicitly set storage
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
 });
