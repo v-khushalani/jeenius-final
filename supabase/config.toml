@@ -1,0 +1,4 @@
+project_id = "mcmfmuiyycuozulrxyam"
+
+[functions.jeenie]
+verify_jwt = false
