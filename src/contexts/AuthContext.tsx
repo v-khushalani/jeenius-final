@@ -104,6 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'Student',
             email: user.email,
             avatar_url: user.user_metadata?.avatar_url,
+            target_exam: null,
+            grade: null,
+            subjects: null,
+            goals_set: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
