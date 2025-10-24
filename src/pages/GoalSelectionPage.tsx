@@ -156,17 +156,34 @@ const GoalSelectionPage = () => {
       console.log('✅ Goals saved to localStorage:', userGoals);
       
       if (user?.id) {
+        // First check if user has full_name (basic profile)
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+      
         // Update profile in Supabase
+        const updateData = {
+          target_exam: selectedGoal,
+          grade: parseInt(selectedGrade),
+          subjects: selectedSubjects,
+          daily_goal: selectedSubjects.length * 10,
+          goals_set: true,
+          updated_at: new Date().toISOString()
+        };
+      
+        // If full_name doesn't exist, this means user skipped basic profile
+        // Redirect them back
+        if (!existingProfile?.full_name) {
+          console.log('⚠️ User needs to complete basic profile first');
+          navigate('/profile-setup', { replace: true });
+          return;
+        }
+      
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({
-            target_exam: selectedGoal,
-            grade: selectedGrade,
-            subjects: selectedSubjects,
-            daily_goal: selectedSubjects.length * 10,
-            goals_set: true,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', user.id);
 
         if (profileError) {
