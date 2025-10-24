@@ -105,12 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: user.email,
             avatar_url: user.user_metadata?.avatar_url,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            // Initially these will be null - user will set them in goal selection
-            target_exam: null,
-            grade: null,
-            subjects: null,
-            goals_set: false
+            updated_at: new Date().toISOString()
           });
 
         if (insertError) {

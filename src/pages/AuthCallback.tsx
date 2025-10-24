@@ -38,23 +38,40 @@ const AuthCallback = () => {
        if (sessionData.session?.user) {
         console.log('✅ User authenticated successfully');
         
-        // Check if user has completed profile setup (name is auto-filled from Google)
-        // But we need to check if they've selected grade and exam
+        // Check if user profile exists (name, class, exam)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, target_exam, grade, goals_set')
+          .select('full_name, target_exam, grade')
           .eq('id', sessionData.session.user.id)
           .maybeSingle();
       
-        // If user has selected grade and exam (goals_set = true), go to dashboard
-        if (profile?.goals_set && profile?.target_exam && profile?.grade) {
-          console.log('✅ Profile complete, redirecting to dashboard');
-          navigate('/dashboard');
+        // If profile is complete (has name, grade, and exam), go to dashboard
+        if (profile && profile.full_name && profile.grade && profile.target_exam) {
+            console.log('🎯 User has goals, redirecting to dashboard');
+            navigate('/dashboard');
+          } else {
+            console.log('🎯 No goals found, redirecting to goal selection');
+            navigate('/goal-selection');
+          }
         } else {
-          console.log('⚠️ Profile incomplete, redirecting to goal selection');
-          navigate('/goal-selection');
+          console.log('⚠️ No session found, trying to establish session...');
+          // Wait a bit for the session to be established by Supabase
+          setTimeout(async () => {
+            const { data: retryData } = await supabase.auth.getSession();
+            if (retryData.session?.user) {
+              console.log('✅ Session established on retry');
+              navigate('/dashboard');
+            } else {
+              console.log('❌ Still no session, redirecting to login');
+              navigate('/login');
+            }
+          }, 2000);
         }
+      } catch (error) {
+        console.error('❌ Callback handling error:', error);
+        navigate('/login?error=callback_failed');
       }
+    };
 
     // Small delay to ensure URL params are processed
     setTimeout(handleAuthCallback, 500);
