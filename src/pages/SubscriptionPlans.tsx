@@ -73,7 +73,7 @@ const SubscriptionPlans = () => {
       <Header />
       <div className="pt-24 pb-16">
         {/* Hero Section */}
-        <section className="py-12">
+        <section className="py-2">
           <div className="container mx-auto px-4 text-center">
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-4 mb-12">
