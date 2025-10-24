@@ -25,53 +25,43 @@ const GoalSelectionPage = () => {
     'Foundation': null
   };
 
-  // Check if user has already set up their goals
+  // Check if user has already completed goal selection
   useEffect(() => {
     const checkUserProfile = async () => {
       if (!user?.id) {
         setIsLoading(false);
         return;
       }
-
+  
       try {
-        // Check if user already has goals set up
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('target_exam, grade, subjects')
+          .select('full_name, target_exam, grade, goals_set')
           .eq('id', user.id)
           .single();
-
+  
         if (error && error.code !== 'PGRST116') {
           console.error('Profile check error:', error);
           setIsLoading(false);
           return;
         }
-
-        // If user already has complete profile, redirect to dashboard
-        if (profile && profile.target_exam && profile.grade && profile.full_name) {
-          console.log('✅ User profile complete, redirecting to dashboard');
+  
+        // If profile is complete (has grade and exam), redirect to dashboard
+        if (profile?.goals_set && profile?.target_exam && profile?.grade) {
+          console.log('✅ Profile already complete, redirecting to dashboard');
           navigate('/dashboard', { replace: true });
           return;
         }
-
-        // Also check localStorage for goals
-        const savedGoals = localStorage.getItem('userGoals');
-        if (savedGoals) {
-          const goals = JSON.parse(savedGoals);
-          if (goals.goal && goals.grade) {
-            console.log('✅ Goals found in localStorage, redirecting to dashboard');
-            navigate('/dashboard', { replace: true });
-            return;
-          }
-        }
-
+  
+        // Profile exists but incomplete - let them continue with goal selection
+        console.log('📝 User needs to complete goal selection');
         setIsLoading(false);
       } catch (error) {
         console.error('Error checking user profile:', error);
         setIsLoading(false);
       }
     };
-
+  
     checkUserProfile();
   }, [user, navigate]);
 
@@ -134,7 +124,6 @@ const GoalSelectionPage = () => {
     setShowWelcomeDialog(true);
   };
 
-  // Actually start the journey after welcome dialog
   const confirmStartJourney = async () => {
     setIsStartingJourney(true);
     
@@ -142,57 +131,54 @@ const GoalSelectionPage = () => {
     const selectedSubjects = subjects[selectedGoal] || [];
     
     try {
-      // Save user goals to profile
-      const userGoals = {
-        grade: selectedGrade,
-        goal: selectedGoal,
-        subjects: selectedSubjects,
-        daysRemaining: daysRemaining,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Save to localStorage first
-      localStorage.setItem('userGoals', JSON.stringify(userGoals));
-      console.log('✅ Goals saved to localStorage:', userGoals);
-      
-      if (user?.id) {
-        // First check if user has full_name (basic profile)
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user.id)
-          .single();
-      
-        // Update profile in Supabase
-        const updateData = {
+      if (!user?.id) {
+        console.error('No user found');
+        alert('Please login again');
+        navigate('/login');
+        return;
+      }
+  
+      // Get user's name from Google auth (already stored in profile)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+  
+      console.log('👤 User name from profile:', profile?.full_name);
+  
+      // Update profile with grade, exam, and subjects
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
           target_exam: selectedGoal,
           grade: parseInt(selectedGrade),
           subjects: selectedSubjects,
           daily_goal: selectedSubjects.length * 10,
-          goals_set: true,
+          goals_set: true, // Mark profile as complete
           updated_at: new Date().toISOString()
-        };
-      
-        // If full_name doesn't exist, this means user skipped basic profile
-        // Redirect them back
-        if (!existingProfile?.full_name) {
-          console.log('⚠️ User needs to complete basic profile first');
-          navigate('/profile-setup', { replace: true });
-          return;
-        }
-      
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Profile update error:', profileError);
-          // Don't throw error, still navigate
-        } else {
-          console.log('✅ User goals saved to profile');
-        }
+        })
+        .eq('id', user.id);
+  
+      if (profileError) {
+        console.error('❌ Profile update error:', profileError);
+        alert('Error saving profile. Please try again.');
+        setIsStartingJourney(false);
+        return;
       }
+  
+      console.log('✅ Profile updated successfully');
+  
+      // Optional: Save to localStorage as backup
+      const userGoals = {
+        grade: selectedGrade,
+        goal: selectedGoal,
+        subjects: selectedSubjects,
+        name: profile?.full_name,
+        daysRemaining: daysRemaining,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('userGoals', JSON.stringify(userGoals));
       
       // Wait a bit for the animation
     await new Promise(resolve => setTimeout(resolve, 1500));
