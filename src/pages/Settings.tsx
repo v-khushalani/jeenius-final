@@ -97,8 +97,8 @@ const Settings = () => {
           phone: profileData.phone || '',
           city: profileData.city || '',
           state: profileData.state || '',
-          grade: profileData.grade === 11 ? '11th' : 
-                 profileData.grade === 12 ? '12th' : 
+          grade: profileData.grade === '11th' ? '11th' : 
+                 profileData.grade === '12th' ? '12th' : 
                  '12th-pass',
           target_exam: profileData.target_exam || 'JEE'
         });
@@ -145,9 +145,7 @@ const Settings = () => {
         phone: profile.phone?.trim() || null,
         city: profile.city?.trim() || null,
         state: profile.state?.trim() || null,
-        grade: profile.grade === '11th' ? 11 : 
-               profile.grade === '12th' ? 12 : 
-               12,
+        grade: profile.grade,
         target_exam: profile.target_exam || 'JEE',
         updated_at: new Date().toISOString()
       };

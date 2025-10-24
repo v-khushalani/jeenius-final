@@ -213,9 +213,8 @@ const TestAttemptPage = () => {
           try {
             // Use secure server-side validation
             const { data, error } = await supabase.rpc('validate_question_answer', {
-              p_question_id: question.id,
-              p_selected_answer: userAnswer.selectedOption,
-              p_time_taken: userAnswer.timeSpent || 0
+              _question_id: question.id,
+              _user_answer: userAnswer.selectedOption
             });
 
             if (!error && data) {
@@ -253,15 +252,14 @@ const TestAttemptPage = () => {
 
       // Save test session (attempts are already saved by validation function)
       try {
-        await supabase.from("test_sessions").insert({
+        await supabase.from("test_sessions").insert([{
           user_id: user.id,
-          subject: testSession.title.split(' - ')[0] || "General",
+          test_type: testSession.title.split(' - ')[0] || "General",
           total_questions: testSession.questions.length,
-          correct_answers: correctAnswers,
-          total_time: Math.round(testSession.duration * 60), // Convert to seconds
-          score: percentage,
+          score: correctAnswers,
+          time_taken: Math.round(testSession.duration * 60),
           completed_at: new Date().toISOString()
-        });
+        }]);
 
         console.log('✅ Test results saved to database');
       } catch (error) {

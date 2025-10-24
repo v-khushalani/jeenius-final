@@ -5,7 +5,7 @@ export interface SubscriptionPlan {
   name: string;
   price: number;
   displayDuration: string;
-  duration: string; // e.g. "1 month", "3 months"
+  duration: number; // duration in days
   popular: boolean;
   bestValue: boolean;
   savings: number;
@@ -20,7 +20,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     name: 'Pro Monthly',
     price: 49,
     displayDuration: 'per month',
-    duration: '1 month',
+    duration: 30,
     popular: false,
     bestValue: false,
     savings: 0,
@@ -42,7 +42,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     name: 'Pro Yearly',
     price: 499,
     displayDuration: 'per year',
-    duration: '12 months',
+    duration: 365,
     popular: true,
     bestValue: true,
     savings: 89,

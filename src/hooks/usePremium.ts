@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { FREE_PLAN_LIMITS } from '@/config/subscriptionPlans';
+import { FREE_LIMITS } from '@/config/subscriptionPlans';
 
 interface SubscriptionInfo {
   isPremium: boolean;
@@ -121,13 +121,20 @@ export const usePremium = () => {
         downloadNotes: true
       };
     }
-    return FREE_PLAN_LIMITS;
+    return {
+      questionsPerDay: FREE_LIMITS.dailyQuestions,
+      chaptersAccess: FREE_LIMITS.chapters,
+      testAttempts: 5,
+      battleMode: false,
+      aiDoubtSolver: false,
+      downloadNotes: false
+    };
   };
 
   const canAccessFeature = (feature: keyof UsageLimits): boolean => {
     if (subscriptionInfo.isPremium) return true;
     
-    const limits = FREE_PLAN_LIMITS;
+    const limits = FREE_LIMITS;
     const featureLimit = limits[feature];
     
     if (typeof featureLimit === 'boolean') {
@@ -149,7 +156,7 @@ export const usePremium = () => {
       .eq('user_id', user?.id)
       .gte('created_at', today.toISOString());
 
-    return (attempts?.length || 0) < FREE_PLAN_LIMITS.questionsPerDay;
+    return (attempts?.length || 0) < FREE_LIMITS.dailyQuestions;
   };
 
   return {

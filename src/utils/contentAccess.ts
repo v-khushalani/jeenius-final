@@ -88,12 +88,12 @@ export const canAccessChapter = async (
     if (alreadyAccessed || uniqueChapters.size < limitValue) {
       // Track this access if not already tracked
       if (!alreadyAccessed) {
-        await supabase.from('user_content_access').insert({
+        await supabase.from('user_content_access').insert([{
           user_id: userId,
-          content_type: 'chapter',
+          access_type: 'chapter',
           content_identifier: chapterName,
           subject: subject
-        });
+        }]);
       }
 
       return {
@@ -190,11 +190,12 @@ export const trackQuestionAttempt = async (
   questionId: string
 ): Promise<void> => {
   try {
-    await supabase.from('user_content_access').insert({
+    await supabase.from('user_content_access').insert([{
       user_id: userId,
-      content_type: 'question',
-      content_identifier: questionId
-    });
+      access_type: 'question',
+      content_identifier: questionId,
+      subject: ''
+    }]);
   } catch (error) {
     console.error('Error tracking question attempt:', error);
   }
@@ -267,11 +268,12 @@ export const canUseAI = async (userId: string): Promise<AccessResult> => {
  */
 export const trackAIQuery = async (userId: string): Promise<void> => {
   try {
-    await supabase.from('user_content_access').insert({
+    await supabase.from('user_content_access').insert([{
       user_id: userId,
-      content_type: 'ai_query',
-      content_identifier: 'ai_query'
-    });
+      access_type: 'ai_query',
+      content_identifier: 'ai_query',
+      subject: ''
+    }]);
   } catch (error) {
     console.error('Error tracking AI query:', error);
   }

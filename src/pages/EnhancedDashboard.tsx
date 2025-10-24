@@ -1,7 +1,7 @@
 import { UsageLimitModal } from '@/components/paywall/UsageLimitModal';
 import { UsageLimitBanner } from '@/components/paywall/UsageLimitBanner';
 import { FreemiumBadge } from '@/components/paywall/FreemiumBadge';
-import { FREE_PLAN_LIMITS } from '@/config/subscriptionPlans';
+import { FREE_LIMITS } from '@/config/subscriptionPlans';
 import Leaderboard from '../components/Leaderboard';
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

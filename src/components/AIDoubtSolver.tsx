@@ -60,15 +60,16 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
         new Date(subscription.expires_at) > new Date();
       setIsPro(isProUser);
   
-      // Get today's AI usage
-      const { data: usage } = await supabase
+      // Get today's AI usage count
+      const today = new Date().toISOString().split('T')[0];
+      const { count } = await supabase
         .from('ai_usage_log')
-        .select('*')
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user?.id)
-        .eq('date', new Date().toISOString().split('T')[0])
-        .single();
+        .gte('created_at', `${today}T00:00:00`)
+        .lte('created_at', `${today}T23:59:59`);
       
-      setDailyAIUsage(usage?.count || 0);
+      setDailyAIUsage(count || 0);
     } catch (error) {
       console.error('Error checking subscription:', error);
       setIsPro(false); // Default to free if error
@@ -207,12 +208,14 @@ Instructions:
         }]);
         // Log AI usage
         if (!isPro) {
-          await supabase.from('ai_usage_log').upsert({
-            user_id: (await supabase.auth.getUser()).data.user?.id,
-            date: new Date().toISOString().split('T')[0],
-            count: dailyAIUsage + 1
-          }, { onConflict: 'user_id,date' });
-          
+          const userId = (await supabase.auth.getUser()).data.user?.id;
+          if (userId) {
+            await supabase.from('ai_usage_log').insert({
+              user_id: userId,
+              feature_type: 'doubt_solver',
+              tokens_used: 0
+            });
+          }
           setDailyAIUsage(prev => prev + 1);
         }
       } else {

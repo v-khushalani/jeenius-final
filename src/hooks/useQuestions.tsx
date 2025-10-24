@@ -10,7 +10,7 @@ export interface Question {
   subject: string;
   topic: string;
   difficulty_level: number;
-  chapter: string;
+  chapter: number;
 }
 
 export interface QuestionAttempt {
@@ -203,9 +203,8 @@ const getRandomQuestions = async (
       const { supabase } = await import('@/integrations/supabase/client');
       
       const { data, error } = await supabase.rpc('validate_question_answer', {
-        p_question_id: questionId,
-        p_selected_answer: selectedAnswer,
-        p_time_taken: timeSpent || 0
+        _question_id: questionId,
+        _user_answer: selectedAnswer
       });
 
       if (error) {
