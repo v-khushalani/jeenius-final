@@ -10,8 +10,9 @@ import Header from '@/components/Header';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import {
   BookOpen, Trophy, Play, Clock, Target, FileText, ArrowLeft, CheckCircle2,
-  TrendingUp, Zap, Users, Star, Award, Brain, Sparkles
+  TrendingUp, Zap, Users, Star, Award, Brain, Sparkles, Crown
 } from "lucide-react";
+import PricingModal from '@/components/PricingModal';
 
 import { UsageLimitBanner } from '@/components/paywall/UsageLimitBanner';
 
@@ -33,6 +34,8 @@ const TestPage = () => {
     testsCompleted: 23, averageScore: 78, streak: 5, rank: 142,
     strongSubject: "Physics", weakSubject: "Chemistry"
   });
+
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [isPro, setIsPro] = useState(false);
   const [monthlyTestsUsed, setMonthlyTestsUsed] = useState(0);
@@ -133,9 +136,9 @@ const TestPage = () => {
 const startTest = async () => {
   // 🚨 CHECK MONTHLY LIMIT FOR FREE USERS
   if (!isPro && monthlyTestsUsed >= MONTHLY_LIMIT_FREE) {
-    toast.error(
-      `You've used all ${MONTHLY_LIMIT_FREE} free tests this month! Upgrade to Pro for unlimited tests.`
-    );
+    setShowUpgradeModal(true);
+    toast.error(`You've used all ${MONTHLY_LIMIT_FREE} free tests this month!`);
+   
     setTimeout(() => navigate('/subscription-plans'), 2000);
     return;
   }
@@ -236,6 +239,23 @@ const startTest = async () => {
     setLoading(false);
   }
 };
+  if (showUpgradeModal) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+          <Header />
+        </div>
+        <PricingModal 
+          isOpen={showUpgradeModal}
+          onClose={() => {
+            setShowUpgradeModal(false);
+            navigate('/pricing');
+          }}
+          limitType="test_limit"
+        />
+      </>
+    );
+  }
   
   if (loading) {
     return <LoadingScreen message="Loading your tests..." />;
@@ -247,21 +267,31 @@ const startTest = async () => {
         <Header />
         {!isPro && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-24 pb-4">
-            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 mb-6">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-md">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-blue-900">
-                    📝 Mock Tests This Month: {monthlyTestsUsed}/{MONTHLY_LIMIT_FREE}
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    Upgrade to Pro for unlimited mock tests!
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="bg-orange-500 p-2 rounded-lg">
+                    <Trophy className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-orange-900 text-lg">
+                      📝 Mock Tests: {monthlyTestsUsed}/{MONTHLY_LIMIT_FREE} this month
+                    </p>
+                    <p className="text-sm text-orange-700">
+                      {monthlyTestsUsed >= MONTHLY_LIMIT_FREE ? (
+                        <span className="font-semibold">⚠️ Limit reached! Upgrade for unlimited tests.</span>
+                      ) : (
+                        <span>Upgrade to Pro for unlimited mock tests + AI features!</span>
+                      )}
+                    </p>
+                  </div>
                 </div>
                 <Button
-                  onClick={() => navigate('/subscription-plans')}
-                  className="bg-gradient-to-r from-green-500 to-blue-600 text-white"
+                  onClick={() => navigate('/pricing')}
+                  className="bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold"
                 >
-                  Upgrade to Pro
+                  <Crown className="w-4 h-4 mr-2" />
+                  Upgrade Now
                 </Button>
               </div>
             </div>
