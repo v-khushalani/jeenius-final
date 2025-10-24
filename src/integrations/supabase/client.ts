@@ -2,18 +2,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL = "https://zbclponzlwulmltwkjga.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpiY2xwb256bHd1bG1sdHdramdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMTM2OTYsImV4cCI6MjA3Njc4OTY5Nn0.uifGRs6sXTnKKczrLvKLv9mJ-ROPn1eGMM1ewEZQAb0";
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Import the supabase client like this:
+// import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: true,        // ✅ must be true
-    autoRefreshToken: true,      // ✅ keeps user logged in
-    detectSessionInUrl: true,    // ✅ required for magic link / OAuth
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-  },
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  }
 });
