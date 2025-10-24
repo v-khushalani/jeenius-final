@@ -47,9 +47,9 @@ const GoalSelectionPage = () => {
           return;
         }
 
-        // If user already has goals, redirect to dashboard
-        if (profile && profile.target_exam && profile.grade) {
-          console.log('✅ User already has goals set up, redirecting to dashboard');
+        // If user already has complete profile, redirect to dashboard
+        if (profile && profile.target_exam && profile.grade && profile.full_name) {
+          console.log('✅ User profile complete, redirecting to dashboard');
           navigate('/dashboard', { replace: true });
           return;
         }
