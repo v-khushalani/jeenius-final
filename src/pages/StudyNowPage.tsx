@@ -671,7 +671,7 @@ const StudyNowPage = () => {
         {/* Upgrade Modal */}
         <PricingModal 
           isOpen={dailyQuestionsUsed >= DAILY_LIMIT_FREE}
-          onClose={() => navigate('/pricing')}
+          onClick={() => navigate('/subscription-plans')}
           limitType="daily_limit"
         />
       </div>
