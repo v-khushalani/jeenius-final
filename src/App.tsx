@@ -24,7 +24,6 @@ import Login from "./pages/Login";
 import AuthCallback from '@/pages/AuthCallback';
 
 // Feature pages
-import Pricing from "./pages/Pricing";
 import FeaturesPage from "./pages/FeaturesPage";
 import LessonBuilderPage from "./pages/LessonBuilderPage";
 import WhyUsPage from "./pages/WhyUsPage";
@@ -68,7 +67,6 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/pricing" element={<Pricing />} />
             <Route path="/why-us" element={<WhyUsPage />} />
             <Route path="/features" element={<FeaturesPage />} />
             
