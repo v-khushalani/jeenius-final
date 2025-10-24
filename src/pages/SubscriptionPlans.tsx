@@ -76,7 +76,7 @@ const SubscriptionPlans = () => {
         <section className="py-2">
           <div className="container mx-auto px-4 text-center">
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-12">
+            <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => setBillingCycle('monthly')}
                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${
