@@ -138,9 +138,7 @@ const startTest = async () => {
   if (!isPro && monthlyTestsUsed >= MONTHLY_LIMIT_FREE) {
     setShowUpgradeModal(true);
     toast.error(`You've used all ${MONTHLY_LIMIT_FREE} free tests this month!`);
-   
-    setTimeout(() => navigate('/subscription-plans'), 2000);
-    return;
+    return;  // ✅ Bas return karo, setTimeout hatao
   }
   if (selectedChapters.length === 0 && selectedSubjects.length === 0) {
     toast.error("Please select at least one chapter or subject");
