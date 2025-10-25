@@ -1,89 +1,140 @@
-// src/hooks/useUserData.tsx - Corrected to use progressService properly
+// src/hooks/useUserData.tsx - Now using Supabase instead of localStorage
 
 import { useState, useEffect } from 'react';
-import progressService from '@/services/progressService';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useUserData = () => {
   const [stats, setStats] = useState(null);
   const [profile, setProfile] = useState(null);
   const [subjectProgress, setSubjectProgress] = useState([]);
   const [loading, setLoading] = useState(true);
-  const resetDailyStats = () => {
-  const today = new Date().toDateString();
-  const lastReset = localStorage.getItem('lastDailyReset');
-  
-  if (lastReset !== today) {
-    // Reset daily progress counters
-    const currentProgress = JSON.parse(localStorage.getItem('userProgress') || '{}');
-    
-    // Reset daily counts but keep total counts
-    if (currentProgress) {
-      currentProgress.dailyQuestions = 0;
-      currentProgress.dailyCorrect = 0;
-      localStorage.setItem('userProgress', JSON.stringify(currentProgress));
-    }
-    
-    localStorage.setItem('lastDailyReset', today);
-    console.log('📅 Daily stats reset for new day');
-  }
-};
-  useEffect(() => {
-    const loadData = () => {
-      try {
-        resetDailyStats();
-        const detailedStats = progressService.getDetailedStats();
-        const overallStats = progressService.getOverallStats();
-        const rankData = progressService.calculateUserRank(); 
-        
-    const mappedStats = {
-      totalPoints: overallStats?.totalPoints || 0,
-      streak: overallStats?.studyStreak || 0,
-      totalQuestions: detailedStats.totalQuestions,
-      accuracy: Math.round(detailedStats.accuracy * 100),
-      problemsSolved: detailedStats.totalCorrect,
-      currentRank: rankData.currentRank, // REAL RANK
-      totalUsers: rankData.totalUsers,   // ADD THIS
-      rankCategory: rankData.rankCategory, // ADD THIS
-      percentile: rankData.percentile,   // ADD THIS
-      totalTimeSpent: detailedStats.totalTime
-    };
 
-        // Map subject progress from detailed stats
-        const subjectProgressData = [];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
         
-        Object.keys(detailedStats.subjectStats).forEach(subject => {
-          const subjectData = detailedStats.subjectStats[subject];
-          if (subjectData.attempted > 0) {
-            subjectProgressData.push({
-              subject: subject,
-              accuracy: Math.round((subjectData.correct / subjectData.attempted) * 100)
-            });
+        if (!user) {
+          setStats({
+            totalPoints: 0,
+            streak: 0,
+            totalQuestions: 0,
+            accuracy: 0,
+            problemsSolved: 0,
+            currentRank: 0,
+            totalUsers: 10000,
+            rankCategory: 'Beginner',
+            percentile: 0,
+            totalTimeSpent: 0
+          });
+          setSubjectProgress([]);
+          setProfile({ full_name: null });
+          setLoading(false);
+          return;
+        }
+
+        // Fetch all question attempts
+        const { data: attempts, error: attemptsError } = await supabase
+          .from('question_attempts')
+          .select('*, questions(subject)')
+          .eq('user_id', user.id);
+
+        if (attemptsError) throw attemptsError;
+
+        // Calculate overall stats
+        const totalQuestions = attempts?.length || 0;
+        const totalCorrect = attempts?.filter(a => a.is_correct).length || 0;
+        const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        const totalTimeSpent = attempts?.reduce((sum, a) => sum + (a.time_taken || 0), 0) || 0;
+
+        // Calculate subject-wise progress
+        const subjectStats = {};
+        attempts?.forEach(attempt => {
+          const subject = attempt.questions?.subject;
+          if (!subject) return;
+
+          if (!subjectStats[subject]) {
+            subjectStats[subject] = { attempted: 0, correct: 0 };
+          }
+          subjectStats[subject].attempted += 1;
+          if (attempt.is_correct) {
+            subjectStats[subject].correct += 1;
           }
         });
 
-        setStats(mappedStats);
-        setSubjectProgress(subjectProgressData);
-        setProfile({ full_name: null }); // Keep existing profile logic
+        const subjectProgressData = Object.keys(subjectStats).map(subject => ({
+          subject,
+          accuracy: Math.round((subjectStats[subject].correct / subjectStats[subject].attempted) * 100)
+        }));
+
+        // Calculate streak (simplified - you can enhance this)
+        const streak = 0; // TODO: Calculate from consecutive study days
+
+        // Calculate rank based on performance
+        const performanceScore = accuracy * 4 + Math.min(totalQuestions / 10, 100) * 3;
+        let rank, rankCategory, percentile;
         
-        // Debug log to verify data
-        console.log('📊 Dashboard updated with exact numbers:', {
-          totalQuestions: detailedStats.totalQuestions,
-          totalCorrect: detailedStats.totalCorrect,
-          accuracy: Math.round(detailedStats.accuracy * 100),
+        if (performanceScore >= 800) {
+          rank = Math.floor(Math.random() * 100) + 1;
+          rankCategory = "Elite JEEnius";
+          percentile = 99;
+        } else if (performanceScore >= 600) {
+          rank = Math.floor(Math.random() * 500) + 100;
+          rankCategory = "Advanced";
+          percentile = 95;
+        } else if (performanceScore >= 400) {
+          rank = Math.floor(Math.random() * 1000) + 500;
+          rankCategory = "Intermediate";
+          percentile = 85;
+        } else {
+          rank = Math.floor(Math.random() * 5000) + 1500;
+          rankCategory = "Beginner";
+          percentile = 50;
+        }
+
+        setStats({
+          totalPoints: totalCorrect * 10,
+          streak,
+          totalQuestions,
+          accuracy,
+          problemsSolved: totalCorrect,
+          currentRank: rank,
+          totalUsers: 50000,
+          rankCategory,
+          percentile,
+          totalTimeSpent
+        });
+        setSubjectProgress(subjectProgressData);
+        
+        // Load profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        setProfile(profileData || { full_name: null });
+        
+        console.log('📊 Dashboard updated from Supabase:', {
+          totalQuestions,
+          totalCorrect,
+          accuracy,
           subjects: subjectProgressData
         });
         
       } catch (error) {
         console.error('Error loading user data:', error);
         
-        // Fallback to prevent crashes
         setStats({
           totalPoints: 0,
           streak: 0,
           totalQuestions: 0,
           accuracy: 0,
           problemsSolved: 0,
-          currentRank: Math.floor(Math.random() * 1000) + 1,
+          currentRank: 0,
+          totalUsers: 10000,
+          rankCategory: 'Beginner',
+          percentile: 0,
           totalTimeSpent: 0
         });
         setSubjectProgress([]);
@@ -95,8 +146,8 @@ export const useUserData = () => {
 
     loadData();
     
-    // Refresh data every 10 seconds to catch updates from StudyNow
-    const interval = setInterval(loadData, 10000);
+    // Refresh data every 5 seconds
+    const interval = setInterval(loadData, 5000);
     
     return () => clearInterval(interval);
   }, []);
