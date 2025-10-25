@@ -471,39 +471,6 @@ const EnhancedDashboard = () => {
           </div>
         )}
 
-        {/* Usage Banner - Only for Free Users */}
-        {!profile?.is_premium && (
-          <div className="mb-4">
-            <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-xl p-4 shadow-lg">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="bg-white/20 p-2 rounded-lg">
-                    <Star className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm">Starter Plan - Limited Access</p>
-                    <div className="flex items-center gap-4 mt-1 text-xs">
-                      <span>📚 {usageStats.questionsToday}/25 today</span>
-                      <span>•</span>
-                      <span>📊 {usageStats.questionsThisMonth}/150 this month</span>
-                      <span>•</span>
-                      <span>📝 {usageStats.testsThisMonth}/2 tests</span>
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => navigate('/subscription-plans')}
-                  size="sm"
-                  className="bg-white text-orange-600 hover:bg-orange-50 font-bold shrink-0"
-                >
-                  <Crown className="w-4 h-4 mr-1" />
-                  Upgrade
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 mt-6">
           <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
             <CardContent className="p-3 sm:p-4">
