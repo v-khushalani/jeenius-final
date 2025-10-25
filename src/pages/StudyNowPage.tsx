@@ -438,17 +438,10 @@ const StudyNowPage = () => {
           
           // Show warning when approaching limit
           if (dailyQuestionsUsed + 1 >= DAILY_LIMIT_FREE - 3) {
-            toast.warning(
-              `⚠️ Only ${DAILY_LIMIT_FREE - (dailyQuestionsUsed + 1)} questions left today!`,
-              { duration: 3000 }
+            toast.info(
+              `${DAILY_LIMIT_FREE - (dailyQuestionsUsed + 1)} questions left today`,
+              { duration: 2000 }
             );
-          }
-          
-          // Show upgrade prompt at limit
-          if (dailyQuestionsUsed + 1 >= DAILY_LIMIT_FREE) {
-            setTimeout(() => {
-              toast.error('Daily limit reached! Upgrade to Pro.', { duration: 5000 });
-            }, 2000);
           }
         }
       } catch (updateError) {
@@ -517,39 +510,46 @@ const StudyNowPage = () => {
             </Button>
 
             {!isPro && (
-              <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 shadow-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Target className="w-5 h-5 text-orange-600" />
-                      <p className="font-bold text-orange-900 text-lg">
-                        Daily Progress: {dailyQuestionsUsed}/{DAILY_LIMIT_FREE} Questions
-                      </p>
-                    </div>
-                    <div className="w-full bg-orange-200 rounded-full h-2 mb-2">
-                      <div 
-                        className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${(dailyQuestionsUsed / DAILY_LIMIT_FREE) * 100}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-sm text-orange-700">
+            <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="w-5 h-5 text-blue-600" />
+                    <p className="font-semibold text-gray-800">
                       {dailyQuestionsUsed >= DAILY_LIMIT_FREE - 5 ? (
-                        <span className="font-semibold">⚠️ Almost at your limit! Upgrade for unlimited practice.</span>
+                        <>⏰ {DAILY_LIMIT_FREE - dailyQuestionsUsed} questions left today</>
                       ) : (
-                        <span>Upgrade to Pro for unlimited questions + AI features!</span>
+                        <>🎯 Daily Progress: {dailyQuestionsUsed}/{DAILY_LIMIT_FREE}</>
                       )}
                     </p>
                   </div>
+                  <div className="w-full bg-blue-100 rounded-full h-1.5 mb-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full transition-all duration-300"
+                      style={{ width: `${(dailyQuestionsUsed / DAILY_LIMIT_FREE) * 100}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {dailyQuestionsUsed >= DAILY_LIMIT_FREE - 5 ? (
+                      <>Pro users practice unlimited questions daily</>
+                    ) : (
+                      <>Keep going! New questions unlock tomorrow 🌅</>
+                    )}
+                  </p>
+                </div>
+                {dailyQuestionsUsed >= DAILY_LIMIT_FREE - 3 && (
                   <Button
                     onClick={() => navigate('/subscription-plans')}
-                    className="ml-4 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold px-6 py-3 shadow-lg"
+                    variant="outline"
+                    size="sm"
+                    className="ml-4 border-blue-300 text-blue-700 hover:bg-blue-50"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Upgrade Now
+                    Go Pro
                   </Button>
-                </div>
+                )}
               </div>
-            )}
+            </div>
+          )}
 
             <Card className="mb-6 border-2 border-blue-200 shadow-xl bg-white">
               <CardContent className="p-4">
@@ -596,6 +596,7 @@ const StudyNowPage = () => {
                   {['option_a', 'option_b', 'option_c', 'option_d'].map((key, idx) => {
                     const letter = String.fromCharCode(65 + idx);
                     const isSelected = selectedAnswer === letter;
+                    // Convert correct_option format to letter (option_a -> A)
                     const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
                     const isCorrect = letter === correctLetter;
         
