@@ -397,9 +397,14 @@ const StudyNowPage = () => {
     setShowResult(true);
     
     const question = practiceQuestions[currentQuestionIndex];
-    // Convert correct_option (like "option_a") to letter format ("A")
-    const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
-    const isCorrect = answer === correctLetter;    
+    // Convert correct_option to letter format for comparison
+    let correctLetter;
+    if (question.correct_option.startsWith('option_')) {
+      correctLetter = question.correct_option.replace('option_', '').toUpperCase();
+    } else {
+      correctLetter = question.correct_option.toUpperCase();
+    }
+    const isCorrect = answer === correctLetter;   
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
