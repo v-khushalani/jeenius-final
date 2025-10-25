@@ -482,11 +482,20 @@ const StudyNowPage = () => {
       setShowResult(false);
     } else {
       const accuracy = (sessionStats.correct / sessionStats.total) * 100;
-      toast.success(`🎉 Session Completed! Score: ${sessionStats.correct}/${sessionStats.total} (${accuracy.toFixed(0)}%)`);
       
-      // Refresh data to update dashboard
-      fetchSubjects();
+      // Show success message
+      toast.success(
+        `🎉 Session Completed! Score: ${sessionStats.correct}/${sessionStats.total} (${accuracy.toFixed(0)}%)`,
+        { duration: 3000 }
+      );
+      
+      // Go back to topics view
       setView('topics');
+      
+      // Reload subject stats to show updated progress
+      setTimeout(() => {
+        fetchSubjects();
+      }, 100);
     }
   };
 
