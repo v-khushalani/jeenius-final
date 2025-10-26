@@ -3,13 +3,14 @@ import { Bot, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import AIDoubtSolver from './AIDoubtSolver';
 import { useNavigate } from 'react-router-dom';
+import { usePremium } from '@/hooks/usePremium';
 
 const FloatingAIButton = () => {
   const [showAI, setShowAI] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const navigate = useNavigate();
-  const [isPro, setIsPro] = useState(false);
+  const { isPremium } = usePremium();
   
   // ✅ Improved Authentication Logic
   useEffect(() => {
@@ -41,30 +42,6 @@ const FloatingAIButton = () => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Check subscription status
-  useEffect(() => {
-    const checkSub = async () => {
-      if (!isAuthenticated) return;
-      
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
-        const { data: sub } = await supabase
-          .from('user_subscriptions')
-          .select('expires_at')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .maybeSingle();
-        
-        setIsPro(sub && new Date(sub.expires_at) > new Date());
-      } catch (e) {
-        setIsPro(false);
-      }
-    };
-    checkSub();
-  }, [isAuthenticated]);
 
   
   // Dummy question for general doubts (outside practice mode)
@@ -127,7 +104,7 @@ const FloatingAIButton = () => {
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg shadow-xl whitespace-nowrap">
               <p className="text-sm font-semibold">🤖 Ask AI Anything!</p>
               <p className="text-xs opacity-90">
-                {isPro ? 'Unlimited AI' : '5 free queries/day'}
+                {isPremium ? 'Unlimited AI' : '5 free queries/day'}
               </p>
             </div>
             {/* Arrow */}

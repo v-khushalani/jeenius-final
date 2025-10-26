@@ -152,7 +152,7 @@ const GoalSelectionPage = () => {
         .from('profiles')
         .update({
           target_exam: selectedGoal,
-          grade: parseInt(selectedGrade),
+          grade: selectedGrade,
           subjects: selectedSubjects,
           daily_goal: selectedSubjects.length * 10,
           goals_set: true, // Mark profile as complete

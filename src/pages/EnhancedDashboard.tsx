@@ -30,13 +30,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<any>(null);
   // Add these new state variables
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -65,6 +66,27 @@ const EnhancedDashboard = () => {
     }
   }, [user, isClient]);
 
+  // ✅ ADD THIS NEW useEffect
+  useEffect(() => {
+    // Refresh dashboard whenever user navigates back
+    if (user && isClient && location.pathname === '/dashboard') {
+      console.log('🔄 Dashboard: Refreshing data on navigation');
+      loadUserData();
+    }
+  }, [location.pathname, user, isClient]);
+
+  // Refresh data when user returns to dashboard
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && isClient) {
+        loadUserData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, isClient]);
+
   const loadUserData = async () => {
     try {
       setIsLoading(true);
@@ -89,8 +111,8 @@ const EnhancedDashboard = () => {
         
         setUsageStats({
           questionsToday: usageData?.questions_today || 0,
-          questionsThisMonth: usageData?.questions_this_month || 0,
-          testsThisMonth: usageData?.mock_tests_this_month || 0
+          questionsThisMonth: 0,
+          testsThisMonth: 0
         });
       }
       

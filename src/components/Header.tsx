@@ -3,6 +3,7 @@ import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Ta
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePremium } from '@/hooks/usePremium';
 import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
@@ -21,28 +22,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signOut } = useAuth();
-  const [isPro, setIsPro] = useState(false);
-
-  useEffect(() => {
-    const checkSub = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
-        const { data: sub } = await supabase
-          .from('user_subscriptions')
-          .select('expires_at')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .single();
-        
-        setIsPro(sub && new Date(sub.expires_at) > new Date());
-      } catch (e) {
-        setIsPro(false);
-      }
-    };
-    checkSub();
-  }, []);
+  const { isPremium } = usePremium();
   const publicNavItems = [
     { name: 'Home', href: '/', path: '/', icon: null, highlight: false },
     { name: 'Why Us', href: '/why-us', path: '/why-us', icon: null, highlight: false },
@@ -53,10 +33,6 @@ const Header = () => {
     { name: 'Study Now', href: '/study-now', path: '/study-now', icon: BookOpen, highlight: false },
     { name: 'AI Study Planner', href: '/ai-planner', path: '/ai-planner', icon: Brain, highlight: false },
     { name: 'Tests', href: '/tests', path: '/tests', icon: Target },
-  ];
-
-  const featureDropdownItems = [
-    { name: 'All Features', path: '/features', icon: BarChart3, description: 'Explore all platform features' },
   ];
 
   const navItems = isAuthenticated ? protectedNavItems : publicNavItems;
@@ -167,7 +143,7 @@ const Header = () => {
             onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
           >
           <img 
-            src="/logo.png" 
+            src="logo.png" 
             alt="JEEnius Logo" 
             className="w-10 h-10 object-contain rounded-lg"
           />
