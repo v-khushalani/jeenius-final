@@ -264,7 +264,7 @@ const startTest = async () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <Header />
         {!isPro && (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-24 pb-4">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-4 pb-4">
             <div className="p-4 rounded-xl bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
