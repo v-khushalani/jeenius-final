@@ -1,9 +1,10 @@
-// src/hooks/usePremium.ts - UPDATED VERSION
+// src/hooks/usePremium.ts
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { FREE_LIMITS } from '@/config/subscriptionPlans';
 
-interface PremiumStatus {
+interface SubscriptionInfo {
   isPremium: boolean;
   planId: string | null;
   endDate: Date | null;
@@ -11,9 +12,18 @@ interface PremiumStatus {
   isLoading: boolean;
 }
 
+interface UsageLimits {
+  questionsPerDay: number;
+  chaptersAccess: number;
+  testAttempts: number;
+  battleMode: boolean;
+  aiDoubtSolver: boolean;
+  downloadNotes: boolean;
+}
+
 export const usePremium = () => {
   const { user } = useAuth();
-  const [status, setStatus] = useState<PremiumStatus>({
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo>({
     isPremium: false,
     planId: null,
     endDate: null,
@@ -21,55 +31,41 @@ export const usePremium = () => {
     isLoading: true
   });
 
-  const checkPremiumStatus = async () => {
-    if (!user) {
-      setStatus({
+  useEffect(() => {
+    if (user) {
+      checkPremiumStatus();
+    } else {
+      setSubscriptionInfo({
         isPremium: false,
         planId: null,
         endDate: null,
         daysRemaining: 0,
         isLoading: false
       });
-      return;
     }
+  }, [user]);
 
+  const checkPremiumStatus = async () => {
     try {
-      console.log('🔍 Checking premium status for user:', user.id);
-
-      // Check profiles table first
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('is_premium, subscription_plan, subscription_end_date')
-        .eq('id', user.id)
+        .select('is_premium, premium_until')
+        .eq('id', user?.id)
         .single();
 
-      if (profileError) {
-        console.error('❌ Profile error:', profileError);
-        throw profileError;
-      }
-
-      console.log('📊 Profile data:', profile);
-
-      // Check if premium is active
-      if (profile?.is_premium && profile?.subscription_end_date) {
-        const endDate = new Date(profile.subscription_end_date);
+      if (profile?.is_premium && profile?.premium_until) {
+        const endDate = new Date(profile.premium_until);
         const now = new Date();
         const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-        console.log('⏰ Days remaining:', daysRemaining);
-
-        // If expired, update status
+        // Check if premium expired
         if (daysRemaining <= 0) {
-          console.log('⚠️ Subscription expired, updating...');
           await supabase
             .from('profiles')
-            .update({ 
-              is_premium: false,
-              subscription_plan: 'free'
-            })
-            .eq('id', user.id);
+            .update({ is_premium: false })
+            .eq('id', user?.id);
 
-          setStatus({
+          setSubscriptionInfo({
             isPremium: false,
             planId: null,
             endDate: null,
@@ -79,18 +75,22 @@ export const usePremium = () => {
           return;
         }
 
-        // Active premium
-        console.log('✅ Premium active!');
-        setStatus({
+        // Get subscription details
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('plan_id')
+          .eq('user_id', user?.id)
+          .single();
+
+        setSubscriptionInfo({
           isPremium: true,
-          planId: profile.subscription_plan,
+          planId: subscription?.plan_id || null,
           endDate,
           daysRemaining,
           isLoading: false
         });
       } else {
-        console.log('❌ Not premium');
-        setStatus({
+        setSubscriptionInfo({
           isPremium: false,
           planId: null,
           endDate: null,
@@ -99,8 +99,8 @@ export const usePremium = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Error checking premium status:', error);
-      setStatus({
+      console.error('Error checking premium status:', error);
+      setSubscriptionInfo({
         isPremium: false,
         planId: null,
         endDate: null,
@@ -110,22 +110,60 @@ export const usePremium = () => {
     }
   };
 
-  // Check on mount and when user changes
-  useEffect(() => {
-    checkPremiumStatus();
-  }, [user]);
+  const getLimits = (): UsageLimits => {
+    if (subscriptionInfo.isPremium) {
+      return {
+        questionsPerDay: -1, // unlimited
+        chaptersAccess: -1,
+        testAttempts: -1,
+        battleMode: true,
+        aiDoubtSolver: true,
+        downloadNotes: true
+      };
+    }
+    return {
+      questionsPerDay: FREE_LIMITS.dailyQuestions,
+      chaptersAccess: FREE_LIMITS.chapters,
+      testAttempts: 5,
+      battleMode: false,
+      aiDoubtSolver: false,
+      downloadNotes: false
+    };
+  };
 
-  // Refresh every 30 seconds to catch updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      checkPremiumStatus();
-    }, 30000);
+  const canAccessFeature = (feature: keyof UsageLimits): boolean => {
+    if (subscriptionInfo.isPremium) return true;
+    
+    const limits = FREE_LIMITS;
+    const featureLimit = limits[feature];
+    
+    if (typeof featureLimit === 'boolean') {
+      return featureLimit;
+    }
+    
+    return false; // Require premium for numeric limits
+  };
 
-    return () => clearInterval(interval);
-  }, [user]);
+  const checkDailyQuestionLimit = async (): Promise<boolean> => {
+    if (subscriptionInfo.isPremium) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { data: attempts } = await supabase
+      .from('question_attempts')
+      .select('id')
+      .eq('user_id', user?.id)
+      .gte('created_at', today.toISOString());
+
+    return (attempts?.length || 0) < FREE_LIMITS.dailyQuestions;
+  };
 
   return {
-    ...status,
+    ...subscriptionInfo,
+    limits: getLimits(),
+    canAccessFeature,
+    checkDailyQuestionLimit,
     refreshStatus: checkPremiumStatus
   };
 };
