@@ -110,6 +110,21 @@ export type Database = {
         }
         Relationships: []
       }
+      g_n: {
+        Row: {
+          created_at: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -157,6 +172,7 @@ export type Database = {
           avatar_url: string | null
           city: string | null
           created_at: string
+          daily_goal: number | null
           email: string | null
           full_name: string | null
           goals_set: boolean | null
@@ -176,6 +192,7 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           created_at?: string
+          daily_goal?: number | null
           email?: string | null
           full_name?: string | null
           goals_set?: boolean | null
@@ -195,6 +212,7 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           created_at?: string
+          daily_goal?: number | null
           email?: string | null
           full_name?: string | null
           goals_set?: boolean | null
@@ -255,10 +273,11 @@ export type Database = {
       }
       questions: {
         Row: {
-          chapter: number | null
+          chapter: string | null
           chapter_id: string | null
           correct_answer: string
-          created_at: string
+          correct_option: string | null
+          created_at: string | null
           difficulty: string | null
           explanation: string | null
           id: string
@@ -273,10 +292,11 @@ export type Database = {
           topic: string | null
         }
         Insert: {
-          chapter?: number | null
+          chapter?: string | null
           chapter_id?: string | null
           correct_answer: string
-          created_at?: string
+          correct_option?: string | null
+          created_at?: string | null
           difficulty?: string | null
           explanation?: string | null
           id?: string
@@ -291,10 +311,11 @@ export type Database = {
           topic?: string | null
         }
         Update: {
-          chapter?: number | null
+          chapter?: string | null
           chapter_id?: string | null
           correct_answer?: string
-          created_at?: string
+          correct_option?: string | null
+          created_at?: string | null
           difficulty?: string | null
           explanation?: string | null
           id?: string
@@ -314,6 +335,45 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schema_questions: {
+        Row: {
+          answer: string | null
+          created_at: string
+          g_n_id: string | null
+          id: string
+          question: string | null
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          g_n_id?: string | null
+          id?: string
+          question?: string | null
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          g_n_id?: string | null
+          id?: string
+          question?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_g_n"
+            columns: ["g_n_id"]
+            isOneToOne: false
+            referencedRelation: "g_n"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schema_questions_g_n_id_fkey"
+            columns: ["g_n_id"]
+            isOneToOne: false
+            referencedRelation: "g_n"
             referencedColumns: ["id"]
           },
         ]
