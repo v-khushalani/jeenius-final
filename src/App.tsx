@@ -46,6 +46,8 @@ import MobileDashboard from "./pages/mobile/MobileDashboard";
 import MobileLearning from "./pages/mobile/MobileLearning";
 import MobileStudyPlanner from "./pages/mobile/MobileStudyPlanner";
 
+import DebugSubscription from './pages/DebugSubscription';
+
 // Create QueryClient with optimized settings for better performance
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +91,8 @@ const App = () => (
 
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+
+            <Route path="/debug-subscription" element={<DebugSubscription />} />
             
             {/* Protected Routes - Main Dashboard */}
             <Route 
