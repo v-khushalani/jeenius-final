@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import FloatingAIButton from '@/components/FloatingAIButton';
+import { checkIsPremium } from '@/utils/premiumChecker';
 import AIDoubtSolver from '@/components/AIDoubtSolver';
 import { SubscriptionPaywall } from '@/components/paywall/SubscriptionPaywall';
 import React, { useState, useEffect } from "react";
@@ -44,63 +45,28 @@ const StudyNowPage = () => {
   useEffect(() => {
     checkSubscriptionStatus();
   }, []);
-  
+
   const checkSubscriptionStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const isPremium = await checkIsPremium();
+      setIsPro(isPremium);
       
-      // Check subscription
-      const { data: subscription } = await supabase
-        .from('user_subscriptions')
-        .select('*, subscription_plans(*)')
-        .eq('user_id', user?.id)
-        .eq('is_active', true)
-        .single();
-      
-      const isProUser = subscription && 
-        new Date(subscription.expires_at) > new Date();
-      setIsPro(isProUser);
-  
-      // Check today's usage
-      const { data: usage } = await supabase
-        .from('usage_limits')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('last_reset_date', new Date().toISOString().split('T')[0])
-        .single();
-      
-      setDailyQuestionsUsed(usage?.questions_today || 0);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
-  };
-    
-  // Fetch subjects with stats and profile
-  useEffect(() => {
-    fetchSubjects();
-    loadProfile();
-    const checkSub = async () => {
-      try {
+      if (!isPremium) {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: sub } = await supabase
-          .from('user_subscriptions')
-          .select('expires_at')
-          .eq('user_id', user?.id)
-          .eq('is_active', true)
-          .single();
-        setIsPro(sub && new Date(sub.expires_at) > new Date());
-        
+        const today = new Date().toISOString().split('T')[0];
         const { data: usage } = await supabase
           .from('usage_limits')
           .select('questions_today')
           .eq('user_id', user?.id)
-          .eq('last_reset_date', new Date().toISOString().split('T')[0])
+          .eq('last_reset_date', today)
           .single();
+        
         setDailyQuestionsUsed(usage?.questions_today || 0);
-      } catch (e) { setIsPro(false); }
-    };
-    checkSub();
-  }, []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const loadProfile = async () => {
     try {
