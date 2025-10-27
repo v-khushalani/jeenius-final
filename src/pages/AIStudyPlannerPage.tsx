@@ -1,5 +1,6 @@
 import React from 'react';
 import Header from '@/components/Header';
+import { checkIsPremium } from '@/utils/premiumChecker';
 import AIStudyPlanner from '@/components/AIStudyPlanner';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,19 +13,11 @@ const AIStudyPlannerPage = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const checkSub = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const { data: sub } = await supabase
-          .from('user_subscriptions')
-          .select('expires_at')
-          .eq('user_id', user?.id)
-          .eq('is_active', true)
-          .single();
-        setIsPro(sub && new Date(sub.expires_at) > new Date());
-      } catch (e) { setIsPro(false); }
+    const checkPremium = async () => {
+      const isPremium = await checkIsPremium();
+      setIsPro(isPremium);
     };
-    checkSub();
+    checkPremium();
   }, []);
   
   if (!isPro) {
