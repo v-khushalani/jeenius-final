@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { checkIsPremium } from '@/utils/premiumChecker';
 import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,65 +50,32 @@ const TestPage = () => {
   }, []);
 
   useEffect(() => {
-    const checkSub = async () => {
-      try {
+    checkSubscription();
+  }, []);
+
+  const checkSubscription = async () => {
+    try {
+      const isPremium = await checkIsPremium();
+      setIsPro(isPremium);
+      
+      if (!isPremium) {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: sub } = await supabase
-          .from('user_subscriptions')
-          .select('expires_at')
-          .eq('user_id', user?.id)
-          .eq('is_active', true)
-          .single();
-        setIsPro(sub && new Date(sub.expires_at) > new Date());
-        
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
+        
         const { data: tests } = await supabase
           .from('test_attempts')
           .select('id')
           .eq('user_id', user?.id)
           .gte('created_at', startOfMonth.toISOString());
+        
         setMonthlyTestsUsed(tests?.length || 0);
-      } catch (e) { setIsPro(false); }
-    };
-    checkSub();
-  }, []);
-
-  useEffect(() => {
-    checkSubscription();
-  }, []);
-  
-  const checkSubscription = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { data: subscription } = await supabase
-        .from('user_subscriptions')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('is_active', true)
-        .single();
-      
-      const isProUser = subscription && 
-        new Date(subscription.expires_at) > new Date();
-      setIsPro(isProUser);
-  
-      // Get this month's test count
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      
-      const { data: tests } = await supabase
-        .from('test_attempts')
-        .select('id')
-        .eq('user_id', user?.id)
-        .gte('created_at', startOfMonth.toISOString());
-      
-      setMonthlyTestsUsed(tests?.length || 0);
+      }
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('Error:', error);
     }
   };
-
+  
   const handleSubjectToggle = (subject) => {
     setSelectedSubjects(prev => {
       const newSelection = prev.includes(subject) 
