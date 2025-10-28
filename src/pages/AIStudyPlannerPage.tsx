@@ -1,26 +1,16 @@
 import React from 'react';
 import Header from '@/components/Header';
-import { checkIsPremium } from '@/utils/premiumChecker';
 import AIStudyPlanner from '@/components/AIStudyPlanner';
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AIStudyPlannerPage = () => {
-  const [isPro, setIsPro] = useState(false);
+  const { isPremium } = useAuth();
   const navigate = useNavigate();
   
-  useEffect(() => {
-    const checkPremium = async () => {
-      const isPremium = await checkIsPremium();
-      setIsPro(isPremium);
-    };
-    checkPremium();
-  }, []);
-  
-  if (!isPro) {
+  if (!isPremium) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <Header />

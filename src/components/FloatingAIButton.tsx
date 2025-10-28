@@ -1,61 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bot, Sparkles } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import AIDoubtSolver from './AIDoubtSolver';
-import { useNavigate } from 'react-router-dom';
-import { checkIsPremium } from '@/utils/premiumChecker';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FloatingAIButton = () => {
   const [showAI, setShowAI] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
-  const navigate = useNavigate();
-  const [isPro, setIsPro] = useState(false);
-  
-  // ✅ Improved Authentication Logic
-  useEffect(() => {
-    let mounted = true;
-  
-    const updateAuthState = (session: any) => {
-      if (!mounted) return;
-      const isLoggedIn = !!(session && session.user);
-      setIsAuthenticated(isLoggedIn);
-      if (!isLoggedIn) setShowAI(false);
-      console.log('🔐 Auth state updated:', isLoggedIn ? '✅ LOGGED IN' : '❌ LOGGED OUT');
-    };
-  
-    // 1️⃣ Check initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) console.error('❌ Auth error:', error);
-      console.log('🔍 Initial session check:', session);
-      updateAuthState(session);
-    });
-  
-    // 2️⃣ Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('🔄 Auth state changed:', _event, session);
-      updateAuthState(session);
-    });
-  
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Check subscription status
-  useEffect(() => {
-    const checkPremium = async () => {
-      if (!isAuthenticated) {
-        setIsPro(false);
-        return;
-      }
-      
-      const isPremium = await checkIsPremium();
-      setIsPro(isPremium);
-    };
-    checkPremium();
-  }, [isAuthenticated]);
+  const { isAuthenticated, isPremium, isLoading } = useAuth();
 
   
   // Dummy question for general doubts (outside practice mode)
@@ -69,19 +20,10 @@ const FloatingAIButton = () => {
     explanation: ""
   };
 
-  // CRITICAL: Don't render anything until auth check is complete
-  // null = still loading, false = not authenticated, true = authenticated
-  if (isAuthenticated === null) {
-    console.log('⏳ Auth still loading...');
+  // Don't render while loading or if not authenticated
+  if (isLoading || !isAuthenticated) {
     return null;
   }
-
-  if (isAuthenticated === false) {
-    console.log('🚫 Not authenticated - hiding button');
-    return null;
-  }
-
-  console.log('✅ Authenticated - showing button');
 
   return (
     <>
@@ -118,7 +60,7 @@ const FloatingAIButton = () => {
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg shadow-xl whitespace-nowrap">
               <p className="text-sm font-semibold">🤖 Ask AI Anything!</p>
               <p className="text-xs opacity-90">
-                {isPro ? 'Unlimited AI' : '5 free queries/day'}
+                {isPremium ? 'Unlimited AI' : '5 free queries/day'}
               </p>
             </div>
             {/* Arrow */}

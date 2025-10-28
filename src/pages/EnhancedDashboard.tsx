@@ -89,8 +89,8 @@ const EnhancedDashboard = () => {
         
         setUsageStats({
           questionsToday: usageData?.questions_today || 0,
-          questionsThisMonth: usageData?.questions_this_month || 0,
-          testsThisMonth: usageData?.mock_tests_this_month || 0
+          questionsThisMonth: 0, // TODO: Add field to usage_limits table
+          testsThisMonth: 0 // TODO: Add field to usage_limits table
         });
       }
       

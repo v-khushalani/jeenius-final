@@ -235,14 +235,8 @@ ${question.option_d ? `D) ${question.option_d}` : ''}
         content: formattedResponse
       }]);
   
-      // ✅ Log AI usage for free users
+      // ✅ Log AI usage for free users (TODO: Fix table structure)
       if (!isPro) {
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('ai_usage_log').insert({
-          user_id: user.id,
-          query: input,
-          response: aiText
-        });
         setDailyAIUsage(prev => prev + 1);
       }
   

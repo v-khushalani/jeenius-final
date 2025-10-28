@@ -51,7 +51,9 @@ const PracticeSession = () => {
       if (!user) return;
 
       // Fetch top 5 weak areas from database
+      // @ts-ignore - Type instantiation is excessively deep
       const { data: weaknessData, error } = await supabase
+        // @ts-ignore
         .from('weakness_analysis')
         .select('*')
         .eq('user_id', user.id)

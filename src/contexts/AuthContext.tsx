@@ -7,6 +7,8 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isPremium: boolean;
+  refreshPremium: () => Promise<void>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   updateProfile: (profileData: any) => Promise<{ error?: string }>;
@@ -26,16 +28,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPremium, setIsPremium] = useState(false);
   const listenerRef = React.useRef<any>(null);
+
+  // Check premium status
+  const checkPremiumStatus = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_premium, subscription_end_date')
+        .eq('id', userId)
+        .single();
+
+      const isPremiumActive = profile?.is_premium && 
+        profile?.subscription_end_date &&
+        new Date(profile.subscription_end_date) > new Date();
+
+      setIsPremium(!!isPremiumActive);
+      console.log('✅ Premium status:', isPremiumActive ? 'PREMIUM' : 'FREE');
+    } catch (error) {
+      console.error('❌ Premium check error:', error);
+      setIsPremium(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
     console.log("🚀 Setting up Supabase Auth listener (runs once)");
   
-    const updateAuthState = (session: Session | null) => {
+    const updateAuthState = async (session: Session | null) => {
       if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Check premium status when user logs in
+      if (session?.user) {
+        await checkPremiumStatus(session.user.id);
+      } else {
+        setIsPremium(false);
+      }
+      
       setIsLoading(false);
     };
   
@@ -198,11 +230,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshPremium = async () => {
+    if (user) {
+      await checkPremiumStatus(user.id);
+    }
+  };
+
   const value = {
     user,
     session,
     isAuthenticated: !!user,
     isLoading,
+    isPremium,
+    refreshPremium,
     signInWithGoogle,
     signOut,
     updateProfile,
