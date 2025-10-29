@@ -16,60 +16,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen';
 import {
   Flame, ArrowLeft, Lightbulb, XCircle, CheckCircle2, Trophy, Target,
   Sparkles, Zap, Play, Lock
-} from "lucconst startPractice = async (topic = null) => {
-  setLoading(true);
-  setSelectedTopic(topic);
-  
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // ✅ Get already attempted question IDs
-    const { data: attemptedQuestions } = await supabase
-      .from('question_attempts')
-      .select('question_id')
-      .eq('user_id', user.id);
-    
-    const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
-
-    // ✅ Fetch only NON-attempted questions
-    let query = supabase
-      .from('questions')
-      .select('*')
-      .eq('subject', selectedSubject)
-      .eq('chapter', selectedChapter)
-      .not('id', 'in', `(${attemptedIds.join(',') || 0})`); // Exclude attempted
-
-    if (topic) {
-      query = query.eq('topic', topic);
-    }
-
-    const { data, error } = await query.limit(50);
-    
-    if (error) throw error;
-    
-    if (!data || data.length === 0) {
-      toast.info('🎉 You\'ve completed all questions in this topic!');
-      setLoading(false);
-      return;
-    }
-
-    const shuffled = data.sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Math.min(25, shuffled.length));
-
-    setPracticeQuestions(selected);
-    setCurrentQuestionIndex(0);
-    setSessionStats({ correct: 0, total: 0, streak: 0 });
-    setSelectedAnswer(null);
-    setShowResult(false);
-    setView('practice');
-  } catch (error) {
-    console.error('Error starting practice:', error);
-    toast.error('Failed to start practice');
-  } finally {
-    setLoading(false);
-  }
-};
-ide-react";
+} from "lucide-react";
 
 const StudyNowPage = () => {
   const navigate = useNavigate();
