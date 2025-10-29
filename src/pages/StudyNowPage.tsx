@@ -353,101 +353,135 @@ const StudyNowPage = () => {
   };
 
   const handleAnswer = async (answer) => {
-  // 🚨 CHECK DAILY LIMIT FOR FREE USERS
-  if (!isPro && dailyQuestionsUsed >= DAILY_LIMIT_FREE) {
-    toast.error('Daily limit reached! Upgrade to Pro for unlimited practice.');
-    setTimeout(() => navigate('/subscription-plans'), 2000);
-    return;
-  }
+    // 🚨 CHECK DAILY LIMIT FOR FREE USERS
+    if (!isPro && dailyQuestionsUsed >= DAILY_LIMIT_FREE) {
+      toast.error('Daily limit reached! Upgrade to Pro for unlimited practice.');
+      setTimeout(() => navigate('/subscription-plans'), 2000);
+      return;
+    }
+    
     if (showResult) return;
     
     setSelectedAnswer(answer);
     setShowResult(true);
     
     const question = practiceQuestions[currentQuestionIndex];
-    // Convert correct_option (like "option_a") to letter format ("A")
     const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
-    const isCorrect = answer === correctLetter;    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      await supabase.from('question_attempts').insert({
-        user_id: user.id,
-        question_id: question.id,
-        selected_option: answer,
-        is_correct: isCorrect,
-        time_taken: 30,
-        attempted_at: new Date().toISOString(),
-        mode: 'study'
-      });
-
-      if (!isPro) {
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Upsert usage limits
-        const { error: usageError } = await supabase
-          .from('usage_limits')
-          .upsert({
-            user_id: user.id,
-            questions_today: dailyQuestionsUsed + 1,
-            mock_tests_this_month: 0, // Keep existing value
-            last_reset_date: today
-          }, {
-            onConflict: 'user_id,last_reset_date',
-            ignoreDuplicates: false
-          });
-        
-        if (usageError) {
-          console.error('Error updating usage limits:', usageError);
-        } else {
-          // Update local state
-          setDailyQuestionsUsed(prev => prev + 1);
-          
-          // Show warning when approaching limit
-          if (dailyQuestionsUsed + 1 >= DAILY_LIMIT_FREE - 3) {
-            toast.warning(
-              `⚠️ Only ${DAILY_LIMIT_FREE - (dailyQuestionsUsed + 1)} questions left today!`,
-              { duration: 3000 }
-            );
-          }
-          
-          // Show upgrade prompt at limit
-          if (dailyQuestionsUsed + 1 >= DAILY_LIMIT_FREE) {
-            setTimeout(() => {
-              toast.error('Daily limit reached! Upgrade to Pro.', { duration: 5000 });
-            }, 2000);
-          }
-        }
-      } catch (updateError) {
-        console.error('Failed to update usage:', updateError);
-      }
-    }
-      
-      if (selectedTopic) {
-        await supabase.functions.invoke('calculate-topic-mastery', {
-          body: {
-            subject: selectedSubject,
-            chapter: selectedChapter,
-            topic: selectedTopic
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error saving attempt:', error);
-    }
+    const isCorrect = answer === correctLetter;
     
+    // Update session stats first (no async issues)
     setSessionStats(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1,
       streak: isCorrect ? prev.streak + 1 : 0
     }));
 
+    // Save attempt in background
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user?.id) {
+          console.error('No authenticated user');
+          return;
+        }
+
+        // ✅ FIXED: Remove last_attempt_at - use only columns that exist
+        const attemptPayload = {
+          user_id: user.id,
+          question_id: question.id,
+          selected_option: `option_${answer.toLowerCase()}`,
+          is_correct: isCorrect,
+          time_taken: 30,
+          mode: 'study'
+          // ❌ NO attempted_at or last_attempt_at - database handles timestamps automatically
+        };
+
+        console.log('💾 Saving attempt:', attemptPayload);
+
+        const { data: attemptData, error: attemptError } = await supabase
+          .from('question_attempts')
+          .insert(attemptPayload);
+
+        if (attemptError) {
+          console.error('❌ Database error:', attemptError);
+          toast.error('Failed to save answer');
+          return;
+        }
+
+        console.log('✅ Attempt saved successfully!');
+
+        // ✅ Update usage limits for FREE users
+        if (!isPro) {
+          const today = new Date().toISOString().split('T')[0];
+          
+          const { data: existingUsage } = await supabase
+            .from('usage_limits')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (existingUsage) {
+            const needsReset = existingUsage.last_reset_date !== today;
+            
+            await supabase
+              .from('usage_limits')
+              .update({
+                questions_today: needsReset ? 1 : (existingUsage.questions_today || 0) + 1,
+                last_reset_date: today
+              })
+              .eq('user_id', user.id);
+
+            setDailyQuestionsUsed(needsReset ? 1 : (existingUsage.questions_today || 0) + 1);
+          } else {
+            await supabase
+              .from('usage_limits')
+              .insert({
+                user_id: user.id,
+                questions_today: 1,
+                mock_tests_this_month: 0,
+                last_reset_date: today
+              });
+
+            setDailyQuestionsUsed(1);
+          }
+
+          const newCount = dailyQuestionsUsed + 1;
+          if (newCount >= DAILY_LIMIT_FREE - 3 && newCount < DAILY_LIMIT_FREE) {
+            toast.warning(`⚠️ Only ${DAILY_LIMIT_FREE - newCount} questions left today!`);
+          }
+          
+          if (newCount >= DAILY_LIMIT_FREE) {
+            setTimeout(() => {
+              toast.error('Daily limit reached! Upgrade to Pro.');
+            }, 2000);
+          }
+        }
+
+        // Calculate topic mastery (non-blocking)
+        if (selectedTopic) {
+          supabase.functions.invoke('calculate-topic-mastery', {
+            body: {
+              userId: user.id,
+              subject: selectedSubject,
+              chapter: selectedChapter,
+              topic: selectedTopic
+            }
+          }).catch(err => console.log('Mastery calc error:', err));
+        }
+
+      } catch (error) {
+        console.error('❌ handleAnswer error:', error);
+        toast.error('Failed to save progress');
+      }
+    })();
+
+    // Move to next question
     setTimeout(() => {
       nextQuestion();
     }, 800);
   };
-
+  
   const nextQuestion = () => {
     if (currentQuestionIndex < practiceQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
