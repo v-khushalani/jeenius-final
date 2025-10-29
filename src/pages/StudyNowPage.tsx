@@ -6,7 +6,7 @@ import { SubscriptionPaywall } from '@/components/paywall/SubscriptionPaywall';
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progreHANDLEss";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -363,149 +363,102 @@ const StudyNowPage = () => {
     setLoading(false);
   }
 };
-  
+
   const handleAnswer = async (answer) => {
-  // 🚨 CHECK DAILY LIMIT FOR FREE USERS
-  if (!isPro && dailyQuestionsUsed >= DAILY_LIMIT_FREE) {
-    toast.error('Daily limit reached! Upgrade to Pro for unlimited practice.');
-    setTimeout(() => navigate('/subscription-plans'), 2000);
-    return;
-  }
-  
-  if (showResult) return;
-  
-  setSelectedAnswer(answer);
-  setShowResult(true);
-  
-  const question = practiceQuestions[currentQuestionIndex];
-  const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
-  const isCorrect = answer === correctLetter;
-  
-  // Update session stats first (no async issues)
-  setSessionStats(prev => ({
-    correct: prev.correct + (isCorrect ? 1 : 0),
-    total: prev.total + 1,
-    streak: isCorrect ? prev.streak + 1 : 0
-  }));
-
-  // Save attempt in background
-  (async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user?.id) {
-        console.error('No authenticated user');
-        return;
-      }
-
-      // ✅ CHECK IF ALREADY ATTEMPTED (PREVENT DUPLICATES)
-      const { data: existingAttempt } = await supabase
-        .from('question_attempts')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('question_id', question.id)
-        .maybeSingle();
-
-      if (existingAttempt) {
-        console.log('⚠️ Question already attempted, skipping save');
-        return; // Don't save duplicate
-      }
-
-      // ✅ INSERT NEW ATTEMPT
-      const attemptPayload = {
-        user_id: user.id,
-        question_id: question.id,
-        selected_option: `option_${answer.toLowerCase()}`,
-        is_correct: isCorrect,
-        time_taken: 30,
-        mode: 'study'
-      };
-
-      console.log('💾 Saving attempt:', attemptPayload);
-
-      const { data: attemptData, error: attemptError } = await supabase
-        .from('question_attempts')
-        .insert(attemptPayload)
-        .select();
-
-      if (attemptError) {
-        console.error('❌ Database error:', attemptError);
-        toast.error('Failed to save answer');
-        return;
-      }
-
-      console.log('✅ Attempt saved successfully!');
-
-      // ✅ UPDATE USAGE LIMITS FOR FREE USERS
-      if (!isPro) {
-        const today = new Date().toISOString().split('T')[0];
-        
-        const { data: existingUsage } = await supabase
-          .from('usage_limits')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existingUsage) {
-          const needsReset = existingUsage.last_reset_date !== today;
-          
-          await supabase
-            .from('usage_limits')
-            .update({
-              questions_today: needsReset ? 1 : (existingUsage.questions_today || 0) + 1,
-              last_reset_date: today
-            })
-            .eq('user_id', user.id);
-
-          setDailyQuestionsUsed(needsReset ? 1 : (existingUsage.questions_today || 0) + 1);
-        } else {
-          await supabase
-            .from('usage_limits')
-            .insert({
-              user_id: user.id,
-              questions_today: 1,
-              mock_tests_this_month: 0,
-              last_reset_date: today
-            });
-
-          setDailyQuestionsUsed(1);
-        }
-
-        const newCount = dailyQuestionsUsed + 1;
-        if (newCount >= DAILY_LIMIT_FREE - 3 && newCount < DAILY_LIMIT_FREE) {
-          toast.warning(`⚠️ Only ${DAILY_LIMIT_FREE - newCount} questions left today!`);
-        }
-        
-        if (newCount >= DAILY_LIMIT_FREE) {
-          setTimeout(() => {
-            toast.error('Daily limit reached! Upgrade to Pro.');
-          }, 2000);
-        }
-      }
-
-      // Calculate topic mastery (non-blocking)
-      if (selectedTopic) {
-        supabase.functions.invoke('calculate-topic-mastery', {
-          body: {
-            userId: user.id,
-            subject: selectedSubject,
-            chapter: selectedChapter,
-            topic: selectedTopic
-          }
-        }).catch(err => console.log('Mastery calc error:', err));
-      }
-
-    } catch (error) {
-      console.error('❌ handleAnswer error:', error);
-      toast.error('Failed to save progress');
+    if (!isPro && dailyQuestionsUsed >= DAILY_LIMIT_FREE) {
+      toast.error('Daily limit reached! Upgrade to Pro for unlimited practice.');
+      setTimeout(() => navigate('/subscription-plans'), 2000);
+      return;
     }
-  })();
-
-  // Move to next question
-  setTimeout(() => {
-    nextQuestion();
-  }, 800);
-};
+    
+    if (showResult) return;
+    
+    setSelectedAnswer(answer);
+    setShowResult(true);
+    
+    const question = practiceQuestions[currentQuestionIndex];
+    const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
+    const isCorrect = answer === correctLetter;
+    
+    setSessionStats(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1,
+      streak: isCorrect ? prev.streak + 1 : 0
+    }));
+  
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.id) return;
+  
+        const attemptPayload = {
+          user_id: user.id,
+          question_id: question.id,
+          selected_option: `option_${answer.toLowerCase()}`,
+          is_correct: isCorrect,
+          time_taken: 30,
+          mode: 'study',
+          attempted_at: new Date().toISOString()
+        };
+  
+        // ✅ Use UPSERT with proper onConflict
+        const { error: attemptError } = await supabase
+          .from('question_attempts')
+          .upsert(attemptPayload, {
+            onConflict: 'user_id,question_id'
+          });
+  
+        if (attemptError) {
+          console.error('❌ Save error:', attemptError);
+          return;
+        }
+  
+        // Update usage limits for free users
+        if (!isPro) {
+          const today = new Date().toISOString().split('T')[0];
+          const { data: usage } = await supabase
+            .from('usage_limits')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+  
+          if (usage) {
+            const needsReset = usage.last_reset_date !== today;
+            await supabase
+              .from('usage_limits')
+              .update({
+                questions_today: needsReset ? 1 : (usage.questions_today || 0) + 1,
+                last_reset_date: today
+              })
+              .eq('user_id', user.id);
+            setDailyQuestionsUsed(needsReset ? 1 : (usage.questions_today || 0) + 1);
+          } else {
+            await supabase
+              .from('usage_limits')
+              .insert({ user_id: user.id, questions_today: 1, last_reset_date: today });
+            setDailyQuestionsUsed(1);
+          }
+  
+          const newCount = dailyQuestionsUsed + 1;
+          if (newCount >= DAILY_LIMIT_FREE - 3 && newCount < DAILY_LIMIT_FREE) {
+            toast.warning(`⚠️ ${DAILY_LIMIT_FREE - newCount} questions left!`);
+          }
+        }
+  
+        // Topic mastery calculation
+        if (selectedTopic) {
+          supabase.functions.invoke('calculate-topic-mastery', {
+            body: { subject: selectedSubject, chapter: selectedChapter, topic: selectedTopic }
+          }).catch(err => console.log('Mastery calc error:', err));
+        }
+  
+      } catch (error) {
+        console.error('❌ Error:', error);
+      }
+    })();
+  
+    setTimeout(() => nextQuestion(), 800);
+  };
   
   const nextQuestion = () => {
     if (currentQuestionIndex < practiceQuestions.length - 1) {
