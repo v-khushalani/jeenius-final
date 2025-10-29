@@ -389,46 +389,60 @@ const StudyNowPage = () => {
   (async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) return;
+      if (!user?.id) {
+        console.error('No user found');
+        return;
+      }
 
-      // ✅ Check if already attempted (prevent duplicates)
-      const { data: existing } = await supabase
+      // ✅ FIRST: Check if already attempted
+      const { data: existingAttempt, error: checkError } = await supabase
         .from('question_attempts')
         .select('id')
         .eq('user_id', user.id)
         .eq('question_id', question.id)
         .maybeSingle();
 
-      if (existing) {
-        console.log('⚠️ Question already attempted, skipping save');
-        // Still update UI and continue
-      } else {
-        // ✅ Insert new attempt with ALL required columns
-        const { error: attemptError } = await supabase
-          .from('question_attempts')
-          .insert({
-            user_id: user.id,
-            question_id: question.id,
-            selected_option: `option_${answer.toLowerCase()}`,
-            is_correct: isCorrect,
-            time_taken: 30,
-            mode: 'study',
-            difficulty_level: parseInt(question.difficulty_level) || 1,
-            energy_state: 'normal'
-            // attempted_at, created_at, last_attempt_at are auto-set
-          });
-
-        if (attemptError) {
-          console.error('❌ Insert error:', attemptError);
-          // Don't block user, just log
-        } else {
-          console.log('✅ Attempt saved successfully');
-        }
+      if (checkError) {
+        console.error('Check error:', checkError);
       }
+
+      // ✅ If already exists, just skip silently
+      if (existingAttempt) {
+        console.log('⚠️ Already attempted, skipping database save');
+        return; // Exit early, don't try to insert
+      }
+
+      // ✅ ONLY insert if NOT exists
+      console.log('💾 Attempting to save new attempt...');
+      
+      const { data: insertData, error: insertError } = await supabase
+        .from('question_attempts')
+        .insert([{  // ✅ Wrap in array
+          user_id: user.id,
+          question_id: question.id,
+          selected_option: `option_${answer.toLowerCase()}`,
+          is_correct: isCorrect,
+          time_taken: 30,
+          mode: 'study'
+        }])
+        .select();
+
+      if (insertError) {
+        // ✅ If it's a duplicate error, ignore it
+        if (insertError.code === '23505') {
+          console.log('⚠️ Duplicate detected (race condition), ignoring');
+          return;
+        }
+        console.error('❌ Insert failed:', insertError);
+        return;
+      }
+
+      console.log('✅ Attempt saved:', insertData);
 
       // Update usage limits for free users
       if (!isPro) {
         const today = new Date().toISOString().split('T')[0];
+        
         const { data: usage } = await supabase
           .from('usage_limits')
           .select('*')
@@ -444,6 +458,7 @@ const StudyNowPage = () => {
               last_reset_date: today
             })
             .eq('user_id', user.id);
+          
           setDailyQuestionsUsed(needsReset ? 1 : (usage.questions_today || 0) + 1);
         } else {
           await supabase
@@ -458,11 +473,11 @@ const StudyNowPage = () => {
 
         const newCount = dailyQuestionsUsed + 1;
         if (newCount >= DAILY_LIMIT_FREE - 3 && newCount < DAILY_LIMIT_FREE) {
-          toast.warning(`⚠️ ${DAILY_LIMIT_FREE - newCount} questions left today!`);
+          toast.warning(`⚠️ ${DAILY_LIMIT_FREE - newCount} questions left!`);
         }
       }
 
-      // Topic mastery calculation (non-blocking)
+      // Topic mastery (optional, non-blocking)
       if (selectedTopic) {
         supabase.functions.invoke('calculate-topic-mastery', {
           body: {
@@ -470,12 +485,11 @@ const StudyNowPage = () => {
             chapter: selectedChapter,
             topic: selectedTopic
           }
-        }).catch(err => console.log('Mastery calc error:', err));
+        }).catch(err => console.log('Mastery:', err));
       }
 
     } catch (error) {
-      console.error('❌ handleAnswer error:', error);
-      // Don't show error to user, just log
+      console.error('❌ Outer error:', error);
     }
   })();
 
