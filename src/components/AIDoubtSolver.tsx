@@ -15,7 +15,7 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
-  const AI_LIMIT_FREE = 3; // ✅ allow some free queries
+  const AI_LIMIT_FREE = 5;
 
   useEffect(() => {
     checkSubscription();
@@ -47,7 +47,10 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
     if (isOpen && messages.length === 0) {
       const isGeneral = !question?.option_a || question?.question?.includes("koi bhi");
       if (isGeneral) {
-        setMessages([{ role: 'assistant', content: `🧞‍♂️ **Namaste! Main JEEnie hun!**\n**Kya doubt hai aaj?** 🎯` }]);
+        setMessages([{ 
+          role: 'assistant', 
+          content: `🧞‍♂️ **Namaste! Main JEEnie hun!**\n**Kya doubt hai aaj?** 🎯` 
+        }]);
       } else {
         setMessages([{
           role: 'assistant',
@@ -64,11 +67,11 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
-    // ✅ Free limit check
+    // Free limit check
     if (!isPro && dailyAIUsage >= AI_LIMIT_FREE) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🔒 **Daily Limit Reached!**\n\nUpgrade to Pro for unlimited AI help 💎`
+        content: `🔒 **Daily Limit Reached!**\n\nYou've used ${AI_LIMIT_FREE} free queries today!\n\n**Upgrade to Pro for unlimited AI help** 💎`
       }]);
       setTimeout(() => navigate('/subscription-plans'), 2000);
       return;
@@ -76,7 +79,10 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
 
     const now = Date.now();
     if (now - lastRequestTime < 2000) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Ruko bhai, thoda wait karo! 😅' }]);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: '⏳ Ruko bhai, 2 seconds wait karo! 😅' 
+      }]);
       return;
     }
 
@@ -91,46 +97,84 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
       let contextPrompt = '';
 
       if (isGeneral) {
-        contextPrompt = `You are JEEnie, a friendly AI tutor for JEE/NEET students. Student asks: "${input}". Reply shortly in Hinglish with emojis.`;
+        contextPrompt = `Student asks: "${input}". Give a helpful, short answer in Hinglish with emojis.`;
       } else {
-        contextPrompt = `You are JEEnie, an AI tutor for JEE/NEET prep.\n\nQuestion: ${question.question}\nA) ${question.option_a}\nB) ${question.option_b}\nC) ${question.option_c}\nD) ${question.option_d}\n\nStudent doubt: "${input}"\n\nKeep response short, Hinglish, exam-focused, friendly.`;
+        contextPrompt = `Question: ${question.question}\nOptions: A) ${question.option_a}, B) ${question.option_b}, C) ${question.option_c}, D) ${question.option_d}\n\nStudent's doubt: "${input}"\n\nHelp clarify this doubt in Hinglish, keep it short and focused.`;
       }
 
-      // ✅ Proper timeout + signal
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      console.log('🚀 Sending to JEEnie:', contextPrompt.substring(0, 100));
 
       const response = await supabase.functions.invoke('jeenie', {
-        body: { contextPrompt },
-        signal: controller.signal
+        body: { contextPrompt }
       });
 
-      clearTimeout(timeoutId);
-      console.log('JEEnie response:', response);
+      console.log('📥 JEEnie raw response:', response);
 
-      if (!response.data) throw new Error('EMPTY_RESPONSE');
-      const res = response.data;
-      if (res.error) throw new Error(res.error);
-      if (!res.content) throw new Error('EMPTY_CONTENT');
+      // Check for transport error
+      if (response.error) {
+        console.error('❌ Transport error:', response.error);
+        throw new Error('NETWORK_ERROR');
+      }
 
-      const formatted = cleanAndFormatJeenieText(res.content);
+      // Check for empty response
+      if (!response.data) {
+        console.error('❌ No data in response');
+        throw new Error('EMPTY_RESPONSE');
+      }
+
+      const data = response.data;
+      console.log('📦 Response data:', data);
+
+      // Check for API errors
+      if (data.error) {
+        console.error('❌ API error:', data.error);
+        throw new Error(data.error);
+      }
+
+      // Check for content
+      if (!data.content || !data.content.trim()) {
+        console.error('❌ Empty content');
+        throw new Error('EMPTY_CONTENT');
+      }
+
+      console.log('✅ Success! Content:', data.content.substring(0, 100));
+
+      const formatted = cleanAndFormatJeenieText(data.content);
       setMessages(prev => [...prev, { role: 'assistant', content: formatted }]);
-      if (!isPro) setDailyAIUsage(prev => prev + 1);
+      
+      if (!isPro) {
+        setDailyAIUsage(prev => prev + 1);
+      }
 
     } catch (error) {
-      console.error('Error:', error);
-      let msg = '❌ Technical issue! Retry later.';
-      if (error.message === 'API_KEY_MISSING') msg = '🔑 API key missing — contact admin.';
-      if (error.message === 'RATE_LIMIT_EXCEEDED') msg = '⏳ API rate limit reached, wait a minute.';
-      if (error.message === 'QUOTA_EXCEEDED') msg = '📊 API quota finished temporarily.';
-      if (error.message === 'EMPTY_RESPONSE' || error.message === 'EMPTY_CONTENT') msg = '😕 AI didn’t respond. Try again.';
-      setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+      console.error('🔥 Error in handleSendMessage:', error);
+      
+      let errorMsg = '❌ **Kuch issue aa gaya!**\n\nRetry karo ya admin ko batao.';
+      
+      if (error.message === 'NETWORK_ERROR') {
+        errorMsg = '🌐 **Network issue!**\n\nInternet check karo aur retry karo.';
+      } else if (error.message === 'API_KEY_MISSING') {
+        errorMsg = '🔑 **Setup issue!**\n\nAPI key missing hai. Admin ko batao.';
+      } else if (error.message === 'RATE_LIMIT_EXCEEDED') {
+        errorMsg = '⏳ **Rate limit!**\n\n1-2 minute wait karo phir retry karo.';
+      } else if (error.message === 'QUOTA_EXCEEDED') {
+        errorMsg = '📊 **Quota finished!**\n\nThoda wait karo ya admin se poocho.';
+      } else if (error.message === 'GEMINI_API_ERROR') {
+        errorMsg = '⚠️ **Gemini API issue!**\n\nAPI key ya setup me problem hai.\n\n**Check:** Supabase Edge Function logs me exact error dekho.';
+      } else if (error.message === 'EMPTY_RESPONSE' || error.message === 'EMPTY_CONTENT') {
+        errorMsg = '😕 **AI ne response nahi diya!**\n\nQuestion clear karke phir poocho.';
+      } else if (error.message.includes('EXCEPTION')) {
+        errorMsg = `🔧 **Technical error!**\n\n${error.message}\n\nAdmin ko batao.`;
+      }
+      
+      setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+      
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = e => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -151,10 +195,14 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col">
         <div className="p-4 border-b bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-xl animate-pulse"><Flame className="w-6 h-6 text-white" /></div>
-            <h3 className="font-bold text-white text-xl">JEEnie</h3>
+            <div className="bg-white/20 p-2 rounded-xl animate-pulse">
+              <Flame className="w-6 h-6 text-white" />
+            </div>
+            <h3 className="font-bold text-white text-xl">JEEnie 🧞‍♂️</h3>
           </div>
-          <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-white/80 hover:text-white p-2 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-purple-50 to-white">
@@ -163,7 +211,13 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
               <p className="text-xs text-gray-600 mb-2 text-center font-semibold">⚡ Quick doubts:</p>
               <div className="grid grid-cols-2 gap-2">
                 {quickDoubts.map((d, i) => (
-                  <button key={i} onClick={() => setInput(d.split(' ').slice(1).join(' '))} className="text-xs p-2.5 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border border-purple-200 rounded-lg text-left text-purple-700 transition-all hover:scale-105">{d}</button>
+                  <button 
+                    key={i} 
+                    onClick={() => setInput(d.split(' ').slice(1).join(' '))} 
+                    className="text-xs p-2.5 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 border border-purple-200 rounded-lg text-left text-purple-700 transition-all hover:scale-105"
+                  >
+                    {d}
+                  </button>
                 ))}
               </div>
             </div>
@@ -171,9 +225,11 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
 
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] p-3 rounded-2xl shadow-md ${msg.role === 'user'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                : 'bg-white border-2 border-purple-100 text-gray-800'}`}>
+              <div className={`max-w-[85%] p-3 rounded-2xl shadow-md ${
+                msg.role === 'user'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'bg-white border-2 border-purple-100 text-gray-800'
+              }`}>
                 {msg.role === 'assistant' && (
                   <div className="flex items-center gap-2 mb-2">
                     <Sparkles className="w-4 h-4 text-purple-600" />
@@ -206,7 +262,11 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
               className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-xl focus:border-purple-500 focus:outline-none text-sm"
               disabled={loading}
             />
-            <Button onClick={handleSendMessage} disabled={loading || !input.trim()} className="bg-gradient-to-r from-purple-600 to-pink-600 shadow-lg px-6">
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={loading || !input.trim()} 
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shadow-lg px-6"
+            >
               {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
             </Button>
           </div>
