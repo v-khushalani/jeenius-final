@@ -7,12 +7,12 @@ import {
   Target, TrendingDown, Brain, BookOpen, AlertTriangle, Activity, Zap, 
   ChevronRight, Award, BarChart3, TrendingUp, CheckCircle2, XCircle,
   Sparkles, Rocket, Timer, PieChart, Clock, Trophy, Flame, Star,
-  ChevronDown, ChevronUp, Layers, Gauge, Calendar
+  ChevronDown, ChevronUp, Layers, Gauge, Calendar, Play, Lock, Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export default function EnhancedAIStudyPlanner() {
+export default function AIStudyPlanner() {
   const [loading, setLoading] = useState(true);
   const [selectedExam, setSelectedExam] = useState('JEE_MAINS');
   const [examDate, setExamDate] = useState('2026-01-24');
@@ -29,6 +29,8 @@ export default function EnhancedAIStudyPlanner() {
   const [predictedRank, setPredictedRank] = useState(null);
   const [strengthsWeaknesses, setStrengthsWeaknesses] = useState(null);
   const [expandedSection, setExpandedSection] = useState('subjects');
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [weeklyTrend, setWeeklyTrend] = useState([]);
   
   const examDates = {
     'JEE_MAINS': '2026-01-24',
@@ -58,14 +60,14 @@ export default function EnhancedAIStudyPlanner() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast.error('Login required for AI analysis');
+        toast.error('Login required');
         setLoading(false);
         return;
       }
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('target_exam, daily_study_hours')
+        .select('target_exam, daily_study_hours, current_streak')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -73,15 +75,17 @@ export default function EnhancedAIStudyPlanner() {
         setSelectedExam(profile.target_exam || 'JEE_MAINS');
         setExamDate(examDates[profile.target_exam] || examDates['JEE_MAINS']);
         setUserHours(profile.daily_study_hours || 6);
+        setCurrentStreak(profile.current_streak || 0);
       }
 
-      // 🔥 GET ALL ATTEMPTS (No question limit needed)
+      // Fetch all attempts with question details
       const { data: attempts } = await supabase
         .from('question_attempts')
         .select(`
           id,
           is_correct,
           time_taken_seconds,
+          created_at,
           questions (
             subject,
             chapter,
@@ -100,7 +104,7 @@ export default function EnhancedAIStudyPlanner() {
       const correct = attempts.filter(a => a.is_correct).length;
       setCorrectAnswers(correct);
 
-      // 🔥 SUBJECT-WISE ANALYSIS
+      // Subject-wise Analysis
       const subjectStats = {};
       attempts.forEach(att => {
         const subject = att.questions?.subject || 'Unknown';
@@ -122,7 +126,7 @@ export default function EnhancedAIStudyPlanner() {
 
       setSubjectAnalysis(subjectArray);
 
-      // 🔥 CHAPTER-WISE ANALYSIS
+      // Chapter-wise Analysis (weakest chapters)
       const chapterStats = {};
       attempts.forEach(att => {
         const key = `${att.questions?.subject}-${att.questions?.chapter}`;
@@ -148,7 +152,7 @@ export default function EnhancedAIStudyPlanner() {
 
       setChapterAnalysis(chapterArray);
 
-      // 🔥 TOPIC-WISE ANALYSIS (Top weak topics)
+      // Topic-wise Analysis (weakest topics)
       const topicStats = {};
       attempts.forEach(att => {
         const topic = att.questions?.topic || 'Unknown';
@@ -166,7 +170,7 @@ export default function EnhancedAIStudyPlanner() {
       });
 
       const topicArray = Object.values(topicStats)
-        .filter(t => t.total >= 3) // Only topics with 3+ attempts
+        .filter(t => t.total >= 3)
         .map(t => ({
           ...t,
           accuracy: Math.round((t.correct / t.total) * 100)
@@ -176,19 +180,45 @@ export default function EnhancedAIStudyPlanner() {
 
       setTopicAnalysis(topicArray);
 
-      // 🔥 STRENGTHS & WEAKNESSES IDENTIFICATION
+      // Strengths & Weaknesses
       const strengths = subjectArray.filter(s => s.accuracy >= 70).slice(0, 3);
       const weaknesses = subjectArray.filter(s => s.accuracy < 60).slice(0, 3);
 
       setStrengthsWeaknesses({
-        strengths: strengths.length > 0 ? strengths : [{ subject: 'None yet', accuracy: 0 }],
+        strengths: strengths.length > 0 ? strengths : [{ subject: 'Keep practicing!', accuracy: 0 }],
         weaknesses: weaknesses.length > 0 ? weaknesses : [{ subject: 'All good!', accuracy: 100 }]
       });
 
-      // 🔥 AI STUDY PLAN GENERATION
+      // Weekly Trend
+      const last7Days = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+
+        const dayAttempts = attempts.filter(a => {
+          const attemptDate = new Date(a.created_at);
+          return attemptDate >= date && attemptDate < nextDate;
+        });
+
+        const dayCorrect = dayAttempts.filter(a => a.is_correct).length;
+        const dayAccuracy = dayAttempts.length > 0 ? Math.round((dayCorrect / dayAttempts.length) * 100) : 0;
+
+        last7Days.push({
+          day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          questions: dayAttempts.length,
+          accuracy: dayAccuracy
+        });
+      }
+
+      setWeeklyTrend(last7Days);
+
+      // Generate AI Study Plan
       generateIntelligentStudyPlan(subjectArray, chapterArray, topicArray, attempts.length, correct);
 
-      // 🔥 RANK PREDICTOR
+      // Rank Predictor
       calculatePredictedRank(correct, attempts.length, subjectArray);
 
     } catch (error) {
@@ -217,19 +247,19 @@ export default function EnhancedAIStudyPlanner() {
       if (subject.accuracy < 40) {
         recommendedTime = Math.round(recommendedHours * 0.35);
         priority = 'CRITICAL';
-        strategy = '🚨 Emergency focus needed! Start from basics.';
+        strategy = '🚨 Emergency focus! Start from fundamentals.';
       } else if (subject.accuracy < 60) {
         recommendedTime = Math.round(recommendedHours * 0.25);
         priority = 'HIGH';
-        strategy = '⚡ Practice weak chapters intensively.';
+        strategy = '⚡ Practice weak chapters daily.';
       } else if (subject.accuracy < 75) {
         recommendedTime = Math.round(recommendedHours * 0.2);
         priority = 'MEDIUM';
-        strategy = '✅ Maintain consistency, target advanced problems.';
+        strategy = '✅ Maintain consistency with advanced problems.';
       } else {
         recommendedTime = Math.round(recommendedHours * 0.15);
         priority = 'LOW';
-        strategy = '🏆 Excellent! Quick revisions only.';
+        strategy = '🏆 Excellent! Quick daily revisions.';
       }
 
       return {
@@ -248,7 +278,6 @@ export default function EnhancedAIStudyPlanner() {
   const calculatePredictedRank = (correct, total, subjects) => {
     const overallAccuracy = (correct / total) * 100;
     
-    // Simple rank prediction logic (can be enhanced)
     let estimatedScore = 0;
     subjects.forEach(subject => {
       if (subject.subject === 'Physics') estimatedScore += subject.accuracy * 1.2;
@@ -265,7 +294,11 @@ export default function EnhancedAIStudyPlanner() {
     else if (predictedScore > 50) rank = Math.floor(Math.random() * 150000) + 70000;
     else rank = Math.floor(Math.random() * 300000) + 200000;
 
-    setPredictedRank({ rank, score: predictedScore, confidence: total > 100 ? 'High' : total > 50 ? 'Medium' : 'Low' });
+    setPredictedRank({ 
+      rank, 
+      score: predictedScore, 
+      confidence: total > 100 ? 'High' : total > 50 ? 'Medium' : 'Low' 
+    });
   };
 
   const handleExamChange = async (newExam) => {
@@ -408,7 +441,7 @@ export default function EnhancedAIStudyPlanner() {
         <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-xl hover:scale-105 transition-transform">
           <CardContent className="p-6 text-white">
             <div className="flex items-center justify-between mb-4">
-              <Flame className="w-12 h-12" />
+              <BookOpen className="w-12 h-12" />
               <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
                 LIVE
               </Badge>
@@ -616,6 +649,54 @@ export default function EnhancedAIStudyPlanner() {
         </CardContent>
       </Card>
 
+      {/* Weekly Performance Trend */}
+      {weeklyTrend.length > 0 && (
+        <Card className="border-2 border-blue-300 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-50 border-b-2 border-blue-200">
+            <CardTitle className="flex items-center gap-3 text-blue-900">
+              <TrendingUp className="w-7 h-7" />
+              <span className="text-2xl font-bold">📈 7-Day Performance Trend</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-7 gap-3">
+              {weeklyTrend.map((day, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-xl text-center ${
+                    day.questions === 0 
+                      ? 'bg-slate-100 border-2 border-slate-300' 
+                      : day.accuracy >= 70 
+                      ? 'bg-gradient-to-br from-green-100 to-emerald-100 border-2 border-green-400'
+                      : day.accuracy >= 50
+                      ? 'bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-yellow-400'
+                      : 'bg-gradient-to-br from-red-100 to-pink-100 border-2 border-red-400'
+                  }`}
+                >
+                  <p className="text-xs font-semibold text-slate-600 mb-2">{day.day}</p>
+                  <p className="text-2xl font-black text-slate-900 mb-1">{day.questions}</p>
+                  <p className="text-xs text-slate-600">questions</p>
+                  {day.questions > 0 && (
+                    <Badge className={`mt-2 text-xs ${
+                      day.accuracy >= 70 ? 'bg-green-600' : 
+                      day.accuracy >= 50 ? 'bg-yellow-600' : 'bg-red-600'
+                    } text-white`}>
+                      {day.accuracy}%
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+              <p className="text-sm text-blue-800 font-semibold">
+                💡 Insight: {weeklyTrend.reduce((sum, d) => sum + d.questions, 0)} questions this week • 
+                Avg accuracy: {Math.round(weeklyTrend.reduce((sum, d) => sum + d.accuracy, 0) / weeklyTrend.filter(d => d.questions > 0).length)}%
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Detailed Analysis Sections */}
       <Card className="border-2 border-purple-300 shadow-xl">
         <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-50">
@@ -767,6 +848,36 @@ export default function EnhancedAIStudyPlanner() {
         </CardContent>
       </Card>
 
+      {/* Study Streak Card */}
+      <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl">
+        <CardContent className="p-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <Flame className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-amber-700 mb-1">🔥 Current Study Streak</p>
+                <p className="text-6xl font-black text-amber-900">{currentStreak}</p>
+                <p className="text-lg text-amber-700 mt-2">
+                  {currentStreak >= 30 ? '🏆 Legendary streak!' : 
+                   currentStreak >= 7 ? '⚡ Great momentum!' : 
+                   '💪 Keep building!'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <Badge className={`text-lg px-4 py-2 ${
+                currentStreak >= 30 ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+                currentStreak >= 7 ? 'bg-orange-500' : 'bg-amber-500'
+              } text-white`}>
+                {currentStreak >= 30 ? 'LEGEND' : currentStreak >= 7 ? 'ON FIRE' : 'BUILDING'}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Action Banner */}
       <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-2xl">
         <CardContent className="p-8 text-center text-white">
@@ -786,7 +897,7 @@ export default function EnhancedAIStudyPlanner() {
               Continue Studying
             </Button>
             <Button
-              onClick={() => window.location.href = '/tests'}
+              onClick={() => window.location.href = '/test'}
               className="bg-white/20 backdrop-blur-lg text-white hover:bg-white/30 font-bold px-8 py-4 text-lg"
             >
               <Trophy className="w-5 h-5 mr-2" />
