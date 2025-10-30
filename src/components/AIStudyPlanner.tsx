@@ -78,10 +78,10 @@ export default function AIStudyPlanner() {
         setCurrentStreak(profile.current_streak || 0);
       }
 
-      // Fetch all attempts with question details
+      // Fetch all attempts first
       const { data: attempts, error: attemptsError } = await supabase
         .from('question_attempts')
-        .select('*, questions(subject, chapter, topic, difficulty)')
+        .select('*')
         .eq('user_id', user.id);
 
       if (attemptsError) {
@@ -98,6 +98,23 @@ export default function AIStudyPlanner() {
       }
 
       console.log('✅ Fetched attempts:', attempts.length);
+
+      // Fetch question details separately
+      const questionIds = [...new Set(attempts.map(a => a.question_id))];
+      const { data: questions, error: questionsError } = await supabase
+        .from('questions')
+        .select('id, subject, chapter, topic, difficulty')
+        .in('id', questionIds);
+
+      if (questionsError) {
+        console.error('❌ Questions fetch error:', questionsError);
+      }
+
+      // Merge attempts with question data
+      const enrichedAttempts = attempts.map(attempt => ({
+        ...attempt,
+        questions: questions?.find(q => q.id === attempt.question_id) || null
+      }));
 
       setTotalAttempts(attempts.length);
       const correct = attempts.filter(a => a.is_correct).length;
