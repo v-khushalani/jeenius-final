@@ -321,7 +321,7 @@ export default function EnhancedAIStudyPlanner() {
 
   const overallAccuracy = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
 
-  if (totalAttempts === 0) {
+  if (!totalAttempts || totalAttempts === 0) {
     return (
       <div className="max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
         <Card className="max-w-3xl mx-auto mt-20 border-2 border-indigo-200 shadow-2xl">
