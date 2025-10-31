@@ -446,18 +446,18 @@ export default function AIStudyPlanner() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
-      {/* Header */}
-      <div className="text-center mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+      {/* Header with better spacing */}
+      <div className="text-center pt-24 pb-8">
         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 mb-3">
           AI STUDY INTELLIGENCE
         </h1>
         <p className="text-indigo-600 text-lg">Comprehensive performance analysis + personalized study plan</p>
       </div>
 
-      {/* Exam + Countdown */}
-      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-2xl">
-        <CardContent className="p-8">
+      {/* Exam + Countdown - More rounded, softer shadows */}
+      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-lg rounded-3xl overflow-hidden">
+        <CardContent className="p-6 sm:p-8">
           <div className="flex items-center justify-between text-white">
             <div>
               <p className="text-white/80 text-sm mb-2">Target Exam</p>
