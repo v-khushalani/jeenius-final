@@ -34,7 +34,10 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
   const navigate = useNavigate();
 
   const AI_LIMIT_FREE = 5;
-  const RATE_LIMIT_MS = 3000; // 3 seconds between requests
+  const RATE_LIMIT_MS = 3000;
+
+  // Get API key from environment variable or use fallback
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts";
 
   useEffect(() => {
     checkSubscription();
@@ -109,80 +112,93 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
   };
 
   const callGeminiAPI = async (prompt: string): Promise<string> => {
-    const GEMINI_API_KEY = "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts";
+    console.log('🔑 Using API Key:', GEMINI_API_KEY ? 'Key found' : 'No key!');
     
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 500,
-            topP: 0.8,
-            topK: 40
+    if (!GEMINI_API_KEY) {
+      throw new Error('API_KEY_MISSING');
+    }
+
+    // Try multiple models in order
+    const MODELS_TO_TRY = [
+      'gemini-1.5-pro-latest',
+      'gemini-1.5-flash-002', 
+      'gemini-pro'
+    ];
+
+    let lastError: any = null;
+
+    for (const model of MODELS_TO_TRY) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+        
+        console.log(`📡 Trying model: ${model}...`);
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
           },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_NONE"
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: prompt }]
+            }],
+            generationConfig: {
+              temperature: 0.8,
+              maxOutputTokens: 600,
+              topP: 0.9,
+              topK: 40
             }
-          ]
-        })
-      }
-    );
+          })
+        });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Gemini API Error:', errorData);
-      
-      if (response.status === 429) {
-        throw new Error('RATE_LIMIT');
-      } else if (response.status === 400) {
-        throw new Error('INVALID_REQUEST');
-      } else {
-        throw new Error('API_ERROR');
+        console.log(`📊 Response Status for ${model}:`, response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (content && content.trim() !== '') {
+            console.log(`✅ Success with model: ${model}`);
+            return content.trim();
+          }
+        } else {
+          const errorText = await response.text();
+          console.warn(`⚠️ Model ${model} failed:`, errorText);
+          lastError = new Error(`Model ${model}: ${response.status}`);
+          continue; // Try next model
+        }
+      } catch (error: any) {
+        console.warn(`⚠️ Error with model ${model}:`, error);
+        lastError = error;
+        continue; // Try next model
       }
     }
 
-    const data = await response.json();
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!content || content.trim() === '') {
-      throw new Error('EMPTY_RESPONSE');
-    }
-
-    return content.trim();
+    // If all models failed
+    console.error('❌ All models failed');
+    throw lastError || new Error('API_ERROR');
   };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
-    // Clear previous error
     setError(null);
 
-    // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setError('Please login to use AI Doubt Solver');
       return;
     }
 
-    // Free limit check
     if (!isPro && dailyAIUsage >= AI_LIMIT_FREE) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🔒 **Daily Limit Reached!**\n\nAapne aaj ${AI_LIMIT_FREE} free queries use kar liye!\n\n**Pro upgrade karo for unlimited AI help** 💎\n\nClick here to upgrade: /subscription-plans`
+        content: `🔒 **Daily Limit Reached!**\n\nAapne aaj ${AI_LIMIT_FREE} free queries use kar liye!\n\n**Pro upgrade karo for unlimited AI help** 💎`
       }]);
       setTimeout(() => navigate('/subscription-plans'), 3000);
       return;
     }
 
-    // Rate limiting
     const now = Date.now();
     if (now - lastRequestTime < RATE_LIMIT_MS) {
       const waitTime = Math.ceil((RATE_LIMIT_MS - (now - lastRequestTime)) / 1000);
@@ -202,39 +218,27 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
       let prompt = '';
 
       if (isGeneral) {
-        prompt = `You are JEEnie 🧞‍♂️, a friendly AI tutor for JEE students. A student asks: "${input}"
+        prompt = `You are JEEnie 🧞‍♂️, a friendly AI tutor for JEE students speaking in Hinglish (Hindi + English mix).
 
-Reply in Hinglish (Hindi + English mix). Keep it:
-- Short and clear (5-7 lines max)
-- Use simple examples
-- Add relevant emojis
-- Be encouraging and friendly
-- If it's a concept, explain step-by-step
-- If it's a problem, give hints not full solution
+Student asks: "${input}"
 
-Remember: You're talking to a JEE student, so use JEE-relevant examples.`;
+Reply in 5-7 lines using Hinglish. Be clear, encouraging, and use simple examples. Add relevant emojis. If it's a concept, explain step-by-step. For problems, give hints not direct answers.`;
       } else {
-        prompt = `You are JEEnie 🧞‍♂️, helping with this JEE question:
+        prompt = `You are JEEnie 🧞‍♂️, helping with this JEE question in Hinglish:
 
-**Question:** ${question.question}
-
-**Options:**
+Question: ${question.question}
+Options:
 A) ${question.option_a}
 B) ${question.option_b}
 C) ${question.option_c}
 D) ${question.option_d}
 
-**Student's doubt:** "${input}"
+Student's doubt: "${input}"
 
-Reply in Hinglish. Help clarify the doubt by:
-- Explaining the relevant concept
-- Showing the approach to solve
-- Pointing out common mistakes
-- Keep it 6-8 lines
-
-Don't give direct answer, guide them to think.`;
+Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mistakes. Guide them to think, don't give direct answer.`;
       }
 
+      console.log('📝 Sending prompt to AI...');
       const aiResponse = await callGeminiAPI(prompt);
       const formatted = cleanAndFormatJeenieText(aiResponse);
       
@@ -243,25 +247,28 @@ Don't give direct answer, guide them to think.`;
         content: formatted 
       }]);
 
-      // Log usage and update counter
       await logAIUsage();
       if (!isPro) {
         setDailyAIUsage(prev => prev + 1);
       }
 
     } catch (error: any) {
-      console.error('Error in handleSendMessage:', error);
+      console.error('❌ Error in handleSendMessage:', error.message);
       
       let errorMsg = '';
       
-      if (error.message === 'RATE_LIMIT') {
-        errorMsg = '⚠️ **Too many requests!**\n\nThoda wait karo (1 minute) aur phir try karo.';
+      if (error.message === 'API_KEY_MISSING') {
+        errorMsg = '🔑 **API Key missing!**\n\nPlease configure VITE_GEMINI_API_KEY in .env file.';
+      } else if (error.message === 'API_KEY_INVALID') {
+        errorMsg = '🔑 **API Key invalid!**\n\nPlease check your Gemini API key.';
+      } else if (error.message === 'RATE_LIMIT') {
+        errorMsg = '⚠️ **Too many requests!**\n\n1 minute wait karo aur phir try karo.';
       } else if (error.message === 'INVALID_REQUEST') {
-        errorMsg = '❌ **Invalid question!**\n\nQuestion ko clear karke dobara poocho.';
+        errorMsg = '❌ **Invalid question!**\n\nQuestion clear karke dobara poocho.';
       } else if (error.message === 'EMPTY_RESPONSE') {
-        errorMsg = '😕 **AI ne koi response nahi diya!**\n\nQuestion thoda aur clear karke poocho.';
+        errorMsg = '😕 **AI ne response nahi diya!**\n\nQuestion thoda clear karke poocho.';
       } else {
-        errorMsg = '❌ **Kuch technical issue aa gaya!**\n\nPlease try again in a moment.';
+        errorMsg = '❌ **Technical issue!**\n\nPlease try again. Agar problem continue ho to API key check karo.';
       }
       
       setMessages(prev => [...prev, { 
@@ -293,7 +300,6 @@ Don't give direct answer, guide them to think.`;
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-xl animate-pulse">
@@ -312,12 +318,10 @@ Don't give direct answer, guide them to think.`;
           </button>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-purple-50 to-white">
-          {/* Quick doubts - show only on first message */}
           {messages.length === 1 && (
             <div className="mb-4">
-              <p className="text-xs text-gray-600 mb-2 text-center font-semibold">⚡ Quick doubts (click to use):</p>
+              <p className="text-xs text-gray-600 mb-2 text-center font-semibold">⚡ Quick doubts:</p>
               <div className="grid grid-cols-2 gap-2">
                 {quickDoubts.map((d, i) => (
                   <button 
@@ -332,7 +336,6 @@ Don't give direct answer, guide them to think.`;
             </div>
           )}
 
-          {/* Chat messages */}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] p-3 rounded-2xl shadow-md ${
@@ -354,7 +357,6 @@ Don't give direct answer, guide them to think.`;
             </div>
           ))}
 
-          {/* Loading indicator */}
           {loading && (
             <div className="flex justify-start">
               <div className="bg-white border-2 border-purple-200 p-3 rounded-2xl rounded-bl-sm shadow-md flex items-center gap-2">
@@ -364,7 +366,6 @@ Don't give direct answer, guide them to think.`;
             </div>
           )}
 
-          {/* Error message */}
           {error && (
             <div className="flex justify-center">
               <div className="bg-red-50 border-2 border-red-200 p-3 rounded-xl flex items-center gap-2 text-red-700">
@@ -377,7 +378,6 @@ Don't give direct answer, guide them to think.`;
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input section */}
         <div className="p-4 border-t bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex gap-2">
             <input
@@ -402,7 +402,6 @@ Don't give direct answer, guide them to think.`;
             </Button>
           </div>
           
-          {/* Usage counter */}
           {!isPro && (
             <div className="mt-3 flex items-center justify-between">
               <div className="text-xs text-gray-600">
@@ -421,37 +420,26 @@ Don't give direct answer, guide them to think.`;
   );
 };
 
-// Text formatting function
 function cleanAndFormatJeenieText(text: string): string {
   return text
-    // Math formulas
     .replace(/\$(.*?)\$/g, '<code class="bg-purple-100 px-2 py-1 rounded text-purple-800">$1</code>')
     .replace(/\\frac{(.*?)}{(.*?)}/g, '<span class="font-mono">($1)/($2)</span>')
-    
-    // Greek letters
     .replace(/\\theta/g, 'θ')
     .replace(/\\alpha/g, 'α')
     .replace(/\\beta/g, 'β')
     .replace(/\\gamma/g, 'γ')
     .replace(/\\delta/g, 'δ')
     .replace(/\\pi/g, 'π')
-    
-    // Trig functions
     .replace(/\\sin/g, 'sin')
     .replace(/\\cos/g, 'cos')
     .replace(/\\tan/g, 'tan')
-    
-    // Markdown formatting
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-purple-700">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>')
-    
-    // Line breaks
     .replace(/\n{3,}/g, '<br><br>')
     .replace(/\n\n/g, '<br><br>')
     .replace(/\n/g, '<br>')
-    
     .trim();
 }
 
