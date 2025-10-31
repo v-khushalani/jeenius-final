@@ -16,7 +16,7 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
   const navigate = useNavigate();
 
   const AI_LIMIT_FREE = 5;
-  const GEMINI_API_KEY = "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts";
+  const GEMINI_API_KEY = "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts"; // Direct key
 
   useEffect(() => {
     checkSubscription();
@@ -68,10 +68,11 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
   const handleSendMessage = async () => {
     if (!input.trim()) return;
 
+    // Free limit check
     if (!isPro && dailyAIUsage >= AI_LIMIT_FREE) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🔒 **Daily Limit Reached!**\n\nYou've used ${AI_LIMIT_FREE} free queries!\n\n**Upgrade to Pro for unlimited AI help** 💎`
+        content: `🔒 **Daily Limit Reached!**\n\nYou've used ${AI_LIMIT_FREE} free queries today!\n\n**Upgrade to Pro for unlimited AI help** 💎`
       }]);
       setTimeout(() => navigate('/subscription-plans'), 2000);
       return;
@@ -97,27 +98,24 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
       let prompt = '';
 
       if (isGeneral) {
-        prompt = `Tu "JEEnie" hai - ek friendly AI tutor jo JEE/NEET students ki help karta hai. Student ne pucha: "${input}"\n\nInstructions:\n- Reply in Hinglish (Hindi + English mix)\n- Keep answer short (5-6 lines max)\n- Use emojis occasionally\n- Be encouraging and helpful\n- If it's a concept, explain simply\n- If it's a formula, write it clearly`;
+        prompt = `Tu JEEnie hai, friendly AI tutor for JEE students. Student asks: "${input}". Reply in Hinglish (Hindi+English mix), short (4-5 lines), use emojis, be encouraging.`;
       } else {
-        prompt = `Tu "JEEnie" hai - AI tutor for JEE/NEET.\n\nQuestion: ${question.question}\n\nOptions:\nA) ${question.option_a}\nB) ${question.option_b}\nC) ${question.option_c}\nD) ${question.option_d}\n\nStudent's doubt: "${input}"\n\nInstructions:\n- Reply in Hinglish\n- Keep it short (5-6 lines)\n- Focus on clarifying the doubt\n- Use emojis\n- Be encouraging`;
+        prompt = `Tu JEEnie hai. Question: ${question.question}\nOptions: A) ${question.option_a}, B) ${question.option_b}, C) ${question.option_c}, D) ${question.option_d}\n\nStudent doubt: "${input}"\n\nReply in Hinglish, short answer, help clarify doubt.`;
       }
 
-      console.log('🚀 Calling Gemini 1.5 Pro...');
+      console.log('🚀 Calling Gemini directly...');
 
+      // Direct Gemini API call
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ 
-              parts: [{ text: prompt }] 
-            }],
+            contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 500,
-              topP: 0.95,
-              topK: 40
+              maxOutputTokens: 400
             }
           })
         }
@@ -126,9 +124,9 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
       console.log('📡 Response status:', response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ API Error:', errorData);
-        throw new Error('API_ERROR');
+        const errorText = await response.text();
+        console.error('❌ API Error:', errorText);
+        throw new Error('GEMINI_API_ERROR');
       }
 
       const data = await response.json();
@@ -138,7 +136,7 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
         throw new Error('EMPTY_RESPONSE');
       }
 
-      console.log('✅ Success! Content length:', content.length);
+      console.log('✅ Success!');
 
       const formatted = cleanAndFormatJeenieText(content);
       setMessages(prev => [...prev, { role: 'assistant', content: formatted }]);
@@ -150,12 +148,12 @@ const AIDoubtSolver = ({ question, isOpen, onClose }) => {
     } catch (error) {
       console.error('🔥 Error:', error);
       
-      let errorMsg = '❌ **Kuch issue aa gaya!**\n\nRetry karo.';
+      let errorMsg = '❌ **Kuch issue aa gaya!** Retry karo.';
       
-      if (error.message === 'API_ERROR') {
-        errorMsg = '⚠️ **API issue hai!**\n\nThoda wait karke retry karo.';
+      if (error.message === 'GEMINI_API_ERROR') {
+        errorMsg = '⚠️ **AI API issue!** Thoda wait karke retry karo.';
       } else if (error.message === 'EMPTY_RESPONSE') {
-        errorMsg = '😕 **AI ne response nahi diya!**\n\nQuestion clear karke phir poocho.';
+        errorMsg = '😕 **AI ne response nahi diya!** Question clear karke retry karo.';
       }
       
       setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
