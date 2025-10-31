@@ -117,17 +117,7 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     if (!GEMINI_API_KEY) {
       throw new Error('API_KEY_MISSING');
     }
-  try {
-    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`;
-    const testResponse = await fetch(testUrl);
 
-    if (testResponse.status === 400) {
-      throw new Error('API_KEY_INVALID');
-    }
-  } catch (error) {
-    console.error('API Key validation failed:', error);
-    throw new Error('API_KEY_INVALID');
-  }
     // Try multiple models in order
     const MODELS_TO_TRY = [
       'gemini-1.5-flash-latest',
