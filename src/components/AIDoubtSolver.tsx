@@ -37,7 +37,7 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
   const RATE_LIMIT_MS = 3000;
 
   // Get API key from environment variable or use fallback
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts";
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
   useEffect(() => {
     checkSubscription();
