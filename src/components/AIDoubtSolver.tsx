@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkIsPremium } from '@/utils/premiumChecker';
 import { X, Send, Loader2, Sparkles, Flame, AlertCircle } from 'lucide-react';
@@ -22,6 +22,9 @@ interface AIDoubtSolverProps {
   onClose: () => void;
 }
 
+// ⚠️ Note: For a client-side component, we will call a secure backend
+// (like your Supabase Edge Function) which holds the actual Gemini API key.
+
 const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose }) => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,8 +39,7 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
   const AI_LIMIT_FREE = 5;
   const RATE_LIMIT_MS = 3000;
 
-  // Get API key from environment variable or use fallback
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+  // 1. Removed: GEMINI_API_KEY from the client-side
 
   useEffect(() => {
     checkSubscription();
@@ -49,6 +51,9 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
       
       if (!user) {
         console.log('No user logged in');
+        // Optionally, if not logged in, set to free tier limit
+        setIsPro(false);
+        setDailyAIUsage(AI_LIMIT_FREE); 
         return;
       }
 
@@ -75,23 +80,20 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     }
   };
 
+  const initialMessage = useMemo(() => {
+    const isGeneral = !question?.option_a || question?.question?.includes("koi bhi");
+    if (isGeneral) {
+      return `🧞‍♂️ **Namaste! Main JEEnie hun!**\n\n**Aaj kaunsa doubt clear karna hai?** 🎯\n\nMath, Physics, Chemistry - kuch bhi poocho!`;
+    } else {
+      return `🧞‍♂️ **Hey! Main JEEnie hun!**\n\n**Question:** ${question.question}\n\n${question.option_a ? `**A)** ${question.option_a}\n` : ''}${question.option_b ? `**B)** ${question.option_b}\n` : ''}${question.option_c ? `**C)** ${question.option_c}\n` : ''}${question.option_d ? `**D)** ${question.option_d}\n` : ''}\n💬 **Isme kya doubt hai? Poori tarah se explain karunga!**`;
+    }
+  }, [question]);
+
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const isGeneral = !question?.option_a || question?.question?.includes("koi bhi");
-      
-      if (isGeneral) {
-        setMessages([{ 
-          role: 'assistant', 
-          content: `🧞‍♂️ **Namaste! Main JEEnie hun!**\n\n**Aaj kaunsa doubt clear karna hai?** 🎯\n\nMath, Physics, Chemistry - kuch bhi poocho!` 
-        }]);
-      } else {
-        setMessages([{
-          role: 'assistant',
-          content: `🧞‍♂️ **Hey! Main JEEnie hun!**\n\n**Question:** ${question.question}\n\n${question.option_a ? `**A)** ${question.option_a}\n` : ''}${question.option_b ? `**B)** ${question.option_b}\n` : ''}${question.option_c ? `**C)** ${question.option_c}\n` : ''}${question.option_d ? `**D)** ${question.option_d}\n` : ''}\n💬 **Isme kya doubt hai? Poori tarah se explain karunga!**`
-        }]);
-      }
+      setMessages([{ role: 'assistant', content: initialMessage }]);
     }
-  }, [isOpen, question]);
+  }, [isOpen, messages.length, initialMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -111,71 +113,52 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     }
   };
 
-  const callGeminiAPI = async (prompt: string): Promise<string> => {
-    console.log('🔑 Using API Key:', GEMINI_API_KEY ? 'Key found' : 'No key!');
-    
-    if (!GEMINI_API_KEY) {
-      throw new Error('API_KEY_MISSING');
-    }
+  /**
+   * 2. SECURITY FIX: Call the secure Supabase Edge Function instead of Gemini API directly.
+   * We pass the full prompt to the backend which handles the API Key and model selection.
+   * @param prompt The full prompt to send to the AI.
+   * @returns The AI's response text.
+   */
+  const callEdgeFunction = async (prompt: string): Promise<string> => {
+    try {
+      // ⚠️ Use the name of your Edge Function here (e.g., 'gemini-doubtsolver')
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-doubtsolver`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}` // Send auth token
+        },
+        body: JSON.stringify({ prompt }), // Send the prompt payload to the edge function
+      });
 
-    // Try multiple models in order
-     const MODELS_TO_TRY = [
-    'gemini-1.5-flash-002',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
-  ];
-    let lastError: any = null;
+      console.log('📊 Edge Function Response Status:', response.status);
 
-    for (const model of MODELS_TO_TRY) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Edge Function Error:', errorData);
+        // Map common errors from backend to custom errors
+        if (response.status === 429) throw new Error('RATE_LIMIT');
+        if (response.status === 400 && errorData.error === 'CONTENT_BLOCKED') throw new Error('SAFETY_BLOCK');
+        if (response.status === 500 && errorData.error === 'API_KEY_MISSING') throw new Error('API_KEY_MISSING_BACKEND');
         
-        console.log(`📡 Trying model: ${model}...`);
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 600,
-              topP: 0.9,
-              topK: 40
-            }
-          })
-        });
-
-        console.log(`📊 Response Status for ${model}:`, response.status);
-
-        if (response.ok) {
-          const data = await response.json();
-          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (content && content.trim() !== '') {
-            console.log(`✅ Success with model: ${model}`);
-            return content.trim();
-          }
-        } else {
-          const errorText = await response.text();
-          console.warn(`⚠️ Model ${model} failed:`, errorText);
-          lastError = new Error(`Model ${model}: ${response.status}`);
-          continue; // Try next model
-        }
-      } catch (error: any) {
-        console.warn(`⚠️ Error with model ${model}:`, error);
-        lastError = error;
-        continue; // Try next model
+        throw new Error('BACKEND_ERROR');
       }
-    }
 
-    // If all models failed
-    console.error('❌ All models failed');
-    throw lastError || new Error('API_ERROR');
+      const data = await response.json();
+      const content = data?.response_text;
+
+      if (!content || content.trim() === '') {
+        throw new Error('EMPTY_RESPONSE');
+      }
+
+      console.log('✅ Success with Edge Function');
+      return content.trim();
+
+    } catch (error: any) {
+      console.error('❌ Error calling Edge Function:', error.message);
+      // Re-throw the error to be caught in handleSendMessage
+      throw error;
+    }
   };
 
   const handleSendMessage = async () => {
@@ -215,11 +198,12 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     try {
       const isGeneral = !question?.option_a || question?.question?.includes("koi bhi");
       let prompt = '';
-
+      
+      // 3. Prompt Logic remains the same
       if (isGeneral) {
         prompt = `You are JEEnie 🧞‍♂️, a friendly AI tutor for JEE students speaking in Hinglish (Hindi + English mix).
 
-Student asks: "${input}"
+Student asks: "${userMsg.content}"
 
 Reply in 5-7 lines using Hinglish. Be clear, encouraging, and use simple examples. Add relevant emojis. If it's a concept, explain step-by-step. For problems, give hints not direct answers.`;
       } else {
@@ -232,13 +216,14 @@ B) ${question.option_b}
 C) ${question.option_c}
 D) ${question.option_d}
 
-Student's doubt: "${input}"
+Student's doubt: "${userMsg.content}"
 
 Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mistakes. Guide them to think, don't give direct answer.`;
       }
 
-      console.log('📝 Sending prompt to AI...');
-      const aiResponse = await callGeminiAPI(prompt);
+      console.log('📝 Sending prompt to Edge Function...');
+      // 4. Call the secure edge function
+      const aiResponse = await callEdgeFunction(prompt);
       const formatted = cleanAndFormatJeenieText(aiResponse);
       
       setMessages(prev => [...prev, { 
@@ -256,18 +241,16 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
       
       let errorMsg = '';
       
-      if (error.message === 'API_KEY_MISSING') {
-        errorMsg = '🔑 **API Key missing!**\n\nPlease configure VITE_GEMINI_API_KEY in .env file.';
-      } else if (error.message === 'API_KEY_INVALID') {
-        errorMsg = '🔑 **API Key invalid!**\n\nPlease check your Gemini API key.';
+      if (error.message === 'API_KEY_MISSING_BACKEND') {
+        errorMsg = '🔑 **Backend API Key missing!**\n\nPlease configure the GEMINI_API_KEY in your Supabase Edge Function environment variables.';
       } else if (error.message === 'RATE_LIMIT') {
         errorMsg = '⚠️ **Too many requests!**\n\n1 minute wait karo aur phir try karo.';
-      } else if (error.message === 'INVALID_REQUEST') {
-        errorMsg = '❌ **Invalid question!**\n\nQuestion clear karke dobara poocho.';
+      } else if (error.message === 'SAFETY_BLOCK') {
+        errorMsg = '🚫 **AI ne is sawal ka jawab nahi diya!**\n\nApna sawal thoda clear karke dobara poocho.';
       } else if (error.message === 'EMPTY_RESPONSE') {
         errorMsg = '😕 **AI ne response nahi diya!**\n\nQuestion thoda clear karke poocho.';
       } else {
-        errorMsg = '❌ **Technical issue!**\n\nPlease try again. Agar problem continue ho to API key check karo.';
+        errorMsg = '❌ **Technical issue!**\n\nPlease try again. Agar problem continue ho to developer se baat karo.';
       }
       
       setMessages(prev => [...prev, { 
@@ -299,6 +282,7 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+        {/* Header */}
         <div className="p-4 border-b bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-xl animate-pulse">
@@ -317,6 +301,7 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
           </button>
         </div>
 
+        {/* Messages Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-purple-50 to-white">
           {messages.length === 1 && (
             <div className="mb-4">
@@ -377,6 +362,7 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Input Footer */}
         <div className="p-4 border-t bg-gradient-to-r from-purple-50 to-pink-50">
           <div className="flex gap-2">
             <input
