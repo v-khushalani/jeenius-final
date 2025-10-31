@@ -120,9 +120,9 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
 
     // Try multiple models in order
     const MODELS_TO_TRY = [
-      'gemini-1.5-pro-latest',
-      'gemini-1.5-flash-002', 
-      'gemini-pro'
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro-latest'
     ];
 
     let lastError: any = null;
