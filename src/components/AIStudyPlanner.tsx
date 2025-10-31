@@ -404,7 +404,7 @@ export default function AIStudyPlanner() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-24">
         <div className="text-center">
           <div className="relative">
             <Brain className="w-24 h-24 text-indigo-600 animate-pulse mx-auto mb-6" />
@@ -487,10 +487,10 @@ export default function AIStudyPlanner() {
         </CardContent>
       </Card>
 
-      {/* Performance Overview */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 border-0 shadow-xl hover:scale-105 transition-transform">
-          <CardContent className="p-6 text-white">
+      {/* Performance Overview - Softer rounded cards */}
+      <div className="grid md:grid-cols-4 gap-4 sm:gap-6">
+        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 border-0 shadow-md rounded-2xl hover:scale-105 transition-transform duration-200">
+          <CardContent className="p-5 sm:p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Target className="w-12 h-12" />
               <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
@@ -503,8 +503,8 @@ export default function AIStudyPlanner() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-xl hover:scale-105 transition-transform">
-          <CardContent className="p-6 text-white">
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-md rounded-2xl hover:scale-105 transition-transform duration-200">
+          <CardContent className="p-5 sm:p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <BookOpen className="w-12 h-12" />
               <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
@@ -516,8 +516,8 @@ export default function AIStudyPlanner() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-500 to-red-600 border-0 shadow-xl hover:scale-105 transition-transform">
-          <CardContent className="p-6 text-white">
+        <Card className="bg-gradient-to-br from-orange-500 to-red-600 border-0 shadow-md rounded-2xl hover:scale-105 transition-transform duration-200">
+          <CardContent className="p-5 sm:p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <AlertTriangle className="w-12 h-12" />
               <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
@@ -529,8 +529,8 @@ export default function AIStudyPlanner() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-pink-600 border-0 shadow-xl hover:scale-105 transition-transform">
-          <CardContent className="p-6 text-white">
+        <Card className="bg-gradient-to-br from-purple-500 to-pink-600 border-0 shadow-md rounded-2xl hover:scale-105 transition-transform duration-200">
+          <CardContent className="p-5 sm:p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Clock className="w-12 h-12" />
               <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
@@ -560,10 +560,10 @@ export default function AIStudyPlanner() {
         </Card>
       </div>
 
-      {/* Rank Predictor */}
+      {/* Rank Predictor - Softer design */}
       {predictedRank && predictedRank.totalAttempts >= 10 && (
-        <Card className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border-0 shadow-2xl">
-          <CardContent className="p-8">
+        <Card className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border-0 shadow-lg rounded-3xl overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
             <div className="flex items-center justify-between text-white">
               <div className="flex items-center gap-6">
                 <Trophy className="w-20 h-20" />
@@ -626,11 +626,11 @@ export default function AIStudyPlanner() {
         </Card>
       )}
 
-      {/* Strengths & Weaknesses */}
+      {/* Strengths & Weaknesses - Softer corners */}
       {strengthsWeaknesses && (
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-white shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-50 border-b-2 border-green-200">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="border border-green-200 bg-gradient-to-br from-green-50 to-white shadow-md rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100 rounded-t-2xl">
               <CardTitle className="flex items-center gap-3 text-green-800">
                 <CheckCircle2 className="w-7 h-7" />
                 <span className="text-2xl font-bold">💪 Your Strengths</span>
@@ -654,8 +654,8 @@ export default function AIStudyPlanner() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-red-300 bg-gradient-to-br from-red-50 to-white shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-red-100 to-pink-50 border-b-2 border-red-200">
+          <Card className="border border-red-200 bg-gradient-to-br from-red-50 to-white shadow-md rounded-2xl">
+            <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-100 rounded-t-2xl">
               <CardTitle className="flex items-center gap-3 text-red-800">
                 <XCircle className="w-7 h-7" />
                 <span className="text-2xl font-bold">🚨 Priority Weaknesses</span>
@@ -681,9 +681,9 @@ export default function AIStudyPlanner() {
         </div>
       )}
 
-      {/* AI Study Plan */}
-      <Card className="border-2 border-indigo-300 shadow-2xl">
-        <CardHeader className="bg-gradient-to-r from-indigo-100 via-purple-50 to-pink-50 border-b-2 border-indigo-200">
+      {/* AI Study Plan - Softer */}
+      <Card className="border border-indigo-200 shadow-lg rounded-3xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border-b border-indigo-100">
           <CardTitle className="flex items-center gap-3 text-indigo-900">
             <Brain className="w-8 h-8 text-indigo-600" />
             <span className="text-3xl font-black">AI-Generated Daily Study Plan</span>
