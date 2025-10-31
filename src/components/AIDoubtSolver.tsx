@@ -36,9 +36,6 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
   const AI_LIMIT_FREE = 5;
   const RATE_LIMIT_MS = 3000;
 
-  // Get API key from environment variable or use fallback
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyCdBpYBvYdwZMJ9D_rh_vRlZLhfvTaDRts";
-
   useEffect(() => {
     checkSubscription();
   }, []);
@@ -111,72 +108,45 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     }
   };
 
-  const callGeminiAPI = async (prompt: string): Promise<string> => {
-    console.log('🔑 Using API Key:', GEMINI_API_KEY ? 'Key found' : 'No key!');
+  const callSupabaseFunction = async (prompt: string): Promise<string> => {
+    console.log('📡 Calling Supabase Edge Function...');
     
-    if (!GEMINI_API_KEY) {
-      throw new Error('API_KEY_MISSING');
-    }
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: { contextPrompt: prompt }
+      });
 
-    // Try multiple models in order
-    const MODELS_TO_TRY = [
-      'gemini-1.5-pro-latest',
-      'gemini-1.5-flash-002', 
-      'gemini-pro'
-    ];
+      console.log('📊 Function response:', data);
 
-    let lastError: any = null;
-
-    for (const model of MODELS_TO_TRY) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-        
-        console.log(`📡 Trying model: ${model}...`);
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 600,
-              topP: 0.9,
-              topK: 40
-            }
-          })
-        });
-
-        console.log(`📊 Response Status for ${model}:`, response.status);
-
-        if (response.ok) {
-          const data = await response.json();
-          const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-          if (content && content.trim() !== '') {
-            console.log(`✅ Success with model: ${model}`);
-            return content.trim();
-          }
-        } else {
-          const errorText = await response.text();
-          console.warn(`⚠️ Model ${model} failed:`, errorText);
-          lastError = new Error(`Model ${model}: ${response.status}`);
-          continue; // Try next model
-        }
-      } catch (error: any) {
-        console.warn(`⚠️ Error with model ${model}:`, error);
-        lastError = error;
-        continue; // Try next model
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw new Error('FUNCTION_ERROR');
       }
-    }
 
-    // If all models failed
-    console.error('❌ All models failed');
-    throw lastError || new Error('API_ERROR');
+      if (data?.error) {
+        console.error('❌ Function returned error:', data.error);
+        
+        if (data.error === 'RATE_LIMIT_EXCEEDED') {
+          throw new Error('RATE_LIMIT');
+        } else if (data.error === 'API_KEY_MISSING') {
+          throw new Error('API_KEY_MISSING');
+        } else if (data.error === 'EMPTY_RESPONSE') {
+          throw new Error('EMPTY_RESPONSE');
+        } else {
+          throw new Error('API_ERROR');
+        }
+      }
+
+      if (!data?.content || data.content.trim() === '') {
+        throw new Error('EMPTY_RESPONSE');
+      }
+
+      console.log('✅ Success!');
+      return data.content.trim();
+    } catch (error: any) {
+      console.error('🔥 Error calling function:', error);
+      throw error;
+    }
   };
 
   const handleSendMessage = async () => {
@@ -218,15 +188,9 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
       let prompt = '';
 
       if (isGeneral) {
-        prompt = `You are JEEnie 🧞‍♂️, a friendly AI tutor for JEE students speaking in Hinglish (Hindi + English mix).
-
-Student asks: "${input}"
-
-Reply in 5-7 lines using Hinglish. Be clear, encouraging, and use simple examples. Add relevant emojis. If it's a concept, explain step-by-step. For problems, give hints not direct answers.`;
+        prompt = `Student asks: "${input}"\n\nReply in 5-7 lines using Hinglish (Hindi + English mix). Be clear, encouraging, and use simple examples with emojis. If it's a concept, explain step-by-step. For problems, give hints not direct answers.`;
       } else {
-        prompt = `You are JEEnie 🧞‍♂️, helping with this JEE question in Hinglish:
-
-Question: ${question.question}
+        prompt = `Question: ${question.question}
 Options:
 A) ${question.option_a}
 B) ${question.option_b}
@@ -235,11 +199,11 @@ D) ${question.option_d}
 
 Student's doubt: "${input}"
 
-Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mistakes. Guide them to think, don't give direct answer.`;
+Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out common mistakes. Guide them to think, don't give direct answer.`;
       }
 
-      console.log('📝 Sending prompt to AI...');
-      const aiResponse = await callGeminiAPI(prompt);
+      console.log('📝 Sending prompt to Supabase function...');
+      const aiResponse = await callSupabaseFunction(prompt);
       const formatted = cleanAndFormatJeenieText(aiResponse);
       
       setMessages(prev => [...prev, { 
@@ -258,17 +222,15 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
       let errorMsg = '';
       
       if (error.message === 'API_KEY_MISSING') {
-        errorMsg = '🔑 **API Key missing!**\n\nPlease configure VITE_GEMINI_API_KEY in .env file.';
-      } else if (error.message === 'API_KEY_INVALID') {
-        errorMsg = '🔑 **API Key invalid!**\n\nPlease check your Gemini API key.';
+        errorMsg = '🔑 **API Key missing in backend!**\n\nPlease contact admin to configure Gemini API key.';
       } else if (error.message === 'RATE_LIMIT') {
         errorMsg = '⚠️ **Too many requests!**\n\n1 minute wait karo aur phir try karo.';
-      } else if (error.message === 'INVALID_REQUEST') {
-        errorMsg = '❌ **Invalid question!**\n\nQuestion clear karke dobara poocho.';
       } else if (error.message === 'EMPTY_RESPONSE') {
         errorMsg = '😕 **AI ne response nahi diya!**\n\nQuestion thoda clear karke poocho.';
+      } else if (error.message === 'FUNCTION_ERROR') {
+        errorMsg = '❌ **Backend function error!**\n\nPlease try again or contact support.';
       } else {
-        errorMsg = '❌ **Technical issue!**\n\nPlease try again. Agar problem continue ho to API key check karo.';
+        errorMsg = '❌ **Kuch technical issue aa gaya!**\n\nPlease try again. Agar problem continue ho to support contact karo.';
       }
       
       setMessages(prev => [...prev, { 
