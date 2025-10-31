@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
-  Target, Brain, BookOpen, AlertTriangle, Activity, Zap, 
-  ChevronRight, Award, BarChart3, TrendingUp, CheckCircle2,
-  Sparkles, Rocket, Timer, Clock, Trophy, Flame, Star,
-  ChevronDown, ChevronUp, Calendar, Play, Medal, Gift, Crown
+  Target, TrendingDown, Brain, BookOpen, AlertTriangle, Activity, Zap, 
+  ChevronRight, Award, BarChart3, TrendingUp, CheckCircle2, XCircle,
+  Sparkles, Rocket, Timer, PieChart, Clock, Trophy, Flame, Star,
+  ChevronDown, ChevronUp, Layers, Gauge, Calendar, Play, Lock, Crown
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,18 +16,22 @@ export default function AIStudyPlanner() {
   const [loading, setLoading] = useState(true);
   const [selectedExam, setSelectedExam] = useState('JEE_MAINS');
   const [examDate, setExamDate] = useState('2026-01-24');
+  const [aiRecommendedHours, setAiRecommendedHours] = useState(6);
+  const [userHours, setUserHours] = useState(6);
+  
+  // Comprehensive Analysis Data
   const [totalAttempts, setTotalAttempts] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [subjectAnalysis, setSubjectAnalysis] = useState([]);
+  const [chapterAnalysis, setChapterAnalysis] = useState([]);
+  const [topicAnalysis, setTopicAnalysis] = useState([]);
   const [studyPlan, setStudyPlan] = useState([]);
   const [predictedRank, setPredictedRank] = useState(null);
+  const [strengthsWeaknesses, setStrengthsWeaknesses] = useState(null);
+  const [expandedSection, setExpandedSection] = useState('subjects');
   const [currentStreak, setCurrentStreak] = useState(0);
   const [weeklyTrend, setWeeklyTrend] = useState([]);
-  const [expandedSection, setExpandedSection] = useState('subjects');
-  const [showRankCard, setShowRankCard] = useState(true);
-  const [jeePoints, setJeePoints] = useState(0);
-  const [badges, setBadges] = useState([]);
-
+  
   const examDates = {
     'JEE_MAINS': '2026-01-24',
     'JEE_ADVANCED': '2026-05-24',
@@ -61,44 +65,52 @@ export default function AIStudyPlanner() {
         return;
       }
 
-      // Fetch profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('target_exam, current_streak')
+        .select('target_exam, daily_study_hours, current_streak')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (profile) {
         setSelectedExam(profile.target_exam || 'JEE_MAINS');
         setExamDate(examDates[profile.target_exam] || examDates['JEE_MAINS']);
+        setUserHours(profile.daily_study_hours || 6);
         setCurrentStreak(profile.current_streak || 0);
       }
 
-      // Fetch attempts
+      // Fetch all attempts first
       const { data: attempts, error: attemptsError } = await supabase
         .from('question_attempts')
         .select('*')
         .eq('user_id', user.id);
 
       if (attemptsError) {
-        console.error('Attempts fetch error:', attemptsError);
+        console.error('❌ Attempts fetch error:', attemptsError);
         toast.error('Failed to fetch attempts');
         setLoading(false);
         return;
       }
 
       if (!attempts || attempts.length === 0) {
+        console.log('⚠️ No attempts found for user');
         setLoading(false);
         return;
       }
 
-      // Fetch questions
+      console.log('✅ Fetched attempts:', attempts.length);
+
+      // Fetch question details separately
       const questionIds = [...new Set(attempts.map(a => a.question_id))];
-      const { data: questions } = await supabase
+      const { data: questions, error: questionsError } = await supabase
         .from('questions')
         .select('id, subject, chapter, topic, difficulty')
         .in('id', questionIds);
 
+      if (questionsError) {
+        console.error('❌ Questions fetch error:', questionsError);
+      }
+
+      // Merge attempts with question data
       const enrichedAttempts = attempts.map(attempt => ({
         ...attempt,
         questions: questions?.find(q => q.id === attempt.question_id) || null
@@ -108,15 +120,7 @@ export default function AIStudyPlanner() {
       const correct = enrichedAttempts.filter(a => a.is_correct).length;
       setCorrectAnswers(correct);
 
-      // Calculate JEEnius Points
-      const points = correct * 10 + (currentStreak * 50);
-      setJeePoints(points);
-
-      // Calculate Badges
-      const earnedBadges = calculateBadges(enrichedAttempts.length, correct, currentStreak);
-      setBadges(earnedBadges);
-
-      // Subject Analysis
+      // Subject-wise Analysis
       const subjectStats = {};
       enrichedAttempts.forEach(att => {
         const subject = att.questions?.subject || 'Unknown';
@@ -137,6 +141,69 @@ export default function AIStudyPlanner() {
       })).sort((a, b) => b.accuracy - a.accuracy);
 
       setSubjectAnalysis(subjectArray);
+
+      // Chapter-wise Analysis (weakest chapters)
+      const chapterStats = {};
+      enrichedAttempts.forEach(att => {
+        const key = `${att.questions?.subject}-${att.questions?.chapter}`;
+        if (!chapterStats[key]) {
+          chapterStats[key] = { 
+            subject: att.questions?.subject,
+            chapter: att.questions?.chapter,
+            total: 0, 
+            correct: 0, 
+            time: 0 
+          };
+        }
+        chapterStats[key].total++;
+        if (att.is_correct) chapterStats[key].correct++;
+        chapterStats[key].time += att.time_taken_seconds || 0;
+      });
+
+      const chapterArray = Object.values(chapterStats).map(ch => ({
+        ...ch,
+        accuracy: Math.round((ch.correct / ch.total) * 100),
+        avgTime: Math.round(ch.time / ch.total)
+      })).sort((a, b) => a.accuracy - b.accuracy).slice(0, 10);
+
+      setChapterAnalysis(chapterArray);
+
+      // Topic-wise Analysis (weakest topics)
+      const topicStats = {};
+      enrichedAttempts.forEach(att => {
+        const topic = att.questions?.topic || 'Unknown';
+        if (!topicStats[topic]) {
+          topicStats[topic] = { 
+            topic,
+            subject: att.questions?.subject,
+            chapter: att.questions?.chapter,
+            total: 0, 
+            correct: 0 
+          };
+        }
+        topicStats[topic].total++;
+        if (att.is_correct) topicStats[topic].correct++;
+      });
+
+      const topicArray = Object.values(topicStats)
+        .filter(t => t.total >= 3)
+        .map(t => ({
+          ...t,
+          accuracy: Math.round((t.correct / t.total) * 100)
+        }))
+        .sort((a, b) => a.accuracy - b.accuracy)
+        .slice(0, 15);
+
+      setTopicAnalysis(topicArray);
+
+      // Strengths & Weaknesses
+      const strengths = subjectArray.filter(s => s.accuracy >= 70).slice(0, 3);
+      const weaknesses = subjectArray.filter(s => s.accuracy < 60).slice(0, 3);
+
+      setStrengthsWeaknesses({
+        strengths: strengths.length > 0 ? strengths : [{ subject: 'Keep practicing!', accuracy: 0 }],
+        weaknesses: weaknesses.length > 0 ? weaknesses : [{ subject: 'All good!', accuracy: 100 }]
+      });
 
       // Weekly Trend
       const last7Days = [];
@@ -164,10 +231,10 @@ export default function AIStudyPlanner() {
 
       setWeeklyTrend(last7Days);
 
-      // Generate Study Plan
-      generateStudyPlan(subjectArray, enrichedAttempts.length, correct);
+      // Generate AI Study Plan
+      generateIntelligentStudyPlan(subjectArray, chapterArray, topicArray, enrichedAttempts.length, correct);
 
-      // Rank Prediction
+      // Rank Predictor
       calculatePredictedRank(correct, enrichedAttempts.length, subjectArray);
 
     } catch (error) {
@@ -178,44 +245,48 @@ export default function AIStudyPlanner() {
     }
   };
 
-  const calculateBadges = (total, correct, streak) => {
-    const badges = [
-      { id: 1, name: 'First Steps', icon: '🎯', earned: total >= 10, rarity: 'common', description: 'Complete 10 questions' },
-      { id: 2, name: 'Week Warrior', icon: '🔥', earned: streak >= 7, rarity: 'rare', description: '7-day streak' },
-      { id: 3, name: 'Centurion', icon: '💯', earned: total >= 100, rarity: 'epic', description: 'Solve 100 questions' },
-      { id: 4, name: 'Accuracy Master', icon: '🎖️', earned: (correct / total) >= 0.85, rarity: 'epic', description: '85%+ accuracy' },
-      { id: 5, name: 'Speed Demon', icon: '⚡', earned: total >= 500, rarity: 'legendary', description: '500 questions solved' },
-      { id: 6, name: 'Perfect Week', icon: '👑', earned: streak >= 30, rarity: 'legendary', description: '30-day streak' }
-    ];
-    return badges;
-  };
-
-  const generateStudyPlan = (subjects, totalAttempts, correct) => {
+  const generateIntelligentStudyPlan = (subjects, chapters, topics, totalAttempts, correct) => {
     const overallAccuracy = Math.round((correct / totalAttempts) * 100);
     
+    // AI determines study hours based on days remaining + accuracy
     let recommendedHours = 6;
-    if (daysRemaining < 30 && overallAccuracy < 60) recommendedHours = 10;
-    else if (daysRemaining < 60 && overallAccuracy < 70) recommendedHours = 8;
+    if (daysRemaining < 30 && overallAccuracy < 60) recommendedHours = 12;
+    else if (daysRemaining < 60 && overallAccuracy < 50) recommendedHours = 10;
+    else if (daysRemaining < 90 && overallAccuracy < 65) recommendedHours = 8;
+    else if (daysRemaining < 180 && overallAccuracy < 70) recommendedHours = 7;
     else if (overallAccuracy > 85) recommendedHours = 5;
     
+    setAiRecommendedHours(recommendedHours);
+
+    // Calculate time allocation based on actual performance
     const plan = subjects.map(subject => {
       let recommendedTime = 0;
       let priority = 'MEDIUM';
       let strategy = '';
 
-      if (subject.accuracy < 40) {
+      const accuracyGap = 80 - subject.accuracy; // Target is 80%
+      const attemptsRatio = subject.attempted / totalAttempts;
+
+      // CRITICAL: Very poor performance or not enough attempts
+      if (subject.accuracy < 40 || (subject.accuracy < 60 && subject.attempted < 20)) {
         recommendedTime = Math.round(recommendedHours * 0.4);
         priority = 'CRITICAL';
         strategy = `🚨 Urgent! Master basics first. Target: 50+ questions this week.`;
-      } else if (subject.accuracy < 60) {
+      } 
+      // HIGH: Below average performance
+      else if (subject.accuracy < 60) {
         recommendedTime = Math.round(recommendedHours * 0.3);
         priority = 'HIGH';
         strategy = `⚡ Focus on weak chapters. Solve 30+ questions daily.`;
-      } else if (subject.accuracy < 75) {
+      } 
+      // MEDIUM: Average performance, needs consistency
+      else if (subject.accuracy < 75) {
         recommendedTime = Math.round(recommendedHours * 0.25);
         priority = 'MEDIUM';
         strategy = `✅ Good progress! Practice advanced problems daily.`;
-      } else {
+      } 
+      // LOW: Strong subject, maintenance mode
+      else {
         recommendedTime = Math.round(recommendedHours * 0.15);
         priority = 'LOW';
         strategy = `🏆 Excellent! Maintain with 15-20 questions daily.`;
@@ -231,6 +302,7 @@ export default function AIStudyPlanner() {
       };
     });
 
+    // Sort by priority (Critical → High → Medium → Low)
     const priorityOrder = { 'CRITICAL': 1, 'HIGH': 2, 'MEDIUM': 3, 'LOW': 4 };
     plan.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
 
@@ -239,32 +311,35 @@ export default function AIStudyPlanner() {
 
   const calculatePredictedRank = (correct, total, subjects) => {
     if (total < 10) {
+      // Not enough data
       setPredictedRank(null);
       return;
     }
 
     const overallAccuracy = (correct / total) * 100;
     
+    // Real JEE rank calculation based on accuracy
     let estimatedScore = 0;
     let subjectCount = 0;
     
     subjects.forEach(subject => {
       if (subject.subject === 'Physics') {
-        estimatedScore += subject.accuracy * 1.2;
+        estimatedScore += subject.accuracy * 1.2; // Physics weightage
         subjectCount++;
       }
       if (subject.subject === 'Chemistry') {
-        estimatedScore += subject.accuracy * 1.0;
+        estimatedScore += subject.accuracy * 1.0; // Chemistry weightage
         subjectCount++;
       }
       if (subject.subject === 'Mathematics') {
-        estimatedScore += subject.accuracy * 1.3;
+        estimatedScore += subject.accuracy * 1.3; // Maths weightage (highest)
         subjectCount++;
       }
     });
 
     const predictedScore = subjectCount > 0 ? Math.round(estimatedScore / subjectCount) : overallAccuracy;
     
+    // Realistic rank mapping based on JEE statistics
     let rank;
     if (predictedScore >= 95) rank = Math.floor(500 + (100 - predictedScore) * 100);
     else if (predictedScore >= 90) rank = Math.floor(1000 + (95 - predictedScore) * 400);
@@ -274,27 +349,69 @@ export default function AIStudyPlanner() {
     else if (predictedScore >= 70) rank = Math.floor(30000 + (75 - predictedScore) * 4000);
     else if (predictedScore >= 65) rank = Math.floor(50000 + (70 - predictedScore) * 6000);
     else if (predictedScore >= 60) rank = Math.floor(80000 + (65 - predictedScore) * 8000);
-    else rank = Math.floor(120000 + (60 - predictedScore) * 12000);
+    else if (predictedScore >= 50) rank = Math.floor(120000 + (60 - predictedScore) * 12000);
+    else rank = Math.floor(200000 + (50 - predictedScore) * 15000);
 
+    // Confidence based on total attempts
     let confidence;
     if (total >= 200) confidence = 'High';
     else if (total >= 100) confidence = 'Medium';
     else confidence = 'Low';
 
     setPredictedRank({ 
-      rank: Math.min(rank, 1200000),
+      rank: Math.min(rank, 1200000), // Cap at total JEE aspirants
       score: predictedScore, 
       confidence,
       totalAttempts: total
     });
   };
 
+  const handleExamChange = async (newExam) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('profiles')
+        .update({ target_exam: newExam })
+        .eq('user_id', user.id);
+
+      setSelectedExam(newExam);
+      setExamDate(examDates[newExam]);
+      toast.success(`Goal updated: ${examNames[newExam]}`);
+      await fetchComprehensiveAnalysis();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const handleHoursUpdate = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('profiles')
+        .update({ daily_study_hours: userHours })
+        .eq('user_id', user.id);
+
+      toast.success('Study hours updated!');
+      await fetchComprehensiveAnalysis();
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-20">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
-          <Brain className="w-16 h-16 text-indigo-600 animate-pulse mx-auto mb-4" />
-          <p className="text-lg font-semibold text-indigo-900">AI Analyzing Your Performance...</p>
+          <div className="relative">
+            <Brain className="w-24 h-24 text-indigo-600 animate-pulse mx-auto mb-6" />
+            <Sparkles className="w-10 h-10 text-yellow-500 absolute -top-2 -right-2 animate-ping" />
+          </div>
+          <p className="text-2xl font-bold text-indigo-900">AI Analyzing Your Performance...</p>
+          <p className="text-sm text-indigo-600 mt-2">Generating comprehensive insights</p>
         </div>
       </div>
     );
@@ -304,21 +421,22 @@ export default function AIStudyPlanner() {
 
   if (totalAttempts === 0) {
     return (
-      <div className="max-w-6xl mx-auto p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen pt-20">
-        <Card className="max-w-2xl mx-auto mt-16 border border-indigo-200 shadow-lg">
-          <CardContent className="p-8 text-center">
-            <Brain className="w-16 h-16 text-indigo-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-indigo-900 mb-3">
+      <div className="max-w-7xl mx-auto p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+        <Card className="max-w-3xl mx-auto mt-20 border-2 border-indigo-200 shadow-2xl">
+          <CardContent className="p-12 text-center">
+            <Brain className="w-24 h-24 text-indigo-400 mx-auto mb-6" />
+            <h2 className="text-3xl font-bold text-indigo-900 mb-4">
               Welcome to AI Study Planner! 🚀
             </h2>
-            <p className="text-indigo-600 mb-6 text-base">
-              Start solving questions to unlock your personalized study insights!
+            <p className="text-indigo-600 mb-8 text-lg">
+              Start solving questions to unlock your personalized study insights, 
+              strengths/weaknesses analysis, and AI-powered recommendations!
             </p>
             <Button
               onClick={() => window.location.href = '/study-now'}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-8 py-4 text-lg"
             >
-              <Rocket className="w-4 h-4 mr-2" />
+              <Rocket className="w-5 h-5 mr-2" />
               Start Your Journey
             </Button>
           </CardContent>
@@ -328,131 +446,25 @@ export default function AIStudyPlanner() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-3 py-6 space-y-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen pt-20">
-      
-      {/* Header - Compact */}
-      <div className="text-center pb-4">
-        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 mb-1">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+      {/* Header with better spacing */}
+      <div className="text-center pt-24 pb-8">
+        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 mb-3">
           AI STUDY INTELLIGENCE
         </h1>
-        <p className="text-indigo-600 text-sm">Comprehensive performance analysis + personalized study plan</p>
+        <p className="text-indigo-600 text-lg">Comprehensive performance analysis + personalized study plan</p>
       </div>
 
-      {/* Foldable Certificate - Rank Predictor */}
-      {predictedRank && predictedRank.totalAttempts >= 10 && showRankCard && (
-        <div className="relative">
-          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-16 h-4 bg-gradient-to-b from-yellow-400 to-yellow-500 rounded-t-lg shadow-md"></div>
-          
-          <Card className="relative bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 border-2 border-yellow-400 shadow-2xl overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500"></div>
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400"></div>
-            
-            <button
-              onClick={() => setShowRankCard(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 z-10"
-            >
-              ✕
-            </button>
-
-            <CardContent className="p-4 text-center relative">
-              <div className="absolute top-2 left-2 text-yellow-500">
-                <Medal className="w-6 h-6" />
-              </div>
-              <div className="absolute top-2 right-8 text-yellow-500">
-                <Trophy className="w-6 h-6" />
-              </div>
-
-              <p className="text-xs text-orange-700 font-semibold mb-1">🎯 AI Predicted JEE Rank</p>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <p className="text-4xl font-black text-orange-900">#{predictedRank.rank.toLocaleString()}</p>
-                <Badge className="bg-orange-600 text-white text-xs">
-                  {predictedRank.confidence} Confidence
-                </Badge>
-              </div>
-              <p className="text-xs text-orange-700 mb-1">
-                Based on {predictedRank.score}% projected score
-              </p>
-              <p className="text-xs text-orange-600">
-                📊 Analyzed from {predictedRank.totalAttempts} attempts
-              </p>
-              {predictedRank.rank < 10000 && (
-                <Badge className="mt-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs">
-                  🎉 TOP 10K - Target IIT Bombay!
-                </Badge>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* JEEnius Points + Badges - Compact */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-gradient-to-br from-purple-500 to-pink-600 text-white border-0 shadow-lg">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs opacity-90 mb-0.5">JEEnius Points</p>
-                <p className="text-2xl font-black">{jeePoints.toLocaleString()}</p>
-              </div>
-              <Gift className="w-8 h-8 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white border-0 shadow-lg">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs opacity-90 mb-0.5">Badges Earned</p>
-                <p className="text-2xl font-black">{badges.filter(b => b.earned).length}/{badges.length}</p>
-              </div>
-              <Award className="w-8 h-8 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Badges Display - Compact */}
-      <Card className="border border-indigo-200 shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-indigo-600" />
-            Your Achievements
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-3 gap-2">
-            {badges.map((badge) => (
-              <div
-                key={badge.id}
-                className={`p-2 rounded-lg text-center transition-all ${
-                  badge.earned
-                    ? 'bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-yellow-400'
-                    : 'bg-gray-100 opacity-50 border border-gray-300'
-                }`}
-              >
-                <div className="text-2xl mb-1">{badge.icon}</div>
-                <p className="text-xs font-semibold text-gray-800">{badge.name}</p>
-                <p className="text-xs text-gray-600">{badge.description}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Exam Info - Redesigned Compact */}
-      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-lg">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 text-white">
+      {/* Exam + Countdown - More rounded, softer shadows */}
+      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-lg rounded-3xl overflow-hidden">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex items-center justify-between text-white">
             <div>
-              <p className="text-xs opacity-90 mb-1">Target Exam</p>
+              <p className="text-white/80 text-sm mb-2">Target Exam</p>
               <select
                 value={selectedExam}
-                onChange={(e) => {
-                  setSelectedExam(e.target.value);
-                  setExamDate(examDates[e.target.value]);
-                }}
-                className="bg-white/20 backdrop-blur text-white text-sm font-bold px-3 py-1.5 rounded-lg border border-white/40 cursor-pointer"
+                onChange={(e) => handleExamChange(e.target.value)}
+                className="bg-white/20 backdrop-blur-lg text-white text-2xl font-bold px-6 py-3 rounded-xl border-2 border-white/40 cursor-pointer hover:bg-white/30 transition-all"
               >
                 {Object.keys(examNames).map(key => (
                   <option key={key} value={key} className="text-slate-900 font-semibold">
@@ -462,101 +474,230 @@ export default function AIStudyPlanner() {
               </select>
             </div>
             <div className="text-right">
-              <p className="text-xs opacity-90 mb-1">Time Remaining</p>
-              <p className="text-3xl font-black">{daysRemaining}</p>
-              <p className="text-xs opacity-90">days left</p>
+              <p className="text-white/80 text-sm mb-1">Exam Date</p>
+              <p className="text-2xl font-semibold mb-2">
+                {new Date(examDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <div className="flex items-baseline gap-2 justify-end">
+                <p className="text-6xl font-black">{daysRemaining}</p>
+                <p className="text-xl">days left</p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Performance Overview - Compact 4 Cards */}
-      <div className="grid grid-cols-4 gap-2">
-        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 border-0 shadow-md">
-          <CardContent className="p-2.5 text-white text-center">
-            <Target className="w-6 h-6 mx-auto mb-1" />
-            <p className="text-lg font-black">{overallAccuracy}%</p>
-            <p className="text-xs opacity-90">Accuracy</p>
+      {/* Performance Overview */}
+      <div className="grid md:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 border-0 shadow-xl hover:scale-105 transition-transform">
+          <CardContent className="p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="w-12 h-12" />
+              <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
+                {overallAccuracy}%
+              </Badge>
+            </div>
+            <p className="text-4xl font-black mb-2">{correctAnswers}</p>
+            <p className="text-blue-100 text-sm">out of {totalAttempts} correct</p>
+            <Progress value={overallAccuracy} className="h-3 mt-4 bg-white/20" />
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-md">
-          <CardContent className="p-2.5 text-white text-center">
-            <BookOpen className="w-6 h-6 mx-auto mb-1" />
-            <p className="text-lg font-black">{totalAttempts}</p>
-            <p className="text-xs opacity-90">Questions</p>
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 shadow-xl hover:scale-105 transition-transform">
+          <CardContent className="p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <BookOpen className="w-12 h-12" />
+              <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
+                LIVE
+              </Badge>
+            </div>
+            <p className="text-4xl font-black mb-2">{subjectAnalysis.length}</p>
+            <p className="text-green-100 text-sm">subjects analyzed</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-pink-600 border-0 shadow-md">
-          <CardContent className="p-2.5 text-white text-center">
-            <Award className="w-6 h-6 mx-auto mb-1" />
-            <p className="text-lg font-black">{correctAnswers}</p>
-            <p className="text-xs opacity-90">Correct</p>
+        <Card className="bg-gradient-to-br from-orange-500 to-red-600 border-0 shadow-xl hover:scale-105 transition-transform">
+          <CardContent className="p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <AlertTriangle className="w-12 h-12" />
+              <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
+                {topicAnalysis.length}
+              </Badge>
+            </div>
+            <p className="text-4xl font-black mb-2">Weak</p>
+            <p className="text-orange-100 text-sm">topics identified</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-500 to-red-600 border-0 shadow-md">
-          <CardContent className="p-2.5 text-white text-center">
-            <Flame className="w-6 h-6 mx-auto mb-1" />
-            <p className="text-lg font-black">{currentStreak}</p>
-            <p className="text-xs opacity-90">Day Streak</p>
+        <Card className="bg-gradient-to-br from-purple-500 to-pink-600 border-0 shadow-xl hover:scale-105 transition-transform">
+          <CardContent className="p-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <Clock className="w-12 h-12" />
+              <Badge className="bg-white/20 backdrop-blur text-white text-xl px-4 py-2">
+                AI REC
+              </Badge>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <p className="text-4xl font-black">{userHours}h</p>
+              <p className="text-purple-100 text-sm">/ {aiRecommendedHours}h</p>
+            </div>
+            <input
+              type="range"
+              min="2"
+              max="14"
+              value={userHours}
+              onChange={(e) => setUserHours(parseInt(e.target.value))}
+              className="w-full mt-3 accent-white"
+            />
+            <Button
+              onClick={handleHoursUpdate}
+              size="sm"
+              className="w-full mt-3 bg-white/20 hover:bg-white/30 backdrop-blur-lg"
+            >
+              Update
+            </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Weekly Trend - Compact */}
-      {weeklyTrend.length > 0 && (
-        <Card className="border border-blue-300 shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
-              7-Day Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="grid grid-cols-7 gap-1">
-              {weeklyTrend.map((day, idx) => (
-                <div
-                  key={idx}
-                  className={`p-2 rounded-lg text-center ${
-                    day.questions === 0 
-                      ? 'bg-slate-100' 
-                      : day.accuracy >= 70 
-                      ? 'bg-gradient-to-br from-green-100 to-emerald-100 border border-green-400'
-                      : 'bg-gradient-to-br from-yellow-100 to-orange-100 border border-yellow-400'
-                  }`}
-                >
-                  <p className="text-xs font-semibold text-slate-700 mb-1">{day.day}</p>
-                  <p className="text-lg font-black text-slate-900">{day.questions}</p>
-                  {day.questions > 0 && (
-                    <Badge className={`text-xs ${
-                      day.accuracy >= 70 ? 'bg-green-600' : 'bg-yellow-600'
-                    } text-white mt-1`}>
-                      {day.accuracy}%
+      {/* Rank Predictor */}
+      {predictedRank && predictedRank.totalAttempts >= 10 && (
+        <Card className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 border-0 shadow-2xl">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-6">
+                <Trophy className="w-20 h-20" />
+                <div>
+                  <p className="text-sm text-white/80 mb-1">🎯 Predicted JEE Rank</p>
+                  <p className="text-6xl font-black mb-2">#{predictedRank.rank.toLocaleString()}</p>
+                  <p className="text-lg">
+                    Based on {predictedRank.score}% projected score • 
+                    <Badge className="ml-2 bg-white/20 backdrop-blur">
+                      {predictedRank.confidence} Confidence
                     </Badge>
-                  )}
+                  </p>
+                  <p className="text-sm text-white/90 mt-2">
+                    📊 Analyzed from {predictedRank.totalAttempts} attempts
+                    {predictedRank.confidence === 'Low' && ' • Solve 100+ for better accuracy'}
+                  </p>
                 </div>
-              ))}
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-white/80 mb-2">
+                  {predictedRank.rank < 10000 ? 'Target IIT Bombay!' : 
+                   predictedRank.rank < 50000 ? 'Keep pushing for Top 10K' : 
+                   'Focus on consistency'}
+                </p>
+                <p className="text-4xl font-black">
+                  {predictedRank.rank < 10000 ? 'TOP 10K' : 
+                   predictedRank.rank < 50000 ? 'TOP 50K' : 
+                   'TOP 1L+'}
+                </p>
+                {predictedRank.rank > 50000 && (
+                  <p className="text-sm mt-2 text-white/90">
+                    +{Math.round((predictedRank.rank - 10000) / 1000)}K gap to close
+                  </p>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* AI Study Plan - Compact */}
-      <Card className="border border-indigo-200 shadow-md">
-        <CardHeader className="pb-2 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <Brain className="w-4 h-4 text-indigo-600" />
-            AI Study Plan
-            <Badge className="ml-auto bg-indigo-600 text-white text-xs">
-              <Sparkles className="w-3 h-3 mr-1" />
+      {/* Not Enough Data Warning */}
+      {(!predictedRank || predictedRank.totalAttempts < 10) && totalAttempts > 0 && (
+        <Card className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-blue-300 shadow-xl">
+          <CardContent className="p-6 text-center">
+            <Gauge className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-blue-900 mb-2">
+              🎯 Rank Predictor Loading...
+            </h3>
+            <p className="text-blue-700 mb-4">
+              Solve <span className="font-bold">{10 - totalAttempts} more questions</span> to unlock accurate rank prediction!
+            </p>
+            <Button
+              onClick={() => window.location.href = '/study-now'}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+            >
+              <Rocket className="w-4 h-4 mr-2" />
+              Continue Practicing
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Strengths & Weaknesses */}
+      {strengthsWeaknesses && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="border-2 border-green-300 bg-gradient-to-br from-green-50 to-white shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-50 border-b-2 border-green-200">
+              <CardTitle className="flex items-center gap-3 text-green-800">
+                <CheckCircle2 className="w-7 h-7" />
+                <span className="text-2xl font-bold">💪 Your Strengths</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-3">
+              {strengthsWeaknesses.strengths.map((str, idx) => (
+                <div key={idx} className="p-4 bg-green-100 rounded-xl border-2 border-green-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-bold text-green-900 text-lg">{str.subject}</p>
+                    <Badge className="bg-green-600 text-white text-lg px-3">
+                      {str.accuracy}%
+                    </Badge>
+                  </div>
+                  <Progress value={str.accuracy} className="h-3 bg-green-200" />
+                  <p className="text-sm text-green-700 mt-2">
+                    🎯 {str.attempted} questions attempted • Keep it up!
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-red-300 bg-gradient-to-br from-red-50 to-white shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-red-100 to-pink-50 border-b-2 border-red-200">
+              <CardTitle className="flex items-center gap-3 text-red-800">
+                <XCircle className="w-7 h-7" />
+                <span className="text-2xl font-bold">🚨 Priority Weaknesses</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-3">
+              {strengthsWeaknesses.weaknesses.map((weak, idx) => (
+                <div key={idx} className="p-4 bg-red-100 rounded-xl border-2 border-red-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-bold text-red-900 text-lg">{weak.subject}</p>
+                    <Badge className="bg-red-600 text-white text-lg px-3">
+                      {weak.accuracy}%
+                    </Badge>
+                  </div>
+                  <Progress value={weak.accuracy} className="h-3 bg-red-200" />
+                  <p className="text-sm text-red-700 mt-2">
+                    ⚡ Needs immediate attention!
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* AI Study Plan */}
+      <Card className="border-2 border-indigo-300 shadow-2xl">
+        <CardHeader className="bg-gradient-to-r from-indigo-100 via-purple-50 to-pink-50 border-b-2 border-indigo-200">
+          <CardTitle className="flex items-center gap-3 text-indigo-900">
+            <Brain className="w-8 h-8 text-indigo-600" />
+            <span className="text-3xl font-black">AI-Generated Daily Study Plan</span>
+            <Badge className="ml-auto bg-indigo-600 text-white text-lg px-4 py-2">
+              <Sparkles className="w-4 h-4 mr-2" />
               Personalized
             </Badge>
           </CardTitle>
+          <p className="text-indigo-600 text-sm mt-2">
+            📊 Based on {totalAttempts} attempts • {overallAccuracy}% accuracy • Subject-wise performance
+          </p>
         </CardHeader>
-        <CardContent className="p-3">
-          <div className="space-y-2">
+        <CardContent className="p-6">
+          <div className="space-y-4">
             {studyPlan.map((plan, idx) => {
               const priorityColors = {
                 'CRITICAL': { bg: 'bg-red-100', border: 'border-red-400', text: 'text-red-800', badge: 'bg-red-600' },
@@ -569,161 +710,319 @@ export default function AIStudyPlanner() {
               return (
                 <div
                   key={idx}
-                  className={`p-3 rounded-lg border ${colors.border} ${colors.bg}`}
+                  className={`p-6 rounded-xl border-2 ${colors.border} ${colors.bg} hover:scale-[1.02] transition-all`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <p className={`font-bold text-sm ${colors.text}`}>{plan.subject}</p>
-                      <Badge className={`${colors.badge} text-white text-xs px-2`}>
-                        {plan.priority}
-                      </Badge>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className={`font-black text-2xl ${colors.text}`}>{plan.subject}</p>
+                        <Badge className={`${colors.badge} text-white text-sm px-3 py-1`}>
+                          {plan.priority}
+                        </Badge>
+                      </div>
+                      <p className={`text-sm ${colors.text} mb-3`}>{plan.strategy}</p>
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <Target className="w-4 h-4" />
+                          <span className="font-semibold">{plan.accuracy}% current accuracy</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Activity className="w-4 h-4" />
+                          <span>{plan.attempted} questions solved</span>
+                        </div>
+                      </div>
                     </div>
-                    <p className={`text-2xl font-black ${colors.text}`}>{plan.recommendedTime}h</p>
+                    <div className="text-right">
+                      <p className={`text-5xl font-black ${colors.text}`}>{plan.recommendedTime}h</p>
+                      <p className="text-sm text-slate-600 mt-1">per day</p>
+                    </div>
                   </div>
-                  <p className={`text-xs ${colors.text} mb-2`}>{plan.strategy}</p>
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="font-semibold">{plan.accuracy}% accuracy</span>
-                    <span>{plan.attempted} questions</span>
-                  </div>
-                  <Progress value={plan.accuracy} className="h-2 mt-2" />
+                  <Progress value={plan.accuracy} className="h-3" />
                 </div>
               );
             })}
           </div>
+
+          <Button
+            onClick={() => window.location.href = '/study-now'}
+            className="w-full mt-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:to-pink-700 text-white font-bold py-6 text-xl shadow-lg"
+          >
+            <Rocket className="w-6 h-6 mr-3" />
+            START STUDYING NOW
+          </Button>
         </CardContent>
       </Card>
 
-      {/* Testimonials - Compact */}
-      <Card className="border border-green-200 shadow-md bg-gradient-to-br from-green-50 to-emerald-50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold flex items-center gap-2 text-green-800">
-            <Star className="w-4 h-4" />
-            Success Stories
+      {/* Weekly Performance Trend */}
+      {weeklyTrend.length > 0 && (
+        <Card className="border-2 border-blue-300 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-100 to-indigo-50 border-b-2 border-blue-200">
+            <CardTitle className="flex items-center gap-3 text-blue-900">
+              <TrendingUp className="w-7 h-7" />
+              <span className="text-2xl font-bold">📈 7-Day Performance Trend</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-7 gap-3">
+              {weeklyTrend.map((day, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-xl text-center ${
+                    day.questions === 0 
+                      ? 'bg-slate-100 border-2 border-slate-300' 
+                      : day.accuracy >= 70 
+                      ? 'bg-gradient-to-br from-green-100 to-emerald-100 border-2 border-green-400'
+                      : day.accuracy >= 50
+                      ? 'bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-yellow-400'
+                      : 'bg-gradient-to-br from-red-100 to-pink-100 border-2 border-red-400'
+                  }`}
+                >
+                  <p className="text-xs font-semibold text-slate-600 mb-2">{day.day}</p>
+                  <p className="text-2xl font-black text-slate-900 mb-1">{day.questions}</p>
+                  <p className="text-xs text-slate-600">questions</p>
+                  {day.questions > 0 && (
+                    <Badge className={`mt-2 text-xs ${
+                      day.accuracy >= 70 ? 'bg-green-600' : 
+                      day.accuracy >= 50 ? 'bg-yellow-600' : 'bg-red-600'
+                    } text-white`}>
+                      {day.accuracy}%
+                    </Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+              <p className="text-sm text-blue-800 font-semibold">
+                💡 Insight: {weeklyTrend.reduce((sum, d) => sum + d.questions, 0)} questions this week • 
+                Avg accuracy: {Math.round(weeklyTrend.reduce((sum, d) => sum + d.accuracy, 0) / weeklyTrend.filter(d => d.questions > 0).length)}%
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Detailed Analysis Sections */}
+      <Card className="border-2 border-purple-300 shadow-xl">
+        <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-50">
+          <CardTitle className="flex items-center gap-3 text-purple-900">
+            <Layers className="w-7 h-7" />
+            <span className="text-2xl font-bold">Detailed Performance Breakdown</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white p-3 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                  AS
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-800">Arjun Sharma</p>
-                  <p className="text-xs text-green-600">AIR 156</p>
-                </div>
-              </div>
-              <p className="text-xs text-gray-700">
-                "AI Study Planner changed my prep strategy completely!"
-              </p>
-            </div>
-            
-            <div className="bg-white p-3 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                  PP
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-800">Priya Patel</p>
-                  <p className="text-xs text-purple-600">AIR 289</p>
-                </div>
-              </div>
-              <p className="text-xs text-gray-700">
-                "Improved 40% in just 2 months with personalized plans!"
-              </p>
-            </div>
+        <CardContent className="p-6">
+          {/* Section Toggle */}
+          <div className="flex gap-3 mb-6">
+            <Button
+              onClick={() => setExpandedSection('subjects')}
+              variant={expandedSection === 'subjects' ? 'default' : 'outline'}
+              className={expandedSection === 'subjects' ? 'bg-indigo-600' : ''}
+            >
+              📚 Subjects ({subjectAnalysis.length})
+            </Button>
+            <Button
+              onClick={() => setExpandedSection('chapters')}
+              variant={expandedSection === 'chapters' ? 'default' : 'outline'}
+              className={expandedSection === 'chapters' ? 'bg-indigo-600' : ''}
+            >
+              📖 Chapters ({chapterAnalysis.length})
+            </Button>
+            <Button
+              onClick={() => setExpandedSection('topics')}
+              variant={expandedSection === 'topics' ? 'default' : 'outline'}
+              className={expandedSection === 'topics' ? 'bg-indigo-600' : ''}
+            >
+              🎯 Topics ({topicAnalysis.length})
+            </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Subject Performance - Compact */}
-      <Card className="border border-purple-200 shadow-md">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-purple-600" />
-            Subject Performance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-3">
-          <div className="space-y-2">
-            {subjectAnalysis.map((subject, idx) => (
-              <div
-                key={idx}
-                className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg ${
-                      subject.accuracy >= 70 ? 'bg-green-500' :
-                      subject.accuracy >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-                    } flex items-center justify-center text-white font-bold text-xs`}>
-                      {idx + 1}
+          {/* Subject Analysis */}
+          {expandedSection === 'subjects' && (
+            <div className="space-y-3">
+              {subjectAnalysis.map((subject, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-xl ${
+                        subject.accuracy >= 70 ? 'bg-green-500' :
+                        subject.accuracy >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                      } flex items-center justify-center text-white font-bold text-xl`}>
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <p className="font-bold text-indigo-900 text-xl">{subject.subject}</p>
+                        <p className="text-sm text-indigo-600">
+                          {subject.attempted} questions • Avg time: {subject.avgTime}s
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-gray-800">{subject.subject}</p>
-                      <p className="text-xs text-gray-600">
-                        {subject.attempted} questions • Avg: {subject.avgTime}s
-                      </p>
+                    <div className="text-right">
+                      <Badge className={`text-2xl px-4 py-2 ${
+                        subject.accuracy >= 70 ? 'bg-green-600' :
+                        subject.accuracy >= 50 ? 'bg-yellow-600' : 'bg-red-600'
+                      } text-white`}>
+                        {subject.accuracy}%
+                      </Badge>
                     </div>
                   </div>
-                  <Badge className={`text-sm px-2 ${
-                    subject.accuracy >= 70 ? 'bg-green-600' :
-                    subject.accuracy >= 50 ? 'bg-yellow-600' : 'bg-red-600'
-                  } text-white`}>
-                    {subject.accuracy}%
-                  </Badge>
+                  <Progress 
+                    value={subject.accuracy} 
+                    className="h-4"
+                  />
+                  <div className="flex items-center justify-between mt-3 text-sm text-indigo-700">
+                    <span>✅ {subject.correct} correct</span>
+                    <span>❌ {subject.attempted - subject.correct} wrong</span>
+                  </div>
                 </div>
-                <Progress value={subject.accuracy} className="h-2" />
-                <div className="flex items-center justify-between mt-2 text-xs text-gray-700">
-                  <span>✅ {subject.correct} correct</span>
-                  <span>❌ {subject.attempted - subject.correct} wrong</span>
-                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Chapter Analysis */}
+          {expandedSection === 'chapters' && (
+            <div className="space-y-3">
+              <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 mb-4">
+                <p className="text-sm text-orange-800 font-semibold">
+                  ⚡ Showing weakest chapters - Focus on these first!
+                </p>
               </div>
-            ))}
+              {chapterAnalysis.map((chapter, idx) => (
+                <div
+                  key={idx}
+                  className="p-5 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-2 border-orange-200 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="font-bold text-orange-900 text-lg">{chapter.chapter}</p>
+                      <p className="text-sm text-orange-700">
+                        {chapter.subject} • {chapter.total} questions • Avg: {chapter.avgTime}s
+                      </p>
+                    </div>
+                    <Badge className={`text-xl px-4 py-2 ${
+                      chapter.accuracy >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                    } text-white`}>
+                      {chapter.accuracy}%
+                    </Badge>
+                  </div>
+                  <Progress value={chapter.accuracy} className="h-4" />
+                  <Button
+                    onClick={() => window.location.href = '/study-now'}
+                    size="sm"
+                    className="mt-3 bg-orange-600 hover:bg-orange-700 text-white w-full"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Practice This Chapter
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Topic Analysis */}
+          {expandedSection === 'topics' && (
+            <div className="space-y-3">
+              <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-4">
+                <p className="text-sm text-red-800 font-semibold">
+                  🚨 Critical weak topics - Master these for quick score boost!
+                </p>
+              </div>
+              {topicAnalysis.map((topic, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border-2 border-red-200"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1">
+                      <p className="font-bold text-red-900">{topic.topic}</p>
+                      <p className="text-xs text-red-700">
+                        {topic.subject} • {topic.chapter} • {topic.total} attempts
+                      </p>
+                    </div>
+                    <Badge className="bg-red-600 text-white text-lg px-3">
+                      {topic.accuracy}%
+                    </Badge>
+                  </div>
+                  <Progress value={topic.accuracy} className="h-3" />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Study Streak Card */}
+      <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl">
+        <CardContent className="p-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                <Flame className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-amber-700 mb-1">🔥 Current Study Streak</p>
+                <p className="text-6xl font-black text-amber-900">{currentStreak}</p>
+                <p className="text-lg text-amber-700 mt-2">
+                  {currentStreak >= 30 ? '🏆 Legendary streak!' : 
+                   currentStreak >= 7 ? '⚡ Great momentum!' : 
+                   '💪 Keep building!'}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <Badge className={`text-lg px-4 py-2 ${
+                currentStreak >= 30 ? 'bg-gradient-to-r from-amber-500 to-orange-600' :
+                currentStreak >= 7 ? 'bg-orange-500' : 'bg-amber-500'
+              } text-white`}>
+                {currentStreak >= 30 ? 'LEGEND' : currentStreak >= 7 ? 'ON FIRE' : 'BUILDING'}
+              </Badge>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Action CTA - Compact */}
-      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-lg">
-        <CardContent className="p-4 text-center text-white">
-          <Sparkles className="w-10 h-10 mx-auto mb-2" />
-          <h3 className="text-lg font-bold mb-2">
+      {/* Action Banner */}
+      <Card className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 border-0 shadow-2xl">
+        <CardContent className="p-8 text-center text-white">
+          <Sparkles className="w-16 h-16 mx-auto mb-4" />
+          <h3 className="text-3xl font-black mb-3">
             Your AI Study Partner is Ready! 🚀
           </h3>
-          <p className="text-sm text-white/90 mb-4">
-            Keep solving questions for better predictions
+          <p className="text-lg text-white/90 mb-6">
+            Keep solving questions to get even more accurate predictions and personalized recommendations
           </p>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-4 justify-center">
             <Button
               onClick={() => window.location.href = '/study-now'}
-              className="bg-white text-indigo-600 hover:bg-gray-100 font-bold px-4 py-2 text-sm"
+              className="bg-white text-indigo-600 hover:bg-gray-100 font-bold px-8 py-4 text-lg"
             >
-              <Rocket className="w-4 h-4 mr-2" />
+              <Rocket className="w-5 h-5 mr-2" />
               Continue Studying
             </Button>
             <Button
               onClick={() => window.location.href = '/test'}
-              className="bg-white/20 backdrop-blur text-white hover:bg-white/30 font-bold px-4 py-2 text-sm"
+              className="bg-white/20 backdrop-blur-lg text-white hover:bg-white/30 font-bold px-8 py-4 text-lg"
             >
-              <Trophy className="w-4 h-4 mr-2" />
-              Take Test
+              <Trophy className="w-5 h-5 mr-2" />
+              Take Mock Test
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Footer Info - Compact */}
-      <Card className="bg-gradient-to-r from-blue-100 to-indigo-100 border border-indigo-200">
-        <CardContent className="p-3">
-          <div className="flex items-start gap-2">
-            <Brain className="w-4 h-4 text-indigo-600 mt-0.5" />
+      {/* Footer Info */}
+      <Card className="bg-gradient-to-r from-blue-100 to-indigo-100 border-2 border-indigo-200">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Brain className="w-6 h-6 text-indigo-600 mt-1" />
             <div>
-              <p className="text-xs font-bold text-indigo-900 mb-0.5">
+              <p className="text-sm font-bold text-indigo-900 mb-1">
                 🔬 AI Intelligence Active
               </p>
               <p className="text-xs text-indigo-700">
-                Analysis updates automatically. Currently analyzing {totalAttempts} data points across {subjectAnalysis.length} subjects.
+                Analysis updates automatically as you practice. Rank prediction accuracy improves with more attempts. 
+                Currently analyzing {totalAttempts} data points across {subjectAnalysis.length} subjects.
               </p>
             </div>
           </div>
