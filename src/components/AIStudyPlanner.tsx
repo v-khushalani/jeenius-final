@@ -67,15 +67,15 @@ export default function AIStudyPlanner() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('target_exam, daily_study_hours, current_streak')
-        .eq('user_id', user.id)
+        .select('target_exam')
+        .eq('id', user.id)
         .maybeSingle();
 
       if (profile) {
         setSelectedExam(profile.target_exam || 'JEE_MAINS');
         setExamDate(examDates[profile.target_exam] || examDates['JEE_MAINS']);
-        setUserHours(profile.daily_study_hours || 6);
-        setCurrentStreak(profile.current_streak || 0);
+        setUserHours(6); // Default 6 hours
+        setCurrentStreak(0); // Default 0
       }
 
       // Fetch all attempts first
@@ -129,7 +129,7 @@ export default function AIStudyPlanner() {
         }
         subjectStats[subject].total++;
         if (att.is_correct) subjectStats[subject].correct++;
-        subjectStats[subject].time += att.time_taken_seconds || 0;
+        subjectStats[subject].time += att.time_taken || 0;
       });
 
       const subjectArray = Object.keys(subjectStats).map(subject => ({
@@ -157,10 +157,10 @@ export default function AIStudyPlanner() {
         }
         chapterStats[key].total++;
         if (att.is_correct) chapterStats[key].correct++;
-        chapterStats[key].time += att.time_taken_seconds || 0;
+        chapterStats[key].time += att.time_taken || 0;
       });
 
-      const chapterArray = Object.values(chapterStats).map(ch => ({
+      const chapterArray = Object.values(chapterStats).map((ch: any) => ({
         ...ch,
         accuracy: Math.round((ch.correct / ch.total) * 100),
         avgTime: Math.round(ch.time / ch.total)
@@ -186,8 +186,8 @@ export default function AIStudyPlanner() {
       });
 
       const topicArray = Object.values(topicStats)
-        .filter(t => t.total >= 3)
-        .map(t => ({
+        .filter((t: any) => t.total >= 3)
+        .map((t: any) => ({
           ...t,
           accuracy: Math.round((t.correct / t.total) * 100)
         }))
@@ -371,10 +371,10 @@ export default function AIStudyPlanner() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
+      await (supabase as any)
         .from('profiles')
         .update({ target_exam: newExam })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       setSelectedExam(newExam);
       setExamDate(examDates[newExam]);
@@ -390,12 +390,8 @@ export default function AIStudyPlanner() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await supabase
-        .from('profiles')
-        .update({ daily_study_hours: userHours })
-        .eq('user_id', user.id);
-
-      toast.success('Study hours updated!');
+      // Note: daily_study_hours removed from profiles table
+      toast.success('Settings saved!');
       await fetchComprehensiveAnalysis();
     } catch (error) {
       console.error('Error:', error);

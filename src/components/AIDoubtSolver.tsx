@@ -103,10 +103,23 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user && !isPro) {
-        await supabase.from('ai_usage_log').insert({
-          user_id: user.id,
-          query_type: 'doubt_solver'
-        });
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Use RPC or direct insert with upsert
+        const { error } = await (supabase as any)
+          .from('ai_usage_log')
+          .upsert({
+            user_id: user.id,
+            date: today,
+            count: 1
+          }, {
+            onConflict: 'user_id,date',
+            ignoreDuplicates: false
+          });
+
+        if (error) {
+          console.error('Error upserting usage:', error);
+        }
       }
     } catch (error) {
       console.error('Error logging usage:', error);
@@ -120,56 +133,31 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
    * @returns The AI's response text.
    */
   const callEdgeFunction = async (prompt: string): Promise<string> => {
-  try {
-    // Get the current session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('NO_SESSION');
-    }
+    try {
+      console.log('📤 Calling edge function: jeenie');
+      
+      const response = await supabase.functions.invoke('jeenie', {
+        body: { contextPrompt: prompt }
+      });
 
-    console.log('📤 Calling edge function: jeenie');
-    console.log('🔗 URL:', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/jeenie`);
-    
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/jeenie`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ prompt }),
+      if (response.error) {
+        console.error('Edge Function Error:', response.error);
+        throw new Error('BACKEND_ERROR');
       }
-    );
 
-    console.log('📊 Edge Function Response Status:', response.status);
+      const content = response.data?.content;
+      if (!content || content.trim() === '') {
+        throw new Error('EMPTY_RESPONSE');
+      }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Edge Function Error:', errorData);
-      
-      if (response.status === 429) throw new Error('RATE_LIMIT');
-      if (response.status === 400 && errorData.error === 'CONTENT_BLOCKED') throw new Error('SAFETY_BLOCK');
-      if (response.status === 500 && errorData.error === 'API_KEY_MISSING') throw new Error('API_KEY_MISSING_BACKEND');
-      
-      throw new Error('BACKEND_ERROR');
+      console.log('✅ Success with Edge Function');
+      return content.trim();
+
+    } catch (error: any) {
+      console.error('❌ Error calling Edge Function:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    const content = data?.content;
-    if (!content || content.trim() === '') {
-      throw new Error('EMPTY_RESPONSE');
-    }
-
-    console.log('✅ Success with Edge Function');
-    return content.trim();
-
-  } catch (error: any) {
-    console.error('❌ Error calling Edge Function:', error);
-    throw error;
-  }
-};
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
