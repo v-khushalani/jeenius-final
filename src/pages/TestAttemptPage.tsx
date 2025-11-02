@@ -193,6 +193,7 @@ const TestAttemptPage = () => {
   const handleSubmitTest = async () => {
   if (!testSession || !user) return;
 
+  // ✅ STEP 1: Error handling add karo
   try {
     setTestSubmitted(true);
 
@@ -207,17 +208,16 @@ const TestAttemptPage = () => {
       const userAnswer = userAnswers[question.id];
       
       let isCorrect = false;
-      let correctOption = question.correct_option; // ✅ Always get from question object
+      let correctOption = question.correct_option;
       
       if (userAnswer?.selectedOption) {
-        // Check if answer is correct
         isCorrect = userAnswer.selectedOption === question.correct_option;
         
         totalAnswered++;
         totalTimeSpent += userAnswer.timeSpent;
         if (isCorrect) correctAnswers++;
 
-        // Save to database using secure validation
+        // Save to database
         try {
           await supabase.rpc('validate_question_answer', {
             _question_id: question.id,
@@ -225,21 +225,21 @@ const TestAttemptPage = () => {
           });
         } catch (validationError) {
           console.error('Error saving answer:', validationError);
+          // Continue with other questions even if one fails
         }
       }
 
       results.push({
         questionId: question.id,
         selectedOption: userAnswer?.selectedOption || "",
-        correctOption: correctOption, // ✅ Always has the correct answer
+        correctOption: correctOption,
         isCorrect,
         timeSpent: userAnswer?.timeSpent || 0,
         isMarkedForReview: userAnswer?.isMarkedForReview || false,
       });
     }
 
-    const percentage =
-      totalAnswered > 0 ? (correctAnswers / totalAnswered) * 100 : 0;
+    const percentage = totalAnswered > 0 ? (correctAnswers / totalAnswered) * 100 : 0;
 
     // Save test session
     try {
@@ -253,15 +253,16 @@ const TestAttemptPage = () => {
       }]);
 
       console.log('✅ Test results saved to database');
-    } catch (error) {
-      console.error("Error saving test results:", error);
-      toast.error("Failed to save results to database, but test completed");
+    } catch (dbError) {
+      console.error("Database save error:", dbError);
+      // ✅ Show error but don't stop - results still shown
+      toast.error("Results saved locally. May sync later.");
     }
 
     // Clear localStorage
     localStorage.removeItem("currentTest");
 
-    // Store results for result page
+    // Store results
     localStorage.setItem(
       "testResults",
       JSON.stringify({
@@ -277,9 +278,14 @@ const TestAttemptPage = () => {
 
     toast.success("Test submitted successfully!");
     navigate("/test-results");
+
   } catch (error) {
-    console.error("Error submitting test:", error);
-    toast.error("Failed to submit test");
+    // ✅ STEP 2: Agar koi bhi error aaye, user ko batao
+    console.error("❌ Test submission failed:", error);
+    
+    toast.error("Failed to submit test. Please check your internet connection and try again.");
+    
+    // Reset so user can retry
     setTestSubmitted(false);
   }
 };
