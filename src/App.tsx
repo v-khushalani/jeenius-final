@@ -25,8 +25,6 @@ import Login from "./pages/Login";
 import AuthCallback from '@/pages/AuthCallback';
 
 // Feature pages
-import FeaturesPage from "./pages/FeaturesPage";
-import LessonBuilderPage from "./pages/LessonBuilderPage";
 import WhyUsPage from "./pages/WhyUsPage";
 import GoalSelectionPage from '@/pages/GoalSelectionPage';
 import PeerBattleSystem from './pages/PeerBattleSystem';
@@ -40,14 +38,6 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/AdminDashboard";
-
-// Mobile pages
-import MobileDashboard from "./pages/mobile/MobileDashboard";
-import MobileLearning from "./pages/mobile/MobileLearning";
-import MobileStudyPlanner from "./pages/mobile/MobileStudyPlanner";
-
-import DebugSubscription from './pages/DebugSubscription';
-import GamificationPage from './pages/GamificationPage';
 
 // Create QueryClient with optimized settings for better performance
 const queryClient = new QueryClient({
