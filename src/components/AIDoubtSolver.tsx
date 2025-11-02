@@ -355,10 +355,10 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
                     <span className="text-xs font-bold text-purple-600">JEEnie</span>
                   </div>
                 )}
-                <div 
-                  className="text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: msg.content }} 
-                />
+                  <div 
+                    className="text-sm leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(msg.content) }}
+                  />
               </div>
             </div>
           ))}
