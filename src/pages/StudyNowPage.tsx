@@ -32,11 +32,14 @@ const StudyNowPage = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0, streak: 0 });
   const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0, streak: 0 });
   const [userStats, setUserStats] = useState({ attempted: 0, accuracy: 0 });
   const [showAIModal, setShowAIModal] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  
 
   const [isPro, setIsPro] = useState(false);
   const [dailyQuestionsUsed, setDailyQuestionsUsed] = useState(0);
@@ -364,8 +367,6 @@ const StudyNowPage = () => {
       setLoading(false);
     }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
 const handleAnswer = async (answer) => {
   // ✅ Prevent multiple submissions
