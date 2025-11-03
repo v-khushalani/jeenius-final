@@ -707,7 +707,11 @@ const handleAnswer = async (answer) => {
                       </div>
                     </div>
 
-                    <Button className={`w-full text-sm sm:text-base bg-gradient-to-r ${subject.color} hover:opacity-90 text-white font-semibold`}>
+                   <Button 
+                      className="... bg-gradient-to-r from-blue-500 to-indigo-600 ..."
+                      style={subject.name === 'Chemistry' ? {background: 'linear-gradient(to right, rgb(34 197 94), rgb(5 150 105))'} : 
+                             subject.name === 'Mathematics' ? {background: 'linear-gradient(to right, rgb(168 85 247), rgb(219 39 119))'} : {}}
+                    >
                       <Play className="w-4 h-4 mr-2" />
                       Start Practicing
                     </Button>
