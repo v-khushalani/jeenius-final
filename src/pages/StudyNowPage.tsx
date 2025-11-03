@@ -34,7 +34,6 @@ const StudyNowPage = () => {
   const [showResult, setShowResult] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0, streak: 0 });
-  const [sessionStats, setSessionStats] = useState({ correct: 0, total: 0, streak: 0 });
   const [userStats, setUserStats] = useState({ attempted: 0, accuracy: 0 });
   const [showAIModal, setShowAIModal] = useState(false);
   const [profile, setProfile] = useState<any>(null);

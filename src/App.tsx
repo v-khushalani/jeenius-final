@@ -27,7 +27,6 @@ import AuthCallback from '@/pages/AuthCallback';
 // Feature pages
 import WhyUsPage from "./pages/WhyUsPage";
 import GoalSelectionPage from '@/pages/GoalSelectionPage';
-import PeerBattleSystem from './pages/PeerBattleSystem';
 import AIStudyPlannerPage from './pages/AIStudyPlannerPage';
 
 // Enhanced Dashboard
@@ -68,11 +67,18 @@ const App = () => (
             <Route path="/signup" element={<Navigate to="/login" replace />} /> {/* Redirect signup to login since we only use Google */}
             <Route path="/auth/callback" element={<AuthCallback />} />
             
-            {/* Public Battle */}
-            <Route path="/battle" element={<PeerBattleSystem />} />
-            
             {/* Goal Selection (might be needed after signup) */}
             <Route path="/goal-selection" element={<GoalSelectionPage />} />
+            
+            {/* Dashboard */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <EnhancedDashboard />
+                </ProtectedRoute>
+              }
+            />
             
             {/* Test Routes - Some public, some protected */}
             <Route path="/test-attempt/:testId" element={<TestAttemptPage />} />
