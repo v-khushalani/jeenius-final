@@ -130,27 +130,23 @@ const EnhancedDashboard = () => {
       const todayTotal = todayAttempts?.length || 0;
       const todayAccuracy = todayTotal > 0 ? Math.round((todayCorrect / todayTotal) * 100) : 0;
 
+      // Calculate streak (consecutive days with any activity)
       let streak = 0;
-      const DAILY_TARGET = 30;
-      
-      const sortedAttempts = [...(attempts || [])].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      
       let currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
       
       for (let i = 0; i < 365; i++) {
-        const questionsOnThisDay = sortedAttempts.filter(a => {
+        const dayHasAttempts = (attempts || []).some(a => {
           const attemptDate = new Date(a.created_at);
           attemptDate.setHours(0, 0, 0, 0);
           return attemptDate.getTime() === currentDate.getTime();
-        }).length;
+        });
         
-        if (questionsOnThisDay >= DAILY_TARGET) {
+        if (dayHasAttempts) {
           streak++;
           currentDate.setDate(currentDate.getDate() - 1);
-        } else if (i === 0 && questionsOnThisDay > 0) {
+        } else if (i === 0) {
+          // If no activity today, check yesterday to see if streak is still valid
           currentDate.setDate(currentDate.getDate() - 1);
         } else {
           break;

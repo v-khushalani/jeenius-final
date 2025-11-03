@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award } from 'lucide-react';
+import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signOut, isPremium } = useAuth();
+  const { isAdmin } = useAdminAuth();
 
   const publicNavItems = [
     { name: 'Home', href: '/', path: '/', icon: null, highlight: false },
@@ -178,6 +180,14 @@ const Header = () => {
                       <span>Settings</span>
                     </div>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => handleNavigation('/admin')}>
+                      <div className="flex items-center space-x-2 w-full">
+                        <Shield className="w-4 h-4 text-purple-600" />
+                        <span className="text-purple-600 font-semibold">Admin Panel</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={handleLogout}
                     className="text-red-600 focus:text-red-600"
@@ -252,6 +262,16 @@ const Header = () => {
                       <span className="text-lg">⚙️</span>
                       <span>Settings</span>
                     </Button>
+                    {isAdmin && (
+                      <Button 
+                        variant="outline"
+                        className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300"
+                        onClick={() => handleNavigation('/admin')}
+                      >
+                        <Shield className="w-5 h-5" />
+                        <span className="font-semibold">Admin Panel</span>
+                      </Button>
+                    )}
                     <Button 
                       variant="outline"
                       onClick={handleLogout}

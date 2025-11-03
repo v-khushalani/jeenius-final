@@ -254,22 +254,24 @@ export default function EnhancedAIStudyPlanner() {
 
       setWeeklyTrend(last7Days);
 
-      // Calculate streak
+      // Calculate streak (consecutive days with any activity)
       let streak = 0;
-      for (let i = 0; i < 30; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        date.setHours(0, 0, 0, 0);
-        const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 1);
-
+      let currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      
+      for (let i = 0; i < 365; i++) {
         const dayHasAttempts = enrichedAttempts.some(a => {
           const attemptDate = new Date(a.created_at);
-          return attemptDate >= date && attemptDate < nextDate;
+          attemptDate.setHours(0, 0, 0, 0);
+          return attemptDate.getTime() === currentDate.getTime();
         });
 
         if (dayHasAttempts) {
           streak++;
+          currentDate.setDate(currentDate.getDate() - 1);
+        } else if (i === 0) {
+          // If no activity today, check yesterday to see if streak is still valid
+          currentDate.setDate(currentDate.getDate() - 1);
         } else {
           break;
         }
@@ -382,6 +384,7 @@ export default function EnhancedAIStudyPlanner() {
           accuracy: Math.round(accuracy)
         };
       })
+      .filter((rec) => rec.priority !== 'low') // Only show weak/medium topics, not strong ones
       .sort((a, b) => {
         const priorityOrder = { high: 0, medium: 1, low: 2 };
         return priorityOrder[a.priority] - priorityOrder[b.priority];
