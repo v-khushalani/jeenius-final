@@ -52,30 +52,12 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
       
       if (!user) {
         console.log('No user logged in');
-        // Optionally, if not logged in, set to free tier limit
         setIsPro(false);
-        setDailyAIUsage(AI_LIMIT_FREE); 
         return;
       }
 
       const isPremium = await checkIsPremium();
       setIsPro(isPremium);
-
-      if (!isPremium) {
-        const today = new Date().toISOString().split('T')[0];
-        const { count, error } = await supabase
-          .from('ai_usage_log')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('created_at', `${today}T00:00:00Z`)
-          .lte('created_at', `${today}T23:59:59Z`);
-
-        if (error) {
-          console.error('Error fetching usage:', error);
-        } else {
-          setDailyAIUsage(count || 0);
-        }
-      }
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
@@ -100,27 +82,7 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const logAIUsage = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && !isPro) {
-        const today = new Date().toISOString().split('T')[0];
-        const { error } = await supabase
-          .from('ai_usage_log')
-          .insert({
-            user_id: user.id,
-            date: today,
-            count: 1
-          });
-
-        if (error && error.code !== '23505') { // Ignore duplicate key errors
-          console.error('Error logging AI usage:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error logging usage:', error);
-    }
-  };
+  // Removed - AI is premium only now
 
   /**
    * 2. SECURITY FIX: Call the secure Supabase Edge Function instead of Gemini API directly.
@@ -190,10 +152,11 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({ question, isOpen, onClose
       return;
     }
 
-    if (!isPro && dailyAIUsage >= AI_LIMIT_FREE) {
+    // Check if premium user
+    if (!isPro) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🔒 **Daily Limit Reached!**\n\nAapne aaj ${AI_LIMIT_FREE} free queries use kar liye!\n\n**Pro upgrade karo for unlimited AI help** 💎`
+        content: `🔒 **Premium Feature!**\n\nJEEnie AI sirf Premium users ke liye hai!\n\n**Upgrade to Premium for unlimited AI help** 💎`
       }]);
       setTimeout(() => navigate('/subscription-plans'), 3000);
       return;
@@ -248,11 +211,6 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
         role: 'assistant', 
         content: formatted 
       }]);
-
-      await logAIUsage();
-      if (!isPro) {
-        setDailyAIUsage(prev => prev + 1);
-      }
 
     } catch (error: any) {
       console.error('❌ Error in handleSendMessage:', error.message);
@@ -407,21 +365,14 @@ Reply in Hinglish (6-8 lines). Explain the concept, show approach, point out mis
               ) : (
                 <Send size={20} />
               )}
-            </Button>
+          </Button>
           </div>
           
-          {!isPro && (
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs text-gray-600">
-                <span className="font-bold text-orange-600">{dailyAIUsage}/{AI_LIMIT_FREE}</span> queries used today
-              </div>
-              {dailyAIUsage >= AI_LIMIT_FREE - 2 && dailyAIUsage < AI_LIMIT_FREE && (
-                <div className="text-xs text-orange-600 font-semibold animate-pulse">
-                  ⚠️ Only {AI_LIMIT_FREE - dailyAIUsage} left!
-                </div>
-              )}
+          <div className="mt-3 text-center">
+            <div className="text-xs text-purple-600 font-semibold">
+              💎 Premium Feature - Unlimited AI Queries
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

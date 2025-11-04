@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const FloatingAIButton = () => {
   const [showAI, setShowAI] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isPremium, isLoading } = useAuth();
 
   
   // Dummy question for general doubts (outside practice mode)
@@ -20,8 +20,8 @@ const FloatingAIButton = () => {
     explanation: ""
   };
 
-  // Don't render if not authenticated
-  if (isLoading || !isAuthenticated) {
+  // Only show for premium users
+  if (isLoading || !isAuthenticated || !isPremium) {
     return null;
   }
 
@@ -60,7 +60,7 @@ const FloatingAIButton = () => {
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg shadow-xl whitespace-nowrap">
               <p className="text-sm font-semibold">🤖 Ask AI Anything!</p>
               <p className="text-xs opacity-90">
-                JEEnie - Your AI Tutor
+                JEEnie - Premium AI Tutor 💎
               </p>
             </div>
             {/* Arrow */}
