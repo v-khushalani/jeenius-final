@@ -345,8 +345,11 @@ const TestAttemptPage = () => {
 
           {/* Center Branding */}
           <div className="absolute left-1/2 transform -translate-x-1/2">
-            <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              JEENIUS
+            <h1 className="text-xl sm:text-3xl font-bold">
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                JEE
+              </span>
+              <span className="text-gray-900">NIUS</span>
             </h1>
           </div>
 
