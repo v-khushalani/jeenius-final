@@ -74,7 +74,7 @@ const TestAttemptPage = () => {
       navigate("/login");
       return;
     }
-
+    const [showMobilePalette, setShowMobilePalette] = useState(false);
     const savedTest = localStorage.getItem("currentTest");
     if (savedTest) {
       const testData: TestSession = JSON.parse(savedTest);
@@ -356,17 +356,31 @@ const TestAttemptPage = () => {
           </div>
 
           {/* Timer */}
-          <div className="text-center">
-            <div
-              className={`text-base sm:text-xl font-bold transition-all ${
-                timeRemaining < 300 
-                  ? "text-red-600 animate-pulse scale-110" 
-                  : "text-primary"
-              }`}
-            >
-              {formatTime(timeRemaining)}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="text-center">
+              <div
+                className={`text-base sm:text-xl font-bold transition-all ${
+                  timeRemaining < 300 
+                    ? "text-red-600 animate-pulse scale-110" 
+                    : "text-primary"
+                }`}
+              >
+                {formatTime(timeRemaining)}
+              </div>
+              <div className="text-xs text-muted-foreground hidden sm:block">Time Left</div>
             </div>
-            <div className="text-xs text-muted-foreground hidden sm:block">Time Left</div>
+
+            {/* Mobile Palette Toggle */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMobilePalette(!showMobilePalette)}
+              className="lg:hidden"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </Button>
           </div>
         </div>
       </div>
@@ -572,6 +586,112 @@ const TestAttemptPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Question Palette Slider */}
+      {showMobilePalette && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setShowMobilePalette(false)}
+        >
+          <div 
+            className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold">Question Palette</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowMobilePalette(false)}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Question Grid */}
+              <div className="grid grid-cols-5 gap-2 mb-4">
+                {testSession.questions.map((_, index) => {
+                  const status = getQuestionStatus(index);
+                  const isCurrent = index === currentQuestionIndex;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        navigateQuestion(index);
+                        setShowMobilePalette(false);
+                      }}
+                      className={`w-12 h-12 text-sm rounded border-2 transition-all ${
+                        isCurrent
+                          ? "border-primary scale-110 ring-2 ring-primary"
+                          : "border-transparent"
+                      } ${getStatusColor(status)}`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="space-y-2 text-sm mb-4 pb-4 border-b">
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 bg-green-500 rounded"></div>
+                  <span>Answered</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 bg-yellow-500 rounded"></div>
+                  <span>Marked for Review</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 bg-red-500 rounded"></div>
+                  <span>Not Answered</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-5 h-5 bg-gray-200 rounded"></div>
+                  <span>Not Visited</span>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <div className="font-bold text-xl text-green-600">
+                    {answeredCount}
+                  </div>
+                  <div className="text-xs text-gray-600">Done</div>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-lg">
+                  <div className="font-bold text-xl text-yellow-600">
+                    {markedCount}
+                  </div>
+                  <div className="text-xs text-gray-600">Marked</div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="font-bold text-xl text-gray-600">
+                    {testSession.questions.length - answeredCount}
+                  </div>
+                  <div className="text-xs text-gray-600">Left</div>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                onClick={() => {
+                  setShowMobilePalette(false);
+                  handleSubmitTest();
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 mt-4"
+                size="lg"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Submit Test
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Exit Dialog */}
       {showExitDialog && (
