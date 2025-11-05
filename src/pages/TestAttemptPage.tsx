@@ -344,13 +344,15 @@ const TestAttemptPage = () => {
           </div>
 
           {/* Center Branding */}
-          <div className="absolute left-1/2 transform -translate-x-1/2">
-            <h1 className="text-xl sm:text-3xl font-bold">
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                JEE
-              </span>
-              <span className="text-gray-900">NIUS</span>
-            </h1>
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-2">
+            <img 
+              src="/logo.png" 
+              alt="JEEnius Logo" 
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-lg"
+            />
+            <div>
+              <span className="text-lg sm:text-xl font-bold text-primary">JEEnius</span>
+            </div>
           </div>
 
           {/* Timer */}
@@ -370,12 +372,12 @@ const TestAttemptPage = () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <div className="container mx-auto px-3 sm:px-4 h-full py-3 sm:py-4">
+        <div className="container mx-auto px-3 sm:px-4 h-full py-2 sm:py-4">
           <div className="grid lg:grid-cols-4 gap-3 sm:gap-4 h-full">
             {/* Question Panel */}
             <div className="lg:col-span-3 flex flex-col h-full overflow-hidden">
               {/* Question Card */}
-              <Card className="flex-1 overflow-y-auto mb-3 sm:mb-4">
+              <Card className="flex-1 overflow-y-auto mb-2 sm:mb-3 max-h-full">
                 <CardHeader className="pb-3 sm:pb-4">
                   <CardTitle className="text-base sm:text-lg">
                     Question {currentQuestionIndex + 1}
@@ -424,7 +426,7 @@ const TestAttemptPage = () => {
               </Card>
 
               {/* Navigation */}
-              <div className="flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center justify-between gap-2 shrink-0 pb-safe">
                 <Button
                   variant="outline"
                   onClick={() => navigateQuestion("prev")}
