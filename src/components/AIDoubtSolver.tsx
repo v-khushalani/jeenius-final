@@ -178,7 +178,7 @@ Answer in Hinglish within 5-7 lines.`;
       <div className="bg-[#013062] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-blue-900">
         
         {/* Header */}
-        <div className="p-4 border-b bg-gradient-to-r from-[#013062] to-[#2563eb] rounded-t-2xl flex justify-between items-center">
+        <div className="p-4 border-b bg-gradient-to-r from-[#013062] to-[#013062] rounded-t-2xl flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="JEEnius Logo" className="w-8 h-8 rounded-md" />
             <div>
@@ -195,7 +195,7 @@ Answer in Hinglish within 5-7 lines.`;
         </div>
         
         {/* Mode Toggle */}
-        <div className="flex justify-center items-center gap-3 py-3 bg-gradient-to-r from-[#013062] to-white border-b border-blue-100 transition-all">
+        <div className="flex justify-center items-center gap-3 py-3 bg-gradient-to-r from-[#013062] to-[#013062] border-b border-blue-100 transition-all">
             <span className={`text-xs font-semibold ${mode === "quick" ? "text-[#e9e9e9]" : "text-gray-400"}`}>⚡ Quick</span>
             <div className="relative group">
               <label className="relative inline-flex items-center cursor-pointer">
