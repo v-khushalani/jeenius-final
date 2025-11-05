@@ -208,9 +208,6 @@ Answer in Hinglish within 5-7 lines.`;
                 <div className={`w-14 h-7 bg-gray-200 rounded-full peer-focus:ring-2 peer-focus:ring-[#0056D2] transition-all duration-300 peer-checked:bg-[#0056D2]`}></div>
                 <div className={`absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full transition-all duration-300 ${mode === "deep" ? "translate-x-7 shadow-[0_0_8px_3px_#FFC93C]" : "shadow-md"}`}></div>
               </label>
-              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 scale-0 group-hover:scale-100 transition-all bg-[#0056D2] text-white text-[10px] px-2 py-1 rounded-md shadow-lg">
-                {mode === "deep" ? "🧠 Deep Mode: Detailed AI Answers" : "⚡ Quick Mode: Instant Help"}
-              </div>
             </div>
             <span className={`text-xs font-semibold ${mode === "deep" ? "text-[#0056D2]" : "text-gray-400"}`}>🧠 Deep</span>
           </div>
