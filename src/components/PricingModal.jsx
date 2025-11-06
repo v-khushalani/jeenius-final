@@ -3,18 +3,7 @@ import { X, Crown, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
-interface PricingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  limitType?: 'daily_limit' | 'monthly_limit' | 'test_limit' | 'jeenie_blocked' | 'study_planner_blocked' | 'almost_there';
-  userStats?: {
-    questionsCompleted?: number;
-    testsCompleted?: number;
-    currentStreak?: number;
-  };
-}
-
-const PricingModal: React.FC<PricingModalProps> = ({ 
+const PricingModal = ({ 
   isOpen, 
   onClose, 
   limitType = 'daily_limit',
@@ -61,7 +50,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
     }
   };
 
-  const message = limitMessages[limitType];
+  const message = limitMessages[limitType] || limitMessages.daily_limit;
 
   useEffect(() => {
     if (isOpen) {
