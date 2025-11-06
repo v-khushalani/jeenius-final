@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { X, Crown, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { conversionManager } from '@/utils/conversionManager';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -66,7 +65,9 @@ const PricingModal: React.FC<PricingModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      conversionManager.trackModalShown(limitType);
+      // Track modal shown (integrate with your analytics)
+      console.log('Modal shown:', limitType);
+      
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
@@ -95,7 +96,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-6 border-b border-gray-200 relative">
+        <div className="sticky top-0 bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-6 border-b border-gray-200 relative z-10">
           <button
             onClick={onClose}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-white/50"
@@ -190,7 +191,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
             <Button
               onClick={onClose}
               variant="outline"
-              className="w-full border-2 border-gray-300 hover:border-gray-400 py-3 sm:py-3.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+              className="w-full border-2 border-gray-300 hover:border-gray-400 py-3 sm:py-3.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all"
             >
               Maybe Later
             </Button>
