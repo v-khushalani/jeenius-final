@@ -361,7 +361,9 @@ const EnhancedDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 overflow-hidden">
       <Header />
       
-      <div className="container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl pt-20 sm:pt-24">
+      div className={`container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl ${
+        showBanner || showWelcome ? 'pt-20 sm:pt-24' : 'pt-16 sm:pt-20'
+      }`}>
         {showBanner && notification && (
           <div className={`mb-3 sm:mb-4 bg-gradient-to-r ${
             notification.color === 'green' ? 'from-green-500 to-emerald-600' :
@@ -541,12 +543,13 @@ const EnhancedDashboard = () => {
                           /{stats?.todayGoal || 30}
                         </span>
                       </div>
+                      // In the Today's Goal card Progress section:
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1">
                         <Progress 
                           value={percentage} 
                           className="h-1 sm:h-1.5 flex-1" 
                         />
-                        <span className={`text-xs font-semibold ${goalStyle.textColor}`}>
+                        <span className={`text-xs font-semibold ${goalStyle.textColor} w-10 text-right`}>
                           {Math.round(percentage)}%
                         </span>
                       </div>
