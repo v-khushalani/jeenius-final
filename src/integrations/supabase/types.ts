@@ -1439,39 +1439,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_levels: {
-        Row: {
-          accuracy_at_current_level: number
-          created_at: string | null
-          current_level: number
-          id: string
-          level_upgraded_at: string | null
-          questions_at_current_level: number
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          accuracy_at_current_level?: number
-          created_at?: string | null
-          current_level?: number
-          id?: string
-          level_upgraded_at?: string | null
-          questions_at_current_level?: number
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          accuracy_at_current_level?: number
-          created_at?: string | null
-          current_level?: number
-          id?: string
-          level_upgraded_at?: string | null
-          questions_at_current_level?: number
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_rankings: {
         Row: {
           accuracy: number | null
@@ -1504,45 +1471,6 @@ export type Database = {
           questions_solved?: number | null
           rank?: number | null
           study_time_minutes?: number | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_rewards: {
-        Row: {
-          claimed_at: string | null
-          created_at: string | null
-          eligibility_criteria: Json
-          id: string
-          is_claimed: boolean | null
-          is_eligible: boolean | null
-          reward_name: string
-          reward_type: string
-          reward_value: number
-          user_id: string
-        }
-        Insert: {
-          claimed_at?: string | null
-          created_at?: string | null
-          eligibility_criteria: Json
-          id?: string
-          is_claimed?: boolean | null
-          is_eligible?: boolean | null
-          reward_name: string
-          reward_type: string
-          reward_value: number
-          user_id: string
-        }
-        Update: {
-          claimed_at?: string | null
-          created_at?: string | null
-          eligibility_criteria?: Json
-          id?: string
-          is_claimed?: boolean | null
-          is_eligible?: boolean | null
-          reward_name?: string
-          reward_type?: string
-          reward_value?: number
           user_id?: string
         }
         Relationships: []
