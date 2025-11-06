@@ -148,7 +148,8 @@ const App = () => (
               }
             />
             
-            
+            <Route path="/pricing" element={<PricingPage />} />
+
             {/* Catch-all route - 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
