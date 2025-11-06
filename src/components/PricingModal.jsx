@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { X, Crown, Check, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 const PricingModal = ({ 
@@ -170,20 +169,19 @@ const PricingModal = ({
 
           {/* CTA Buttons */}
           <div className="space-y-3">
-            <Button
+            <button
               onClick={handleUpgrade}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 sm:py-3.5 rounded-lg text-base sm:text-lg shadow-lg hover:shadow-xl transition-all"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 sm:py-3.5 rounded-lg text-base sm:text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
             >
               <Crown className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Upgrade to Pro Now
-            </Button>
-            <Button
+            </button>
+            <button
               onClick={onClose}
-              variant="outline"
               className="w-full border-2 border-gray-300 hover:border-gray-400 py-3 sm:py-3.5 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all"
             >
               Maybe Later
-            </Button>
+            </button>
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-3 sm:mt-4">
