@@ -47,7 +47,7 @@ export const SUBSCRIPTION_PLANS = {
       '⚡ Priority Support'
     ],
     tagline: 'Less than a pizza — but can change your rank!',
-    razorpayPlanId: 'plan_monthly_49'
+    razorpayPlanId: 'plan_monthly_49' // Replace with actual Razorpay plan ID
   },
   
   yearly: {
@@ -71,10 +71,11 @@ export const SUBSCRIPTION_PLANS = {
       '🚀 Early Access to New Features'
     ],
     tagline: 'Most students choose this! Best value for serious learners.',
-    razorpayPlanId: 'plan_yearly_499'
+    razorpayPlanId: 'plan_yearly_499' // Replace with actual Razorpay plan ID
   }
 };
 
+// Updated Free Plan Limits
 export const FREE_PLAN_LIMITS = {
   questionsPerDay: 25,
   questionsPerMonth: 150,
@@ -84,6 +85,7 @@ export const FREE_PLAN_LIMITS = {
   analytics: false
 };
 
+// Pro Plan Features
 export const PRO_PLAN_FEATURES = {
   questionsPerDay: 'unlimited',
   questionsPerMonth: 'unlimited',
@@ -96,6 +98,7 @@ export const PRO_PLAN_FEATURES = {
   offlineMode: true
 };
 
+// Updated Conversion Messages
 export const CONVERSION_MESSAGES = {
   dailyLimit: {
     title: '🚀 Daily Limit Reached!',
@@ -141,6 +144,7 @@ export const CONVERSION_MESSAGES = {
   }
 };
 
+// Usage Tracking Helper
 export const shouldShowUpgradePrompt = (
   userPlan: 'free' | 'pro',
   limitType: keyof typeof CONVERSION_MESSAGES
@@ -148,22 +152,25 @@ export const shouldShowUpgradePrompt = (
   return userPlan === 'free';
 };
 
+// Referral Config
 export const REFERRAL_CONFIG = {
   enabled: true,
   reward: {
     type: 'free_month',
-    threshold: 3,
+    threshold: 3, // Refer 3 friends
     message: 'Refer 3 friends → Get 1 month Pro free!'
   }
 };
 
+// Trial Config
 export const TRIAL_CONFIG = {
-  enabled: false,
-  duration: 7,
+  enabled: false, // Set to true if you want to enable trial
+  duration: 7, // days
   features: 'all_pro_features',
   message: '7-day free trial • No credit card required'
 };
 
+// Payment Config
 export const PAYMENT_CONFIG = {
   currency: 'INR',
   acceptedMethods: ['card', 'upi', 'netbanking', 'wallet'],

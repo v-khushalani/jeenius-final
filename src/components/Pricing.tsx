@@ -1,49 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { SUBSCRIPTION_PLANS } from '@/components/SubscriptionPlans';
-import { initializePayment } from '@/utils/razorpay';
-import { Check, X, Star, Zap, Crown, Bot, Calendar, TrendingUp } from 'lucide-react';
+import Header from '@/components/Header';
+import { Check, X, Star, Crown, Zap, Bot, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import Header from '@/components/Header';
 
-const SubscriptionPlans = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState<string | null>(null);
+const PricingPage = () => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
-
-  const handleSelectPlan = async (planId: string) => {
-    if (!user) {
-      navigate('/login?redirect=/subscription-plans');
-      return;
-    }
-
-    if (planId === 'free') {
-      navigate('/dashboard');
-      return;
-    }
-
-    try {
-      setLoading(planId);
-
-      await initializePayment(
-        planId,
-        user.id,
-        user.email || '',
-        user.user_metadata?.name || 'Student'
-      );
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      alert('Failed to initiate payment. Please try again.');
-    } finally {
-      setLoading(null);
-    }
-  };
 
   const freeFeatures = [
     { text: '25 questions per day', included: true },
@@ -73,10 +35,18 @@ const SubscriptionPlans = () => {
       <Header />
       <div className="pt-24 pb-16">
         {/* Hero Section */}
-        <section className="py-2">
+        <section className="py-12">
           <div className="container mx-auto px-4 text-center">
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+              Choose Your Path to
+              <span className="text-green-600 block mt-2">JEE Success 🎯</span>
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+              Start free, upgrade anytime. No hidden costs, no surprises.
+            </p>
+
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 mb-12">
               <button
                 onClick={() => setBillingCycle('monthly')}
                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${
@@ -141,7 +111,6 @@ const SubscriptionPlans = () => {
                   </ul>
 
                   <Button 
-                    onClick={() => handleSelectPlan('free')}
                     className="w-full text-lg py-6 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50" 
                     size="lg"
                   >
@@ -206,22 +175,10 @@ const SubscriptionPlans = () => {
                   </ul>
 
                   <Button 
-                    onClick={() => handleSelectPlan(billingCycle)}
-                    disabled={loading === billingCycle}
                     className="w-full text-lg py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg" 
                     size="lg"
                   >
-                    {loading === billingCycle ? (
-                      <span className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2" />
-                        Processing...
-                      </span>
-                    ) : (
-                      <>
-                        <Crown className="w-5 h-5 mr-2" />
-                        Upgrade to Pro 👑
-                      </>
-                    )}
+                    Upgrade to Pro 👑
                   </Button>
                   
                   <p className="text-center text-xs text-gray-500 mt-4">
@@ -329,4 +286,4 @@ const SubscriptionPlans = () => {
   );
 };
 
-export default SubscriptionPlans;
+export default PricingPage;
