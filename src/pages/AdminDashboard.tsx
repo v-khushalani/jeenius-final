@@ -1,180 +1,148 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
-import { UserManagement } from '@/components/admin/UserManagement';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Users, BookOpen, TrendingUp, Award, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import Header from '@/components/Header';
 import LoadingScreen from '@/components/ui/LoadingScreen';
-import { 
-  BarChart3, 
-  Users, 
-  Settings, 
-  Database, 
-  Shield,
-  Home,
-  LogOut
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
 
-const AdminDashboard: React.FC = () => {
-  const { isAdmin, loading } = useAdminAuth();
-  const { signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState('analytics');
+const AdminDashboard = () => {
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    loadAdminStats();
+  }, []);
+
+  const loadAdminStats = async () => {
+    try {
+      // Total users
+      const { count: totalUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      // Active users (attempted questions in last 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      
+      const { data: activeUsers } = await supabase
+        .from('question_attempts')
+        .select('user_id')
+        .gte('created_at', weekAgo.toISOString());
+
+      const uniqueActiveUsers = new Set(activeUsers?.map(a => a.user_id)).size;
+
+      // Total questions attempted
+      const { count: totalQuestions } = await supabase
+        .from('question_attempts')
+        .select('*', { count: 'exact', head: true });
+
+      // Premium users
+      const { count: premiumUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_premium', true);
+
+      setStats({
+        totalUsers: totalUsers || 0,
+        activeUsers: uniqueActiveUsers,
+        totalQuestions: totalQuestions || 0,
+        premiumUsers: premiumUsers || 0,
+      });
+    } catch (error) {
+      console.error('Error loading admin stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
     return <LoadingScreen message="Loading admin dashboard..." />;
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader className="text-center">
-            <Shield className="h-12 w-12 text-destructive mx-auto mb-2" />
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>
-              You don't have permission to access the admin dashboard.
-            </CardDescription>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Header />
+      
+      <div className="container mx-auto px-4 pt-20">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-slate-600">Monitor platform performance and user activity</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-slate-900">{stats?.totalUsers}</p>
+                  <p className="text-xs text-slate-500 mt-1">All registered</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Active Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-green-600">{stats?.activeUsers}</p>
+                  <p className="text-xs text-slate-500 mt-1">Last 7 days</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Questions Attempted</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-purple-600">{stats?.totalQuestions}</p>
+                  <p className="text-xs text-slate-500 mt-1">Total attempts</p>
+                </div>
+                <BookOpen className="h-8 w-8 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-slate-600">Premium Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-amber-600">{stats?.premiumUsers}</p>
+                  <p className="text-xs text-slate-500 mt-1">Active subscriptions</p>
+                </div>
+                <Award className="h-8 w-8 text-amber-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Platform Overview</CardTitle>
           </CardHeader>
-          <CardContent className="text-center">
-            <Link to="/dashboard">
-              <Button>Go to Dashboard</Button>
-            </Link>
+          <CardContent>
+            <p className="text-slate-600">
+              More analytics and insights coming soon...
+            </p>
           </CardContent>
         </Card>
       </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
-      {/* Admin Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  Admin Dashboard
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Complete analytics and user management
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/dashboard">
-                <Button variant="outline" size="sm">
-                  <Home className="h-4 w-4 mr-2" />
-                  User Dashboard
-                </Button>
-              </Link>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1 p-1 h-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <TabsTrigger 
-              value="analytics" 
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="users" 
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="database" 
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Database className="h-4 w-4" />
-              <span className="hidden sm:inline">Database</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="settings" 
-              className="flex items-center gap-2 py-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Platform Analytics
-                </CardTitle>
-                <CardDescription>
-                  Comprehensive analytics and insights for the learning platform
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            <AdminAnalytics />
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-6">
-            <UserManagement />
-          </TabsContent>
-
-          <TabsContent value="database" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  Database Management
-                </CardTitle>
-                <CardDescription>
-                  Database statistics and maintenance tools
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Database className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Database management tools coming soon...</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Admin Settings
-                </CardTitle>
-                <CardDescription>
-                  System configuration and admin preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Admin settings panel coming soon...</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
     </div>
   );
 };
