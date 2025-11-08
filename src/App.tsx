@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import FloatingAIButton from '@/components/FloatingAIButton';
 import SubscriptionPlans from '@/pages/SubscriptionPlans';
 import PricingPage from '@/components/Pricing';
+import { useAuth } from "@/contexts/AuthContext";
 
 
 // Main pages
@@ -50,6 +51,20 @@ const queryClient = new QueryClient({
   },
 });
 
+// ✅ ADD THIS NEW COMPONENT HERE
+const DashboardRouter = () => {
+  const { userRole } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (userRole === 'admin') {
+      navigate('/admin', { replace: true });
+    }
+  }, [userRole, navigate]);
+
+  return userRole === 'admin' ? null : <EnhancedDashboard />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
@@ -70,12 +85,11 @@ const App = () => (
             {/* Goal Selection (might be needed after signup) */}
             <Route path="/goal-selection" element={<GoalSelectionPage />} />
             
-            {/* Dashboard */}
             <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <EnhancedDashboard />
+                  <DashboardRouter />
                 </ProtectedRoute>
               }
             />
