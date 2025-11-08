@@ -140,8 +140,11 @@ const EnhancedDashboard = () => {
       }
 
       const topicStats: any = {};
+      const subjectStats: any = {};
       attempts.forEach((attempt: any) => {
         const topic = attempt.questions?.topic;
+        const subject = attempt.questions?.subject;
+        
         if (topic) {
           if (!topicStats[topic]) {
             topicStats[topic] = { correct: 0, total: 0 };
@@ -149,8 +152,15 @@ const EnhancedDashboard = () => {
           topicStats[topic].total++;
           if (attempt.is_correct) topicStats[topic].correct++;
         }
+        
+        if (subject) {
+          if (!subjectStats[subject]) {
+            subjectStats[subject] = { correct: 0, total: 0 };
+          }
+          subjectStats[subject].total++;
+          if (attempt.is_correct) subjectStats[subject].correct++;
+        }
       });
-
       let weakestTopic = "Not enough data";
       let strongestTopic = "Not enough data";
       let lowestAccuracy = 100;
@@ -174,24 +184,25 @@ const EnhancedDashboard = () => {
       const dynamicGoal = calculateDailyGoal(totalQuestions, accuracy, streak);
 
       setStats({
-        totalQuestions,
-        questionsToday: todayAttempts.length,
-        questionsWeek: weekAttempts.length,
-        correctAnswers,
-        accuracy,
-        todayAccuracy,
-        accuracyChange: 2,
-        streak,
-        rank: 15,
-        rankChange: -3,
-        percentile: 94.5,
-        todayGoal: dynamicGoal,
-        todayProgress: todayAttempts.length,
-        weakestTopic,
-        strongestTopic,
-        avgQuestionsPerDay: totalQuestions > 0 ? Math.round(totalQuestions / Math.max(1, streak || 1)) : 0,
-        topRankersAvg: 48,
-      });
+      totalQuestions,
+      questionsToday: todayAttempts.length,
+      questionsWeek: weekAttempts.length,
+      correctAnswers,
+      accuracy,
+      todayAccuracy,
+      accuracyChange: 2,
+      streak,
+      rank: 15,
+      rankChange: -3,
+      percentile: 94.5,
+      todayGoal: dynamicGoal,
+      todayProgress: todayAttempts.length,
+      weakestTopic,
+      strongestTopic,
+      avgQuestionsPerDay: totalQuestions > 0 ? Math.round(totalQuestions / Math.max(1, streak || 1)) : 0,
+      topRankersAvg: 48,
+      subjectStats,
+    });
       
       setLeaderboardKey(prev => prev + 1);
     } catch (error) {
@@ -673,17 +684,38 @@ const EnhancedDashboard = () => {
               </CardHeader>
               <CardContent className="p-3 sm:p-4">
                 <div className="space-y-2.5 sm:space-y-3">
-                  {(() => {
-                    const subjectStats: any = {};
-                    
-                    // This will be populated from actual data
-                    return (
-                      <div className="text-center py-6 sm:py-8 text-slate-500">
-                        <BookOpen className="h-10 w-10 sm:h-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
-                        <p className="text-xs sm:text-sm">Subject progress will appear here</p>
-                      </div>
-                    );
-                  })()}
+                  {stats?.subjectStats && Object.keys(stats.subjectStats).length > 0 ? (
+                    Object.entries(stats.subjectStats).map(([subject, data]: [string, any]) => {
+                      const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+                      const badge = getProgressBadge(accuracy);
+                      
+                      return (
+                        <div key={subject} className="bg-slate-50 rounded-xl p-3 hover:bg-slate-100 transition-all">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <span className="text-sm font-semibold text-slate-800 truncate">{subject}</span>
+                              <Badge className={`${badge.color} text-white text-xs px-2 py-0 shrink-0`}>
+                                {badge.text}
+                              </Badge>
+                            </div>
+                            <span className={`text-lg font-bold ${getAccuracyColor(accuracy)} shrink-0 ml-2`}>
+                              {accuracy}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Progress value={accuracy} className="flex-1 h-2" />
+                            <span className="text-xs text-slate-600 shrink-0">{data.correct}/{data.total}</span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">{badge.message}</p>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6 sm:py-8 text-slate-500">
+                      <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-3 opacity-50" />
+                      <p className="text-xs sm:text-sm">Start practicing to see subject progress!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
