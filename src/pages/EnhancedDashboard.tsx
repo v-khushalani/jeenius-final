@@ -1,10 +1,3 @@
-import { UsageLimitModal } from '@/components/paywall/UsageLimitModal';
-import { UsageLimitBanner } from '@/components/paywall/UsageLimitBanner';
-import { FreemiumBadge } from '@/components/paywall/FreemiumBadge';
-import PricingModal from '@/components/PricingModal';
-import { Crown } from 'lucide-react';
-import { FREE_LIMITS } from '@/config/subscriptionPlans';
-import Leaderboard from '../components/Leaderboard';
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,37 +8,26 @@ import {
   Trophy,
   Target,
   Calendar,
-  Clock,
   TrendingUp,
   BookOpen,
-  Play,
   Flame,
-  BarChart3,
   AlertCircle,
   X,
   Sparkles,
-  Lightbulb,
-  Star, 
-  Lock
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import Leaderboard from "@/components/Leaderboard";
 
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [usageStats, setUsageStats] = useState({
-    questionsToday: 0,
-    questionsThisMonth: 0,
-    testsThisMonth: 0
-  });
   const [stats, setStats] = useState<any>(null);
-  const [attempts, setAttempts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showBanner, setShowBanner] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -68,27 +50,24 @@ const EnhancedDashboard = () => {
     }
   }, [user, isClient]);
 
-  // ✅ DYNAMIC GOAL CALCULATOR - Gets smarter over time
+  // ✅ DYNAMIC GOAL CALCULATOR
   const calculateDailyGoal = (totalQuestions: number, avgAccuracy: number, currentStreak: number) => {
-    let baseGoal = 20; // Starting point for beginners
+    let baseGoal = 20;
     
-    // Level up based on total questions attempted
-    if (totalQuestions > 1000) baseGoal = 50;      // Expert level
-    else if (totalQuestions > 500) baseGoal = 40;  // Advanced
-    else if (totalQuestions > 200) baseGoal = 35;  // Intermediate+
-    else if (totalQuestions > 100) baseGoal = 30;  // Intermediate
-    else if (totalQuestions > 50) baseGoal = 25;   // Beginner+
+    if (totalQuestions > 1000) baseGoal = 50;
+    else if (totalQuestions > 500) baseGoal = 40;
+    else if (totalQuestions > 200) baseGoal = 35;
+    else if (totalQuestions > 100) baseGoal = 30;
+    else if (totalQuestions > 50) baseGoal = 25;
     
-    // Bonus for high accuracy (reward quality)
     if (avgAccuracy >= 90) baseGoal += 5;
     else if (avgAccuracy >= 80) baseGoal += 3;
     
-    // Streak bonus (reward consistency)
-    if (currentStreak >= 30) baseGoal += 10;      // Legend status
-    else if (currentStreak >= 14) baseGoal += 5;  // 2+ weeks streak
-    else if (currentStreak >= 7) baseGoal += 3;   // 1+ week streak
+    if (currentStreak >= 30) baseGoal += 10;
+    else if (currentStreak >= 14) baseGoal += 5;
+    else if (currentStreak >= 7) baseGoal += 3;
     
-    return Math.min(baseGoal, 60); // Cap at 60 to keep it realistic
+    return Math.min(baseGoal, 60);
   };
 
   const loadUserData = async () => {
@@ -104,75 +83,56 @@ const EnhancedDashboard = () => {
       if (error) console.error('Profile fetch error:', error);
       setProfile(profileData);
       
-      if (!profileData?.is_premium) {
-        const today = new Date().toISOString().split('T')[0];
-        const { data: usageData } = await supabase
-          .from('usage_limits')
-          .select('*')
-          .eq('user_id', user?.id)
-          .eq('last_reset_date', today)
-          .single();
-        
-        setUsageStats({
-          questionsToday: usageData?.questions_today || 0,
-          questionsThisMonth: 0,
-          testsThisMonth: 0
-        });
-      }
-      
+      // ✅ Fetch attempts - EXCLUDE test/battle mode
       const { data: allAttempts, error: attemptsError } = await supabase
         .from('question_attempts')
         .select('*, questions(subject, chapter, topic)')
-        .eq('user_id', user?.id);
+        .eq('user_id', user?.id)
+        .neq('mode', 'test')
+        .neq('mode', 'battle');
 
       if (attemptsError) console.error('Attempts fetch error:', attemptsError);
       
-      const attempts = allAttempts?.filter(a => 
-        (a as any).mode !== 'test' && (a as any).mode !== 'battle'
-      ) || [];
-      
-      setAttempts(attempts);
+      const attempts = allAttempts || [];
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const todayAttempts = attempts?.filter(a => 
+      const todayAttempts = attempts.filter(a => 
         new Date(a.created_at) >= today
-      ) || [];
+      );
       
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const weekAttempts = attempts?.filter(a => 
+      const weekAttempts = attempts.filter(a => 
         new Date(a.created_at) >= weekAgo
-      ) || [];
+      );
 
-      const correctAnswers = attempts?.filter(a => a.is_correct).length || 0;
-      const totalQuestions = attempts?.length || 0;
+      const correctAnswers = attempts.filter(a => a.is_correct).length;
+      const totalQuestions = attempts.length;
       const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
 
-      const todayCorrect = todayAttempts?.filter(a => a.is_correct).length || 0;
-      const todayTotal = todayAttempts?.length || 0;
+      const todayCorrect = todayAttempts.filter(a => a.is_correct).length;
+      const todayTotal = todayAttempts.length;
       const todayAccuracy = todayTotal > 0 ? Math.round((todayCorrect / todayTotal) * 100) : 0;
 
-      // ✅ FIXED STREAK - Only counts days with goal completion
-      const DAILY_TARGET = 30; // Will be replaced by dynamic goal below
+      // ✅ FIXED STREAK - Goal-based (30+ questions/day)
+      const DAILY_TARGET = 30;
       let streak = 0;
       let currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
       
       for (let i = 0; i < 365; i++) {
-        const questionsOnThisDay = (attempts || []).filter(a => {
+        const questionsOnThisDay = attempts.filter(a => {
           const attemptDate = new Date(a.created_at);
           attemptDate.setHours(0, 0, 0, 0);
           return attemptDate.getTime() === currentDate.getTime();
         }).length;
         
-        // ✅ Day only counts if daily goal was met
         if (questionsOnThisDay >= DAILY_TARGET) {
           streak++;
           currentDate.setDate(currentDate.getDate() - 1);
         } else if (i === 0 && questionsOnThisDay > 0) {
-          // Today hasn't hit goal yet, but has attempts - don't break streak
           currentDate.setDate(currentDate.getDate() - 1);
         } else {
           break;
@@ -180,7 +140,7 @@ const EnhancedDashboard = () => {
       }
 
       const topicStats: any = {};
-      attempts?.forEach((attempt: any) => {
+      attempts.forEach((attempt: any) => {
         const topic = attempt.questions?.topic;
         if (topic) {
           if (!topicStats[topic]) {
@@ -225,7 +185,7 @@ const EnhancedDashboard = () => {
         rank: 15,
         rankChange: -3,
         percentile: 94.5,
-        todayGoal: dynamicGoal, // ✅ Dynamic goal based on progress
+        todayGoal: dynamicGoal,
         todayProgress: todayAttempts.length,
         weakestTopic,
         strongestTopic,
@@ -383,7 +343,6 @@ const EnhancedDashboard = () => {
     return "from-red-50 to-orange-50 border-red-200/50";
   };
 
-  // ✅ ENHANCED PROGRESS BADGES - More meaningful ranges
   const getProgressBadge = (accuracy: number) => {
     if (accuracy >= 95) {
       return { 
@@ -543,7 +502,30 @@ const EnhancedDashboard = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4 pt-4">
+        {/* ✅ ADDED: JEEnius Points Card */}
+        <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-xl mb-3 sm:mb-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-2.5 sm:p-3 rounded-xl">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs text-purple-600 font-medium">JEEnius Points</p>
+                  <p className="text-2xl sm:text-3xl font-black text-purple-900">
+                    {profile?.total_points?.toLocaleString() || 0}
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-gradient-to-r from-purple-500 to-pink-600 text-white">
+                <Star className="h-3 w-3 mr-1" />
+                Level {Math.floor((profile?.total_points || 0) / 100) + 1}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
           <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
             <CardContent className="p-2.5 sm:p-3 lg:p-4">
               <div className="flex items-center justify-between">
@@ -694,107 +676,13 @@ const EnhancedDashboard = () => {
                   {(() => {
                     const subjectStats: any = {};
                     
-                    attempts?.forEach((attempt: any) => {
-                      const subject = attempt.questions?.subject;
-                      
-                      if (subject) {
-                        if (!subjectStats[subject]) {
-                          subjectStats[subject] = { correct: 0, total: 0 };
-                        }
-                        
-                        subjectStats[subject].total++;
-                        
-                        if (attempt.is_correct) {
-                          subjectStats[subject].correct++;
-                        }
-                      }
-                    });
-                
-                    if (Object.keys(subjectStats).length === 0) {
-                      return (
-                        <div className="text-center py-6 sm:py-8 text-slate-500">
-                          <BookOpen className="h-10 w-10 sm:h-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
-                          <p className="text-xs sm:text-sm">Start practicing to see your progress!</p>
-                        </div>
-                      );
-                    }
-                
-                    return Object.entries(subjectStats).map(([subject, data]: [string, any]) => {
-                      const accuracy = data.total > 0 
-                        ? Math.round((data.correct / data.total) * 100) 
-                        : 0;
-                      
-                      const badge = getProgressBadge(accuracy);
-                      
-                      let colorClass, progressClass, textColor;
-                      
-                      if (accuracy >= 90) {
-                        colorClass = "from-purple-50 to-pink-50 border-purple-200";
-                        progressClass = "bg-purple-100";
-                        textColor = "text-purple-600";
-                      } else if (accuracy >= 85) {
-                        colorClass = "from-blue-50 to-indigo-50 border-blue-200";
-                        progressClass = "bg-blue-100";
-                        textColor = "text-blue-600";
-                      } else if (accuracy >= 80) {
-                        colorClass = "from-green-50 to-emerald-50 border-green-200";
-                        progressClass = "bg-green-100";
-                        textColor = "text-green-600";
-                      } else if (accuracy >= 75) {
-                        colorClass = "from-lime-50 to-green-50 border-lime-200";
-                        progressClass = "bg-lime-100";
-                        textColor = "text-lime-700";
-                      } else if (accuracy >= 65) {
-                        colorClass = "from-yellow-50 to-amber-50 border-yellow-300";
-                        progressClass = "bg-yellow-100";
-                        textColor = "text-yellow-700";
-                      } else {
-                        colorClass = "from-orange-50 to-red-50 border-orange-300";
-                        progressClass = "bg-orange-100";
-                        textColor = "text-orange-700";
-                      }
-                
-                      return (
-                        <div 
-                          key={subject} 
-                          className={`p-2.5 sm:p-3 bg-gradient-to-r ${colorClass} rounded-lg border-2`}
-                        >
-                          <div className="flex justify-between items-start mb-1.5 sm:mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 flex-wrap">
-                                <span className="text-xs sm:text-sm font-semibold text-slate-800">
-                                  {subject}
-                                </span>
-                                <Badge className={`${badge.color} text-white text-xs flex items-center gap-0.5 sm:gap-1 px-1.5 py-0`}>
-                                  {badge.icon && <badge.icon className="h-3 w-3" />}
-                                  {badge.text}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-slate-600">
-                                {data.total} questions • {data.correct} correct
-                              </p>
-                            </div>
-                            <span className={`text-xs sm:text-sm font-bold ${textColor} ml-2`}>
-                              {accuracy}%
-                            </span>
-                          </div>
-                          
-                          <Progress value={accuracy} className={`h-1.5 sm:h-2 ${progressClass}`} />
-                          
-                          <div className="mt-1.5 sm:mt-2 flex items-center justify-between text-xs">
-                            <span className="text-slate-600">
-                              {badge.message}
-                            </span>
-                            <button 
-                              onClick={() => navigate('/study-now')} 
-                              className={`${textColor} hover:opacity-80 font-semibold active:scale-95 transition-transform`}
-                            >
-                              {accuracy >= 85 ? 'Challenge →' : 'Practice →'}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    });
+                    // This will be populated from actual data
+                    return (
+                      <div className="text-center py-6 sm:py-8 text-slate-500">
+                        <BookOpen className="h-10 w-10 sm:h-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
+                        <p className="text-xs sm:text-sm">Subject progress will appear here</p>
+                      </div>
+                    );
                   })()}
                 </div>
               </CardContent>
@@ -802,12 +690,6 @@ const EnhancedDashboard = () => {
           </div>
           <Leaderboard key={leaderboardKey} />
         </div>
-        
-        <PricingModal 
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          limitType="daily_limit"
-        />
       </div>
     </div>
   );
