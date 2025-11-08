@@ -39,7 +39,7 @@ const Leaderboard: React.FC = () => {
   useEffect(() => {
     fetchLeaderboard(true);
     
-    // Refresh every 30 seconds without showing loading state
+    // Refresh every 30 seconds
     const interval = setInterval(() => fetchLeaderboard(false), 30000);
     return () => clearInterval(interval);
   }, [timeFilter, user]);
@@ -52,116 +52,138 @@ const Leaderboard: React.FC = () => {
         setIsRefreshing(true);
       }
 
-      // ✅ FIX: Get ALL users with profiles (increased limit)
-      const { data: profiles } = await supabase
+      // ✅ NO LIMIT - Fetch ALL users
+      const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url')
-        .limit(1000); // Increased to fetch more users
+        .select('id, full_name, avatar_url');
+
+      if (profileError) {
+        console.error('❌ Profile fetch error:', profileError);
+        return;
+      }
 
       if (!profiles || profiles.length === 0) {
-        console.log('No profiles found');
+        console.log('⚠️ No profiles found');
         setLoading(false);
         return;
       }
 
-      console.log(`Fetched ${profiles.length} profiles`);
+      console.log(`✅ Fetched ${profiles.length} total profiles`);
+
+      // Fetch ALL question attempts at once (more efficient)
+      const { data: allAttempts, error: attemptsError } = await supabase
+        .from('question_attempts')
+        .select('user_id, is_correct, created_at, mode');
+
+      if (attemptsError) {
+        console.error('❌ Attempts fetch error:', attemptsError);
+      }
+
+      console.log(`✅ Fetched ${allAttempts?.length || 0} total attempts`);
+
+      // Group attempts by user_id for faster lookup
+      const attemptsByUser = new Map<string, any[]>();
+      allAttempts?.forEach(attempt => {
+        // Filter out test and battle modes
+        if (attempt.mode === 'test' || attempt.mode === 'battle') return;
+        
+        if (!attemptsByUser.has(attempt.user_id)) {
+          attemptsByUser.set(attempt.user_id, []);
+        }
+        attemptsByUser.get(attempt.user_id)?.push(attempt);
+      });
+
+      console.log(`✅ ${attemptsByUser.size} users have practice attempts`);
 
       // Calculate stats for each user
-      const userStats = await Promise.all(
-        profiles.map(async (profile) => {
-          // Get attempts for this user - filter out test and battle mode
-          const { data: attempts } = await supabase
-            .from('question_attempts')
-            .select('is_correct, created_at, mode')
-            .eq('user_id', profile.id);
+      const userStats: LeaderboardUser[] = [];
+      
+      profiles.forEach(profile => {
+        const attempts = attemptsByUser.get(profile.id) || [];
+        
+        if (attempts.length === 0) {
+          return; // Skip users with no practice attempts
+        }
 
-          // ✅ IMPORTANT: Filter out test/battle AFTER fetching
-          const filteredAttempts = (attempts || []).filter(
-            a => a.mode !== 'test' && a.mode !== 'battle'
-          );
-
-          if (!filteredAttempts || filteredAttempts.length === 0) {
-            return null; // Skip users with no attempts
-          }
-
-          // Filter based on time
-          let timeFilteredAttempts = filteredAttempts;
-          if (timeFilter === 'today') {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            timeFilteredAttempts = filteredAttempts.filter(a => new Date(a.created_at) >= today);
-          } else if (timeFilter === 'week') {
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            timeFilteredAttempts = filteredAttempts.filter(a => new Date(a.created_at) >= weekAgo);
-          }
-
-          // Skip if no attempts in time filter
-          if (timeFilteredAttempts.length === 0) {
-            return null;
-          }
-
-          const totalQuestions = timeFilteredAttempts.length;
-          const correctAnswers = timeFilteredAttempts.filter(a => a.is_correct).length;
-          const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-
-          // Calculate today's questions
+        // Filter based on time
+        let timeFilteredAttempts = attempts;
+        if (timeFilter === 'today') {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          const todayAttempts = filteredAttempts.filter(a => new Date(a.created_at) >= today);
+          timeFilteredAttempts = attempts.filter(a => new Date(a.created_at) >= today);
+        } else if (timeFilter === 'week') {
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          timeFilteredAttempts = attempts.filter(a => new Date(a.created_at) >= weekAgo);
+        }
 
-          // ✅ FIXED STREAK - Only counts days with 30+ questions (goal met)
-          let streak = 0;
-          const DAILY_TARGET = 30;
-          const sortedAttempts = [...filteredAttempts].sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
+        // Skip if no attempts in selected time filter
+        if (timeFilteredAttempts.length === 0) {
+          return;
+        }
+
+        const totalQuestions = timeFilteredAttempts.length;
+        const correctAnswers = timeFilteredAttempts.filter(a => a.is_correct).length;
+        const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
+        // Calculate today's questions
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayAttempts = attempts.filter(a => new Date(a.created_at) >= today);
+
+        // Calculate streak (30+ questions per day)
+        let streak = 0;
+        const DAILY_TARGET = 30;
+        const sortedAttempts = [...attempts].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        let currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        
+        for (let i = 0; i < 365; i++) {
+          const questionsOnThisDay = sortedAttempts.filter(a => {
+            const attemptDate = new Date(a.created_at);
+            attemptDate.setHours(0, 0, 0, 0);
+            return attemptDate.getTime() === currentDate.getTime();
+          }).length;
           
-          let currentDate = new Date();
-          currentDate.setHours(0, 0, 0, 0);
-          
-          for (let i = 0; i < 365; i++) {
-            const questionsOnThisDay = sortedAttempts.filter(a => {
-              const attemptDate = new Date(a.created_at);
-              attemptDate.setHours(0, 0, 0, 0);
-              return attemptDate.getTime() === currentDate.getTime();
-            }).length;
-            
-            // ✅ Only count if daily target met
-            if (questionsOnThisDay >= DAILY_TARGET) {
-              streak++;
-              currentDate.setDate(currentDate.getDate() - 1);
-            } else if (i === 0 && questionsOnThisDay > 0) {
-              // Today hasn't hit goal yet but has attempts - check yesterday
-              currentDate.setDate(currentDate.getDate() - 1);
-            } else {
-              break;
-            }
+          if (questionsOnThisDay >= DAILY_TARGET) {
+            streak++;
+            currentDate.setDate(currentDate.getDate() - 1);
+          } else if (i === 0 && questionsOnThisDay > 0) {
+            // Today hasn't hit goal yet but has attempts
+            currentDate.setDate(currentDate.getDate() - 1);
+          } else {
+            break;
           }
+        }
 
-          return {
-            id: profile.id,
-            full_name: profile.full_name || 'Anonymous',
-            avatar_url: profile.avatar_url,
-            total_questions: totalQuestions,
-            accuracy,
-            streak,
-            rank: 0,
-            rank_change: 0,
-            questions_today: todayAttempts.length
-          };
-        })
-      );
+        userStats.push({
+          id: profile.id,
+          full_name: profile.full_name || 'Anonymous User',
+          avatar_url: profile.avatar_url,
+          total_questions: totalQuestions,
+          accuracy,
+          streak,
+          rank: 0,
+          rank_change: 0,
+          questions_today: todayAttempts.length
+        });
+      });
 
-      // ✅ Filter out null values (users with no attempts)
-      const validUsers = userStats.filter((u): u is LeaderboardUser => 
-        u !== null && u.total_questions > 0
-      );
+      console.log(`✅ ${userStats.length} users have stats for ${timeFilter}`);
 
-      console.log(`Valid users with attempts: ${validUsers.length}`);
+      if (userStats.length === 0) {
+        console.log('⚠️ No users with attempts in selected time period');
+        setTopUsers([]);
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
 
-      // ✅ Sort by total questions (primary) and accuracy (secondary)
-      validUsers.sort((a, b) => {
+      // Sort by total questions (primary) and accuracy (secondary)
+      userStats.sort((a, b) => {
         if (b.total_questions !== a.total_questions) {
           return b.total_questions - a.total_questions;
         }
@@ -169,26 +191,28 @@ const Leaderboard: React.FC = () => {
       });
 
       // Assign ranks
-      validUsers.forEach((user, index) => {
+      userStats.forEach((user, index) => {
         user.rank = index + 1;
-        user.rank_change = Math.floor(Math.random() * 5) - 2; // Mock rank change for now
+        user.rank_change = Math.floor(Math.random() * 5) - 2;
       });
 
-      // Get current user
-      const current = validUsers.find(u => u.id === user?.id);
+      // Find current user
+      const current = userStats.find(u => u.id === user?.id);
       if (current) {
         setCurrentUser(current);
-        console.log('Current user rank:', current.rank);
+        console.log(`✅ Current user rank: ${current.rank} (${current.total_questions} questions)`);
       } else {
-        console.log('Current user not found in leaderboard');
+        console.log('⚠️ Current user not in leaderboard for this time period');
+        setCurrentUser(null);
       }
 
-      // Top 10 users
-      setTopUsers(validUsers.slice(0, 10));
-      console.log('Top users:', validUsers.slice(0, 10).map(u => ({ name: u.full_name, questions: u.total_questions })));
+      // Set top 10 users
+      const top10 = userStats.slice(0, 10);
+      setTopUsers(top10);
+      console.log('✅ Top 10 users:', top10.map(u => `${u.full_name}: ${u.total_questions}Q`));
 
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+      console.error('❌ Error fetching leaderboard:', error);
     } finally {
       if (showLoader) {
         setLoading(false);
