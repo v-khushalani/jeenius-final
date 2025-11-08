@@ -139,13 +139,17 @@ const Header = () => {
           </div>
 
           {/* Desktop Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => {
+                  console.log('Navigating to:', item.href || item.path);
+                  handleNavigation(item.href || item.path);
+                }}
                 className={`transition-colors duration-200 font-medium px-3 py-2 rounded-lg flex items-center space-x-2 ${
-                  location.pathname === item.path
+                  location.pathname === (item.href || item.path)
                     ? 'text-white bg-primary'
                     : item.highlight 
                     ? 'text-primary bg-primary/10 hover:bg-primary hover:text-white'
