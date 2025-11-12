@@ -416,7 +416,7 @@ const EnhancedDashboard = () => {
       <Header />
       
       <div className={`container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl ${
-        showBanner || showWelcome ? 'pt-20 sm:pt-24' : 'pt-18 sm:pt-18'
+        showBanner || showWelcome ? 'pt-20 sm:pt-24' : 'pt-16 sm:pt-18'
       }`}>
         {showBanner && notification && (
           <div className={`mb-3 sm:mb-4 bg-gradient-to-r ${
