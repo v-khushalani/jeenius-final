@@ -7,105 +7,62 @@ import {
   TrendingUp,
   TrendingDown,
   Flame,
-  Zap,
   Crown,
   Target,
   Medal,
-  Activity
+  Activity,
+  Star
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 
-interface LeaderboardUser {
-  id: string;
-  full_name: string;
-  avatar_url?: string;
-  total_questions: number;
-  accuracy: number;
-  streak: number;
-  rank: number;
-  rank_change: number;
-  questions_today: number;
-}
-
-const Leaderboard: React.FC = () => {
-  const { user } = useAuth();
-  const [topUsers, setTopUsers] = useState<LeaderboardUser[]>([]);
-  const [currentUser, setCurrentUser] = useState<LeaderboardUser | null>(null);
+const CompactLeaderboard = () => {
+  const [topUsers, setTopUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'alltime'>('week');
+  const [timeFilter, setTimeFilter] = useState('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchLeaderboard(true);
-    
-    // Refresh every 30 seconds
     const interval = setInterval(() => fetchLeaderboard(false), 30000);
     return () => clearInterval(interval);
-  }, [timeFilter, user]);
+  }, [timeFilter]);
 
   const fetchLeaderboard = async (showLoader = true) => {
     try {
-      if (showLoader) {
-        setLoading(true);
-      } else {
-        setIsRefreshing(true);
-      }
+      if (showLoader) setLoading(true);
+      else setIsRefreshing(true);
 
-      // ✅ NO LIMIT - Fetch ALL users
-      const { data: profiles, error: profileError } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url');
 
-      if (profileError) {
-        console.error('❌ Profile fetch error:', profileError);
-        return;
-      }
-
       if (!profiles || profiles.length === 0) {
-        console.log('⚠️ No profiles found');
         setLoading(false);
         return;
       }
 
-      console.log(`✅ Fetched ${profiles.length} total profiles`);
-
-      // Fetch ALL question attempts at once (more efficient)
-      const { data: allAttempts, error: attemptsError } = await supabase
+      const { data: allAttempts } = await supabase
         .from('question_attempts')
         .select('user_id, is_correct, created_at, mode');
 
-      if (attemptsError) {
-        console.error('❌ Attempts fetch error:', attemptsError);
-      }
-
-      console.log(`✅ Fetched ${allAttempts?.length || 0} total attempts`);
-
-      // Group attempts by user_id for faster lookup
-      const attemptsByUser = new Map<string, any[]>();
+      const attemptsByUser = new Map();
       allAttempts?.forEach(attempt => {
-        // Filter out test and battle modes
         if (attempt.mode === 'test' || attempt.mode === 'battle') return;
-        
         if (!attemptsByUser.has(attempt.user_id)) {
           attemptsByUser.set(attempt.user_id, []);
         }
         attemptsByUser.get(attempt.user_id)?.push(attempt);
       });
 
-      console.log(`✅ ${attemptsByUser.size} users have practice attempts`);
-
-      // Calculate stats for each user
-      const userStats: LeaderboardUser[] = [];
+      const userStats = [];
       
       profiles.forEach(profile => {
         const attempts = attemptsByUser.get(profile.id) || [];
-        
-        if (attempts.length === 0) {
-          return; // Skip users with no practice attempts
-        }
+        if (attempts.length === 0) return;
 
-        // Filter based on time
         let timeFilteredAttempts = attempts;
         if (timeFilter === 'today') {
           const today = new Date();
@@ -117,21 +74,17 @@ const Leaderboard: React.FC = () => {
           timeFilteredAttempts = attempts.filter(a => new Date(a.created_at) >= weekAgo);
         }
 
-        // Skip if no attempts in selected time filter
-        if (timeFilteredAttempts.length === 0) {
-          return;
-        }
+        if (timeFilteredAttempts.length === 0) return;
 
         const totalQuestions = timeFilteredAttempts.length;
         const correctAnswers = timeFilteredAttempts.filter(a => a.is_correct).length;
         const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
 
-        // Calculate today's questions
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayAttempts = attempts.filter(a => new Date(a.created_at) >= today);
+        // Calculate points & level
+        const points = totalQuestions * 10 + correctAnswers * 5;
+        const level = Math.floor(points / 500) + 1;
 
-        // Calculate streak (30+ questions per day)
+        // Calculate streak
         let streak = 0;
         const DAILY_TARGET = 30;
         const sortedAttempts = [...attempts].sort((a, b) => 
@@ -152,12 +105,15 @@ const Leaderboard: React.FC = () => {
             streak++;
             currentDate.setDate(currentDate.getDate() - 1);
           } else if (i === 0 && questionsOnThisDay > 0) {
-            // Today hasn't hit goal yet but has attempts
             currentDate.setDate(currentDate.getDate() - 1);
           } else {
             break;
           }
         }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayAttempts = attempts.filter(a => new Date(a.created_at) >= today);
 
         userStats.push({
           id: profile.id,
@@ -166,84 +122,75 @@ const Leaderboard: React.FC = () => {
           total_questions: totalQuestions,
           accuracy,
           streak,
+          points,
+          level,
           rank: 0,
           rank_change: 0,
           questions_today: todayAttempts.length
         });
       });
 
-      console.log(`✅ ${userStats.length} users have stats for ${timeFilter}`);
-
       if (userStats.length === 0) {
-        console.log('⚠️ No users with attempts in selected time period');
         setTopUsers([]);
         setCurrentUser(null);
         setLoading(false);
         return;
       }
 
-      // Sort by total questions (primary) and accuracy (secondary)
+      // Sort by points (primary) and accuracy (secondary)
       userStats.sort((a, b) => {
-        if (b.total_questions !== a.total_questions) {
-          return b.total_questions - a.total_questions;
-        }
+        if (b.points !== a.points) return b.points - a.points;
         return b.accuracy - a.accuracy;
       });
 
-      // Assign ranks
-      userStats.forEach((user, index) => {
-        user.rank = index + 1;
-        user.rank_change = Math.floor(Math.random() * 5) - 2;
+      userStats.forEach((usr, index) => {
+        usr.rank = index + 1;
+        usr.rank_change = Math.floor(Math.random() * 5) - 2;
       });
 
-      // Find current user
       const current = userStats.find(u => u.id === user?.id);
-      if (current) {
-        setCurrentUser(current);
-        console.log(`✅ Current user rank: ${current.rank} (${current.total_questions} questions)`);
-      } else {
-        console.log('⚠️ Current user not in leaderboard for this time period');
-        setCurrentUser(null);
-      }
+      if (current) setCurrentUser(current);
+      else setCurrentUser(null);
 
-      // Set top 10 users
-      const top10 = userStats.slice(0, 10);
-      setTopUsers(top10);
-      console.log('✅ Top 10 users:', top10.map(u => `${u.full_name}: ${u.total_questions}Q`));
+      setTopUsers(userStats.slice(0, 15));
 
     } catch (error) {
-      console.error('❌ Error fetching leaderboard:', error);
+      console.error('Error fetching leaderboard:', error);
     } finally {
-      if (showLoader) {
-        setLoading(false);
-      } else {
-        setIsRefreshing(false);
-      }
+      if (showLoader) setLoading(false);
+      else setIsRefreshing(false);
     }
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="h-5 w-5 text-yellow-500" />;
-    if (rank === 2) return <Medal className="h-5 w-5 text-gray-400" />;
-    if (rank === 3) return <Medal className="h-5 w-5 text-amber-600" />;
+  const getRankIcon = (rank) => {
+    if (rank === 1) return <Crown className="w-4 h-4 text-yellow-500" />;
+    if (rank === 2) return <Medal className="w-4 h-4 text-gray-400" />;
+    if (rank === 3) return <Medal className="w-4 h-4 text-amber-600" />;
     return null;
   };
 
-  const getRankBadge = (rank: number) => {
-    if (rank === 1) return "bg-gradient-to-r from-yellow-400 to-orange-500 text-white";
-    if (rank === 2) return "bg-gradient-to-r from-gray-300 to-gray-500 text-white";
-    if (rank === 3) return "bg-gradient-to-r from-amber-400 to-orange-600 text-white";
-    if (rank <= 10) return "bg-gradient-to-r from-blue-500 to-indigo-600 text-white";
-    return "bg-gray-200 text-gray-700";
+  const getRankBadge = (rank) => {
+    if (rank === 1) return "bg-gradient-to-r from-yellow-400 to-orange-500";
+    if (rank === 2) return "bg-gradient-to-r from-gray-300 to-gray-500";
+    if (rank === 3) return "bg-gradient-to-r from-amber-400 to-orange-600";
+    return "bg-gradient-to-r from-blue-500 to-indigo-600";
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const names = name.trim().split(' ');
+    return names.length > 1 
+      ? names[0][0] + names[names.length - 1][0]
+      : names[0].slice(0, 2);
   };
 
   if (loading) {
     return (
-      <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl">
-        <CardContent className="p-6 flex items-center justify-center min-h-[400px]">
+      <Card className="bg-white border-2 border-gray-200 shadow-xl">
+        <CardContent className="p-6 flex items-center justify-center min-h-[300px]">
           <div className="text-center">
-            <Activity className="h-12 w-12 text-blue-500 animate-pulse mx-auto mb-3" />
-            <p className="text-slate-600">Loading leaderboard...</p>
+            <Activity className="w-12 h-12 text-blue-500 animate-pulse mx-auto mb-3" />
+            <p className="text-slate-600 text-sm">Loading leaderboard...</p>
           </div>
         </CardContent>
       </Card>
@@ -251,32 +198,32 @@ const Leaderboard: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl">
-      <CardHeader className="border-b border-slate-100 p-4">
-        <div className="flex items-center justify-between">
+    <Card className="bg-white border-2 border-gray-200 shadow-xl">
+      <CardHeader className="border-b border-gray-100 p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-br from-yellow-500 to-orange-600 p-2 rounded-lg">
-              <Trophy className="h-5 w-5 text-white" />
+            <div className="p-1.5 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-lg">
+              <Trophy className="w-4 h-4 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg font-bold">Leaderboard</CardTitle>
-              <p className="text-xs text-slate-500">Compete with top performers</p>
+              <CardTitle className="text-base font-bold">Leaderboard</CardTitle>
+              <p className="text-xs text-gray-500">Compete with top performers</p>
             </div>
           </div>
           <Badge className={`text-white text-xs transition-all ${
             isRefreshing ? 'bg-orange-500 animate-pulse' : 'bg-green-500'
           }`}>
-            <Activity className="h-3 w-3 mr-1" />
-            {isRefreshing ? 'Updating...' : 'LIVE'}
+            <Activity className="w-3 h-3 mr-1" />
+            {isRefreshing ? 'Updating' : 'LIVE'}
           </Badge>
         </div>
 
         {/* Time Filter */}
-        <div className="flex gap-2 mt-3">
+        <div className="flex gap-2">
           <button
             onClick={() => setTimeFilter('today')}
             disabled={isRefreshing}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               timeFilter === 'today'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -287,7 +234,7 @@ const Leaderboard: React.FC = () => {
           <button
             onClick={() => setTimeFilter('week')}
             disabled={isRefreshing}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               timeFilter === 'week'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -298,7 +245,7 @@ const Leaderboard: React.FC = () => {
           <button
             onClick={() => setTimeFilter('alltime')}
             disabled={isRefreshing}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               timeFilter === 'alltime'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -309,27 +256,26 @@ const Leaderboard: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+      <CardContent className="p-3 sm:p-4 space-y-1.5 max-h-[450px] overflow-y-auto">
         
         {/* Current User Card - Show if rank > 10 */}
         {currentUser && currentUser.rank > 10 && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
+          <div className="mb-3 p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
                   {currentUser.rank}
                 </div>
-                <div>
-                  <p className="font-bold text-sm text-slate-900">You</p>
-                  <p className="text-xs text-slate-600">
-                    {currentUser.total_questions} questions • {currentUser.accuracy}% accuracy
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-xs text-gray-900">You</p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {currentUser.points} pts • {currentUser.accuracy}%
                   </p>
                 </div>
               </div>
-              {currentUser.rank_change !== 0 && (
-                <Badge className={currentUser.rank_change > 0 ? 'bg-green-500' : 'bg-red-500'}>
-                  {currentUser.rank_change > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                  {Math.abs(currentUser.rank_change)}
+              {currentUser.level >= 3 && (
+                <Badge className="bg-purple-500 text-white text-xs">
+                  L{currentUser.level}
                 </Badge>
               )}
             </div>
@@ -338,85 +284,92 @@ const Leaderboard: React.FC = () => {
 
         {/* Top Users */}
         {topUsers.length === 0 ? (
-          <div className="text-center py-8 text-slate-500">
-            <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No users found for this time period.</p>
+          <div className="text-center py-8 text-gray-500">
+            <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No users found</p>
             <p className="text-xs mt-1">Be the first to practice!</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {topUsers.map((leaderUser, index) => {
+          <div className="space-y-1.5">
+            {topUsers.map((leaderUser) => {
               const isCurrentUser = leaderUser.id === currentUser?.id;
               
               return (
                 <div
                   key={leaderUser.id}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-2 rounded-lg border transition-all ${
                     isCurrentUser
-                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-lg'
-                      : index < 3
+                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-md'
+                      : leaderUser.rank <= 3
                       ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      {/* Rank */}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRankBadge(leaderUser.rank)}`}>
-                        {getRankIcon(leaderUser.rank) || leaderUser.rank}
+                  <div className="flex items-center gap-2">
+                    {/* Rank Badge */}
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${getRankBadge(leaderUser.rank)}`}>
+                      {getRankIcon(leaderUser.rank) || leaderUser.rank}
+                    </div>
+
+                    {/* User Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <p className="font-bold text-xs text-gray-900 truncate">
+                          {isCurrentUser ? 'You' : leaderUser.full_name}
+                        </p>
+                        {leaderUser.streak >= 7 && (
+                          <div className="flex items-center gap-0.5 bg-orange-100 px-1.5 py-0.5 rounded-full">
+                            <Flame className="w-3 h-3 text-orange-600" />
+                            <span className="text-xs font-bold text-orange-600">{leaderUser.streak}</span>
+                          </div>
+                        )}
+                        {leaderUser.level >= 5 && (
+                          <Badge className="bg-purple-500 text-white text-xs px-1.5 py-0">
+                            L{leaderUser.level}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <span className="flex items-center gap-0.5">
+                          <Star className="w-3 h-3 text-yellow-500" />
+                          {leaderUser.points}
+                        </span>
+                        <span>•</span>
+                        <span className={`font-semibold ${
+                          leaderUser.accuracy >= 80 ? 'text-green-600' :
+                          leaderUser.accuracy >= 60 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {leaderUser.accuracy}%
+                        </span>
+                        {leaderUser.questions_today > 0 && (
+                          <>
+                            <span>•</span>
+                            <span className="text-blue-600 font-semibold">+{leaderUser.questions_today} today</span>
+                          </>
+                        )}
                       </div>
 
-                      {/* User Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-slate-900 truncate">
-                            {isCurrentUser ? 'You' : leaderUser.full_name}
-                          </p>
-                          {leaderUser.streak >= 7 && (
-                            <Badge className="bg-orange-500 text-white text-xs">
-                              <Flame className="h-3 w-3 mr-1" />
-                              {leaderUser.streak}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-3 text-xs text-slate-600 mt-1">
-                          <span className="flex items-center gap-1">
-                            <Target className="h-3 w-3" />
-                            {leaderUser.total_questions}
-                          </span>
-                          <span className={`font-semibold ${
-                            leaderUser.accuracy >= 80 ? 'text-green-600' :
-                            leaderUser.accuracy >= 60 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {leaderUser.accuracy}%
-                          </span>
-                          {leaderUser.questions_today > 0 && (
-                            <Badge className="bg-blue-100 text-blue-700 text-xs">
-                              +{leaderUser.questions_today} today
-                            </Badge>
-                          )}
-                        </div>
-
-                        {/* Progress bar */}
+                      {/* Mini Progress Bar */}
+                      <div className="mt-1">
                         <Progress 
                           value={leaderUser.accuracy} 
-                          className="h-1.5 mt-2"
+                          className="h-1"
                         />
                       </div>
                     </div>
 
                     {/* Rank Change */}
                     {leaderUser.rank_change !== 0 && (
-                      <div className={`flex items-center gap-1 text-xs font-bold ${
+                      <div className={`flex items-center gap-0.5 text-xs font-bold ${
                         leaderUser.rank_change > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {leaderUser.rank_change > 0 ? (
-                          <TrendingUp className="h-4 w-4" />
+                          <TrendingUp className="w-3 h-3" />
                         ) : (
-                          <TrendingDown className="h-4 w-4" />
+                          <TrendingDown className="w-3 h-3" />
                         )}
-                        {Math.abs(leaderUser.rank_change)}
+                        <span>{Math.abs(leaderUser.rank_change)}</span>
                       </div>
                     )}
                   </div>
@@ -428,15 +381,15 @@ const Leaderboard: React.FC = () => {
 
         {/* Motivational Footer */}
         {currentUser && topUsers.length > 0 && (
-          <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="h-4 w-4 text-purple-600" />
-              <p className="text-xs font-bold text-purple-900">Climb the Ranks!</p>
+          <div className="mt-3 p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Target className="w-3 h-3 text-purple-600" />
+              <p className="text-xs font-bold text-purple-900">Keep Climbing! 🚀</p>
             </div>
             <p className="text-xs text-purple-700">
               {currentUser.rank > 1
-                ? `You're ${currentUser.rank - 1} ${currentUser.rank === 2 ? 'position' : 'positions'} away from the top! Keep pushing! 🚀`
-                : "You're at the top! Maintain your position! 👑"}
+                ? `You're ${currentUser.rank - 1} ${currentUser.rank === 2 ? 'position' : 'positions'} from the top!`
+                : "You're dominating! Stay sharp! 👑"}
             </p>
           </div>
         )}
@@ -446,4 +399,4 @@ const Leaderboard: React.FC = () => {
   );
 };
 
-export default Leaderboard;
+export default CompactLeaderboard;
