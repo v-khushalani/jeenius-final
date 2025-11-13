@@ -1,3 +1,8 @@
+// EnhancedAIStudyPlanner.ui.tsx
+// READY-TO-PASTE updated UI (keeps ALL backend logic and queries unchanged).
+// Design matched to your screenshot + brand colors: primary #013062, light #E6EEFF, gray #E9E9E9
+// NOTE: This file injects component-scoped CSS via a <style> tag so you don't have to change global files.
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -606,6 +611,40 @@ export default function EnhancedAIStudyPlanner() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8 min-h-screen">
       <style>{THEME_CSS}</style>
 
+      {/* Header */}
+      <div className="text-center pt-24 pb-6">
+        <h1 className="text-4xl sm:text-5xl font-black j-title mb-2">AI STUDY INTELLIGENCE</h1>
+        <p className="j-subtext">Comprehensive performance analysis + personalized study plan</p>
+      </div>
+
+      {/* Points Card */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="j-card col-span-2">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-primary p-3 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xs j-subtext uppercase">JEEnius Points</p>
+                  <p className="text-3xl font-bold j-primary-text">{userPoints.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                {recentPoints > 0 ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-success-glow">
+                    <TrendingUp className="w-4 h-4 text-white" />
+                    <span className="font-bold text-white">+{recentPoints}</span>
+                  </div>
+                ) : (
+                  <div className="text-sm j-subtext">Level • {Math.min(100, Math.floor(userPoints / 100))}</div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="j-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -693,6 +732,66 @@ export default function EnhancedAIStudyPlanner() {
                 <p className="text-2xl font-bold j-primary-text">{stats.targetHours}h</p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top Tiles (Performance Overview) */}
+      <div className="grid md:grid-cols-4 gap-4">
+        <Card className="j-card j-primary-tile">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <Target className="w-10 h-10 text-white" />
+              <Badge className="bg-white/10 text-white px-4 py-2"> {overallAccuracy}% </Badge>
+            </div>
+            <p className="text-4xl font-black j-primary-text mb-2">{correctAnswers}</p>
+            <p className="j-subtext">out of {totalAttempts} correct</p>
+            <div className="mt-4 j-progress">
+              <div className="j-progress-fill" style={{ width: `${overallAccuracy}%` }} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="j-card j-success-tile">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <BookOpen className="w-10 h-10 text-white" />
+              <Badge className="bg-white/10 text-white px-4 py-2">LIVE</Badge>
+            </div>
+            <p className="text-4xl font-black j-primary-text mb-2">{subjectAnalysis.length}</p>
+            <p className="j-subtext">subjects analyzed</p>
+          </CardContent>
+        </Card>
+
+        <Card className="j-card j-warn-tile">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <AlertTriangle className="w-10 h-10 text-white" />
+              <Badge className="bg-white/10 text-white px-4 py-2">{topicAnalysis.length}</Badge>
+            </div>
+            <p className="text-4xl font-black j-primary-text mb-2">Weak</p>
+            <p className="j-subtext">topics identified</p>
+          </CardContent>
+        </Card>
+
+        <Card className="j-card j-rec-tile">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <Clock className="w-10 h-10 text-white" />
+              <Badge className="bg-white/10 text-white px-4 py-2">AI REC</Badge>
+            </div>
+            <div className="flex items-baseline gap-2 mb-2">
+              <p className="text-3xl font-black j-primary-text">{userHours}h</p>
+              <p className="j-subtext">/ {aiRecommendedHours}h</p>
+            </div>
+            <input
+              type="range"
+              min="2"
+              max="14"
+              value={userHours}
+              onChange={(e) => setUserHours(parseInt(e.target.value))}
+              className="w-full mt-3"
+            />
           </CardContent>
         </Card>
       </div>
@@ -1089,6 +1188,25 @@ export default function EnhancedAIStudyPlanner() {
         </CardContent>
       </Card>
 
+      {/* Streak Card */}
+      <Card className="j-card">
+        <CardContent className="p-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 rounded-2xl bg-amber-500 flex items-center justify-center">
+              <Flame className="w-10 h-10 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-amber-700">🔥 Current Study Streak</p>
+              <p className="text-4xl font-black text-amber-900">{currentStreak}</p>
+              <p className="text-sm text-amber-700 mt-1">{currentStreak >= 30 ? '🏆 Legendary streak!' : currentStreak >= 7 ? '⚡ Great momentum!' : '💪 Keep building!'}</p>
+            </div>
+          </div>
+          <div>
+            <Badge className={`px-4 py-2 ${currentStreak >= 30 ? 'bg-amber-600' : currentStreak >= 7 ? 'bg-orange-500' : 'bg-amber-500'} text-white`}>{currentStreak >= 30 ? 'LEGEND' : currentStreak >= 7 ? 'ON FIRE' : 'BUILDING'}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* CTA */}
       <Card className="j-card j-cta-card">
         <CardContent className="p-8 text-center">
@@ -1101,3 +1219,98 @@ export default function EnhancedAIStudyPlanner() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Footer */}
+      <Card className="j-card">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Brain className="w-6 h-6 text-primary mt-1" />
+            <div>
+              <p className="text-sm font-bold j-primary-text mb-1">🔬 AI Intelligence Active</p>
+              <p className="text-xs j-subtext">Analysis updates automatically as you practice. Rank prediction accuracy improves with more attempts. Currently analyzing {totalAttempts} data points across {subjectAnalysis.length} subjects.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ----------------------
+// Theming CSS injected into component
+// ----------------------
+const THEME_CSS = `
+:root{
+  --primary: #013062;
+  --primary-light: #E6EEFF;
+  --gray-light: #E9E9E9;
+  --card-radius: 18px;
+  --shadow-soft: 0 8px 20px rgba(2,6,23,0.06);
+}
+
+/* Basic helpers */
+.j-card {
+  background: #fff;
+  border: 1px solid rgba(14, 22, 54, 0.04);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.j-title { color: var(--primary); }
+.j-primary-text { color: var(--primary); font-weight: 800; }
+.j-subtext { color: #425066; }
+
+/* progress */
+.j-progress { height: 8px; border-radius: 9999px; background: #f1f5ff; overflow: hidden; margin-top: 10px; }
+.j-progress-fill { height: 8px; border-radius: 9999px; background: linear-gradient(90deg, var(--primary), #6b4aa8); box-shadow: inset 0 -2px 6px rgba(0,0,0,0.03); }
+
+/* small tags */
+.j-tag { font-size: 12px; padding: 4px 8px; border-radius: 12px; font-weight: 700; display: inline-block; }
+.j-tag-orange { background: #FFEFE6; color: #D35400; }
+.j-tag-yellow { background: #FFF7CC; color: #A67C00; }
+.j-tag-green { background: #DFF4EA; color: #0F8A5F; }
+
+/* primary button */
+.j-primary-btn {
+  background: linear-gradient(90deg, var(--primary), #6b4aa8);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* small surfaces */
+.bg-primary { background: var(--primary); color: #fff; }
+.bg-primary-light { background: var(--primary-light); color: var(--primary); }
+
+/* tile variants */
+.j-primary-tile { background: linear-gradient(90deg, var(--primary), #6b4aa8); color: #fff; }
+.j-success-tile { background: linear-gradient(90deg, #04966b, #16b786); color: #fff;}
+.j-warn-tile { background: linear-gradient(90deg, #f97316, #fb923c); color: #fff;}
+.j-rec-tile { background: linear-gradient(90deg, #5b6be6, #9b5be6); color: #fff; }
+
+/* badges earned */
+.j-badge-earned { background: linear-gradient(90deg, #5b6be6, #6b8cff); border: none; color: white; box-shadow: 0 4px 12px rgba(91,107,230,0.18);}
+
+/* loading */
+.j-loading-card { background: linear-gradient(180deg, #fff, var(--primary-light)); border-radius: 20px; padding: 28px; box-shadow: 0 20px 40px rgba(1,48,98,0.08); border: 1px solid rgba(1,48,98,0.06); width: 480px; }
+
+/* small color glows */
+.primary-glow { box-shadow: 0 8px 30px rgba(1,48,98,0.12); }
+.success-glow { background: linear-gradient(90deg,#12b76a,#34d399); color: white; padding: 6px 10px; border-radius: 10px; }
+
+/* card headers */
+.j-card-header { background: linear-gradient(90deg,var(--primary), #6b4aa8); padding: 12px 16px; border-top-left-radius: var(--card-radius); border-top-right-radius: var(--card-radius); }
+.j-card-header-alt { background: linear-gradient(90deg, rgba(1,48,98,0.04), rgba(107,118,255,0.02)); padding: 12px 16px; }
+
+/* smaller utilities */
+.text-xs { font-size: 12px; }
+.text-sm { font-size: 14px; }
+.font-black { font-weight: 900; }
+`;
+
+/* End of file */
