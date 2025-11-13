@@ -190,15 +190,9 @@ Student's doubt: "${userMsg.content}". Answer in Hinglish within 5-7 lines.`;
     <div className="fixed inset-0 bg-[#F6F9FF]/90 backdrop-blur-md z-50 flex items-center justify-center p-3">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-[#E3E8FF] relative">
         {/* Floating JEEnie Icon */}
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 
-            bg-gradient-to-br from-[#4C6FFF] to-[#013062] 
-            p-3 rounded-full shadow-xl 
-            animate-bounce 
-            shadow-[0_0_15px_rgba(76,111,255,0.4)] 
-            transition-all duration-300 scale-105">
-          <Wand2 className="text-white w-6 h-6 drop-shadow" />
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gradient-to-br from-[#4C6FFF] to-[#013062] p-3 rounded-full shadow-lg animate-bounce">
+          <Wand2 className="text-white w-6 h-6" />
         </div>
-
 
         {/* Header */}
         <div className="p-4 border-b border-[#E3E8FF] bg-gradient-to-r from-[#F8FAFF] to-[#EEF3FF] rounded-t-2xl flex justify-between items-center">
