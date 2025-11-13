@@ -531,3 +531,328 @@ export default function EnhancedAIStudyPlanner() {
     </div>
   </div>
 )}
+{/* ---------------------------------------------------
+     PART 6 — RANK PREDICTOR (JEEnius Style)
+---------------------------------------------------- */}
+
+{predictedRank && predictedRank.totalAttempts >= 10 && (
+  <div className="j-card bg-[#FFF8E5] border-[#FFE4A8]">
+    <div className="flex items-center gap-6">
+      <Trophy size={60} className="text-[#D99800]" />
+      <div className="flex-1">
+        <p className="text-sm text-[#B88600] font-semibold mb-1">Predicted JEE Rank</p>
+        <p className="text-5xl font-black text-[#A66900]">#{predictedRank.rank.toLocaleString()}</p>
+        <p className="text-sm text-[#8C6A19] mt-1">
+          Based on projected score: <b>{predictedRank.score}%</b> • Confidence: 
+          <span className="font-bold ml-1">{predictedRank.confidence}</span>
+        </p>
+        <p className="text-xs text-[#8C6A19] mt-1">
+          From {predictedRank.totalAttempts} attempts
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
+{(!predictedRank || predictedRank.totalAttempts < 10) && totalAttempts > 0 && (
+  <div className="j-card bg-[#EAF3FF] border-[#C7DFFF]">
+    <div className="flex items-center gap-6">
+      <BarChart3 size={50} className="text-[#1A64C7]" />
+      <div>
+        <p className="text-xl font-bold text-[#1A64C7]">Rank Predictor Loading...</p>
+        <p className="text-sm text-[#3C6EA8] mt-1">
+          Solve <b>{10 - totalAttempts}</b> more questions for accurate prediction.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+{/* ---------------------------------------------------
+     PART 7 — STRENGTHS & WEAKNESSES
+---------------------------------------------------- */}
+
+{strengthsWeaknesses && (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    {/* Strengths */}
+    <div className="j-card bg-[#E8FFF0] border-[#C8F5D6]">
+      <h2 className="j-section-title flex items-center gap-2">
+        <CheckCircle2 className="text-[#2BAA55]" size={22} />
+        Your Strengths
+      </h2>
+
+      <div className="space-y-4 mt-4">
+        {strengthsWeaknesses.strengths.map((str, i) => (
+          <div key={i} className="p-4 bg-white rounded-xl border border-[#D9F5E5] shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-[#2BAA55]">{str.subject}</p>
+              <Badge className="bg-[#2BAA55] text-white">{str.accuracy}%</Badge>
+            </div>
+            <div className="j-progress-bg">
+              <div className="j-progress-fill" style={{ width: `${str.accuracy}%` }} />
+            </div>
+            <p className="text-xs text-[#3A7F57] mt-2">{str.attempted} questions attempted</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Weaknesses */}
+    <div className="j-card bg-[#FFF0F0] border-[#FFD7D7]">
+      <h2 className="j-section-title flex items-center gap-2">
+        <XCircle className="text-[#D62525]" size={22} />
+        Priority Weaknesses
+      </h2>
+
+      <div className="space-y-4 mt-4">
+        {strengthsWeaknesses.weaknesses.map((weak, i) => (
+          <div key={i} className="p-4 bg-white rounded-xl border border-[#FFD1D1] shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-[#D62525]">{weak.subject}</p>
+              <Badge className="bg-[#D62525] text-white">{weak.accuracy}%</Badge>
+            </div>
+            <div className="j-progress-bg">
+              <div className="j-progress-fill" style={{ width: `${weak.accuracy}%` }} />
+            </div>
+            <p className="text-xs text-[#A63F3F] mt-2">Needs Immediate Attention</p>
+          </div>
+        ))}
+      </div>
+    </div>
+
+  </div>
+)}
+{/* ---------------------------------------------------
+     PART 8 — AI DAILY STUDY PLAN
+---------------------------------------------------- */}
+
+{studyPlan.length > 0 && (
+  <div className="j-card">
+    <h2 className="j-section-title flex items-center gap-2">
+      <Brain className="text-[var(--primary)]" size={22} />
+      Daily Study Plan (AI Generated)
+    </h2>
+    <p className="j-sub mb-6">{totalAttempts} attempts analyzed • {Math.round(correctAnswers/Math.max(totalAttempts,1)*100)}% accuracy</p>
+
+    <div className="space-y-5">
+      {studyPlan.map((p, i) => (
+        <div key={i} className="p-5 bg-[var(--surface-soft)] border border-[var(--border-light)] rounded-3xl shadow-sm">
+          <div className="flex justify-between items-start">
+
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-1">
+                <p className="text-xl font-bold text-[var(--primary)]">{p.subject}</p>
+                <Badge className="bg-[var(--primary)] text-white">{p.priority}</Badge>
+              </div>
+              <p className="j-sub mb-2">{p.strategy}</p>
+
+              <div className="flex gap-5 text-sm text-[var(--text-medium)]">
+                <span className="flex items-center gap-1"><Target size={16} />{p.accuracy}% accuracy</span>
+                <span className="flex items-center gap-1"><Clock size={16} />{p.attempted} solved</span>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-5xl font-black text-[var(--primary)]">{p.recommendedTime}h</p>
+              <p className="j-sub text-right">per day</p>
+            </div>
+
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <Button
+      onClick={() => (window.location.href = "/study-now")}
+      className="w-full mt-6 bg-[var(--primary)] hover:bg-[#002A55] text-white py-4 rounded-xl text-lg font-bold"
+    >
+      Start Studying
+    </Button>
+  </div>
+)}
+{/* ---------------------------------------------------
+     PART 9 — WEEKLY PERFORMANCE TREND
+---------------------------------------------------- */}
+
+{weeklyTrend.length > 0 && (
+  <div className="j-card">
+    <h2 className="j-section-title flex items-center gap-2">
+      <TrendingUp className="text-[var(--primary)]" size={22} />
+      7-Day Performance Trend
+    </h2>
+
+    <div className="grid grid-cols-7 gap-4 mt-4">
+      {weeklyTrend.map((d, i) => (
+        <div
+          key={i}
+          className={`p-4 rounded-2xl text-center border shadow-sm ${
+            d.questions === 0
+              ? "bg-[#F3F6FB] border-[#D5DBE7]"
+              : d.accuracy >= 70
+              ? "bg-[#E8FFF0] border-[#CCF5DD]"
+              : d.accuracy >= 50
+              ? "bg-[#FFF7DB] border-[#FFE9AC]"
+              : "bg-[#FFECEC] border-[#FFD1D1]"
+          }`}
+        >
+          <p className="text-xs text-[var(--text-light)] mb-1">{d.day}</p>
+          <p className="text-2xl font-bold text-[var(--primary)]">{d.questions}</p>
+          <p className="text-xs text-[var(--text-light)]">questions</p>
+          {d.questions > 0 && (
+            <Badge
+              className={`mt-2 text-xs ${
+                d.accuracy >= 70
+                  ? "bg-[#29A746]"
+                  : d.accuracy >= 50
+                  ? "bg-[#C9A200]"
+                  : "bg-[#D62525]"
+              } text-white`}
+            >
+              {d.accuracy}%
+            </Badge>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+{/* ---------------------------------------------------
+     PART 10 — DETAILED BREAKDOWN
+---------------------------------------------------- */}
+
+<div className="j-card">
+  <h2 className="j-section-title flex items-center gap-2">
+    <BookOpen className="text-[var(--primary)]" size={22} />
+    Detailed Performance Breakdown
+  </h2>
+
+  <div className="flex gap-3 my-5">
+    <Button variant={expandedSection==="subjects"?"default":"outline"}
+      onClick={()=>setExpandedSection("subjects")}
+      className={`${expandedSection==="subjects"?"bg-[var(--primary)] text-white":"border-[var(--border-light)]"}`}>
+      Subjects
+    </Button>
+
+    <Button variant={expandedSection==="chapters"?"default":"outline"}
+      onClick={()=>setExpandedSection("chapters")}
+      className={`${expandedSection==="chapters"?"bg-[var(--primary)] text-white":"border-[var(--border-light)]"}`}>
+      Chapters
+    </Button>
+
+    <Button variant={expandedSection==="topics"?"default":"outline"}
+      onClick={()=>setExpandedSection("topics")}
+      className={`${expandedSection==="topics"?"bg-[var(--primary)] text-white":"border-[var(--border-light)]"}`}>
+      Topics
+    </Button>
+  </div>
+
+  {/* SUBJECTS */}
+  {expandedSection === "subjects" && (
+    <div className="space-y-4">
+      {subjectAnalysis.map((s, i)=>(
+        <div key={i} className="p-5 rounded-2xl bg-[var(--surface-soft)] border border-[var(--border-light)] shadow-sm">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-xl font-bold text-[var(--primary)]">{s.subject}</p>
+              <p className="j-sub">{s.attempted} attempts • avg {s.avgTime}s</p>
+            </div>
+            <Badge className="bg-[var(--primary)] text-white text-lg">{s.accuracy}%</Badge>
+          </div>
+
+          <div className="j-progress-bg mt-3">
+            <div className="j-progress-fill" style={{width:`${s.accuracy}%`}} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* CHAPTERS */}
+  {expandedSection === "chapters" && (
+    <div className="space-y-4">
+      {chapterAnalysis.map((c, i)=>(
+        <div key={i} className="p-5 rounded-2xl bg-[var(--surface-soft)] border border-[var(--border-light)] shadow-sm">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-lg font-bold text-[var(--primary)]">{c.chapter}</p>
+              <p className="j-sub">{c.subject} • {c.total} attempts</p>
+            </div>
+            <Badge className="bg-[#D68A00] text-white text-lg">{c.accuracy}%</Badge>
+          </div>
+
+          <div className="j-progress-bg mt-3">
+            <div className="j-progress-fill" style={{width:`${c.accuracy}%`}} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* TOPICS */}
+  {expandedSection === "topics" && (
+    <div className="space-y-4">
+      {topicAnalysis.map((t, i)=>(
+        <div key={i} className="p-4 rounded-2xl bg-[var(--surface-soft)] border border-[var(--border-light)] shadow-sm">
+          <div className="flex justify-between items-center mb-1">
+            <p className="font-bold text-[var(--primary)]">{t.topic}</p>
+            <Badge className="bg-[#D62525] text-white">{t.accuracy}%</Badge>
+          </div>
+          <p className="j-sub text-xs mb-2">{t.subject} • {t.chapter} • {t.total} attempts</p>
+
+          <div className="j-progress-bg">
+            <div className="j-progress-fill" style={{width:`${t.accuracy}%`}} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+{/* ---------------------------------------------------
+     PART 11 — STREAK + FINAL CTA + FOOTER
+---------------------------------------------------- */}
+
+{/* Streak */}
+<div className="j-card bg-[#FFF4D6] border-[#FFE3A8]">
+  <div className="flex items-center gap-6">
+    <Flame size={60} className="text-[#FF8A00]" />
+    <div>
+      <p className="text-sm text-[#BF7A00] font-semibold">Current Streak</p>
+      <p className="text-6xl font-black text-[#A66A00]">{currentStreak}</p>
+      <p className="text-sm text-[#8C6A19] mt-2">
+        {currentStreak >= 7 ? "🔥 Keep going!" : "📈 Build consistency!"}
+      </p>
+    </div>
+  </div>
+</div>
+
+{/* ACTION BUTTON */}
+<div className="j-card bg-[var(--primary)] text-white text-center">
+  <Brain size={50} className="mx-auto mb-3" />
+  <h2 className="text-2xl font-black mb-2">Your AI Study Partner is Ready</h2>
+  <p className="text-white/80 text-sm mb-5">
+    Keep solving questions to improve accuracy & predictions.
+  </p>
+
+  <div className="flex gap-4 justify-center">
+    <Button onClick={()=>window.location.href="/study-now"} className="bg-white text-[var(--primary)] hover:bg-[#F2F6FF] font-bold px-6 py-3 rounded-xl">
+      Continue Studying
+    </Button>
+
+    <Button onClick={()=>window.location.href="/test"} className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl">
+      Take Mock Test
+    </Button>
+  </div>
+</div>
+
+{/* FOOTER */}
+<div className="j-card text-left bg-[#F4F7FF] border-[#E6EEFF]">
+  <div className="flex items-start gap-3">
+    <Brain size={20} className="text-[var(--primary)] mt-1" />
+    <div>
+      <p className="font-bold text-[var(--primary)] mb-1">AI Intelligence Active</p>
+      <p className="text-xs text-[var(--text-light)]">
+        Analysis updates live as you practice. Predictions get more accurate with more data.
+      </p>
+    </div>
+  </div>
+</div>
