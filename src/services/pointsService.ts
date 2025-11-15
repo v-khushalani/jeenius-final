@@ -275,7 +275,7 @@ export class PointsService {
   static async getLeaderboard(limit: number = 100, timeframe: 'weekly' | 'monthly' | 'all-time' = 'all-time') {
     let query = supabase
       .from('jeenius_points')
-      .select('*, profiles(name, avatar_url)')
+      .select('*, profiles(email)')
       .order('total_points', { ascending: false })
       .limit(limit);
 
@@ -287,8 +287,7 @@ export class PointsService {
     return (data || []).map((entry, index) => ({
       rank: index + 1,
       userId: entry.user_id,
-      name: entry.profiles?.name || 'Anonymous',
-      avatarUrl: entry.profiles?.avatar_url,
+      email: entry.profiles?.email || 'Anonymous',
       points: entry.total_points,
       level: entry.level,
       badges: entry.badges || []
