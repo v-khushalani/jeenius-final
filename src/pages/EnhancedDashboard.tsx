@@ -23,17 +23,6 @@ import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import Leaderboard from "@/components/Leaderboard";
 
-/**
- Changes implemented exactly as requested:
- 1. Removed JEEnius points "belt" card.
- 2. Enhanced "Your Progress" card visual design & meaningful metrics.
- 3. Removed mock / hardcoded placeholders and replaced with realistic computed data from the DB.
- 4. No backend schema or endpoints changed — only additional reads (safe).
- 5. Mobile-first layout and styling improvements.
- 6. Desktop: dashboard avoids page scrolling (md+ screens) by using full-screen layout; mobile retains scroll.
- 7. Added "XXX points to level N" compact progress display.
-*/
-
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
