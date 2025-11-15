@@ -104,58 +104,23 @@ ${question.option_a ? `A) ${question.option_a}\n` : ""}${
     audio.play().catch(() => {});
   };
 
-  // ✅ Supabase Edge Function call with better error handling
+  // ✅ Supabase Edge Function call
   const callEdgeFunction = async (prompt: string): Promise<string> => {
     try {
-      console.log("🚀 Calling JEEnie Edge Function...");
       const response = await supabase.functions.invoke("jeenie", {
         body: { contextPrompt: prompt },
       });
-      
-      console.log("📡 Response:", response);
-      
-      if (response.error) {
-        console.error("❌ Edge Function Error:", response.error);
-        throw new Error(response.error.message || "BACKEND_ERROR");
-      }
-      
-      if (!response.data) {
-        console.error("❌ No data in response");
+      if (response.error) throw new Error("BACKEND_ERROR");
+      if (!response.data || !response.data.content)
         throw new Error("EMPTY_RESPONSE");
-      }
-      
-      if (response.data.error) {
-        console.error("❌ API Error:", response.data.error);
-        
-        // Handle specific errors
-        if (response.data.error === "API_KEY_MISSING_BACKEND") {
-          throw new Error("API_KEY_MISSING");
-        }
-        if (response.data.error === "INVALID_API_KEY") {
-          throw new Error("INVALID_KEY");
-        }
-        if (response.data.error === "RATE_LIMIT") {
-          throw new Error("RATE_LIMIT");
-        }
-        
-        throw new Error(response.data.error);
-      }
-      
-      if (!response.data.content) {
-        console.error("❌ No content in response data");
-        throw new Error("EMPTY_CONTENT");
-      }
-      
-      console.log("✅ Got content:", response.data.content.substring(0, 100));
       return response.data.content.trim();
-      
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Error calling Edge Function:", error);
       throw error;
     }
   };
 
-  // ✅ Send Message with better error messages
+  // ✅ Send Message
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     setError(null);
@@ -197,30 +162,13 @@ Student's doubt: "${userMsg.content}". Answer in Hinglish within 5-7 lines.`;
       const formatted = cleanAndFormatJeenieText(aiResponse);
       playSound("receive");
       setMessages((prev) => [...prev, { role: "assistant", content: formatted }]);
-      
     } catch (error: any) {
-      console.error("❌ Error in handleSendMessage:", error);
-      
-      let errorMessage = "❌ Oops! Network ya backend issue ho gaya. Please try again later.";
-      
-      // Custom error messages
-      if (error.message === "API_KEY_MISSING") {
-        errorMessage = "🔑 API Key setup pending. Contact support!";
-      } else if (error.message === "INVALID_KEY") {
-        errorMessage = "🔑 Invalid API Key. Contact support!";
-      } else if (error.message === "RATE_LIMIT") {
-        errorMessage = "⏳ Too many requests! Wait 1 minute and try again.";
-      } else if (error.message === "TIMEOUT") {
-        errorMessage = "⏱️ Request timeout. Try again with a simpler question!";
-      } else if (error.message.includes("Failed to fetch")) {
-        errorMessage = "🌐 Network issue. Check your internet connection!";
-      }
-      
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: errorMessage,
+          content:
+            "❌ Oops! Network ya backend issue ho gaya. Please try again later.",
         },
       ]);
     } finally {

@@ -11,9 +11,7 @@ import {
   Crown,
   Target,
   Medal,
-  Activity,
-  ChevronDown,
-  ChevronUp
+  Activity
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,18 +26,15 @@ interface LeaderboardUser {
   rank: number;
   rank_change: number;
   questions_today: number;
-  total_points: number;
 }
 
 const Leaderboard: React.FC = () => {
   const { user } = useAuth();
   const [topUsers, setTopUsers] = useState<LeaderboardUser[]>([]);
-  const [allUsers, setAllUsers] = useState<LeaderboardUser[]>([]);
   const [currentUser, setCurrentUser] = useState<LeaderboardUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState<'today' | 'week' | 'alltime'>('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     fetchLeaderboard(true);
@@ -57,10 +52,10 @@ const Leaderboard: React.FC = () => {
         setIsRefreshing(true);
       }
 
-      // Fetch ALL users with total_points
+      // ✅ NO LIMIT - Fetch ALL users
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, total_points');
+        .select('id, full_name, avatar_url');
 
       if (profileError) {
         console.error('❌ Profile fetch error:', profileError);
@@ -75,7 +70,7 @@ const Leaderboard: React.FC = () => {
 
       console.log(`✅ Fetched ${profiles.length} total profiles`);
 
-      // Fetch ALL question attempts at once
+      // Fetch ALL question attempts at once (more efficient)
       const { data: allAttempts, error: attemptsError } = await supabase
         .from('question_attempts')
         .select('user_id, is_correct, created_at, mode');
@@ -86,9 +81,10 @@ const Leaderboard: React.FC = () => {
 
       console.log(`✅ Fetched ${allAttempts?.length || 0} total attempts`);
 
-      // Group attempts by user_id
+      // Group attempts by user_id for faster lookup
       const attemptsByUser = new Map<string, any[]>();
       allAttempts?.forEach(attempt => {
+        // Filter out test and battle modes
         if (attempt.mode === 'test' || attempt.mode === 'battle') return;
         
         if (!attemptsByUser.has(attempt.user_id)) {
@@ -156,6 +152,7 @@ const Leaderboard: React.FC = () => {
             streak++;
             currentDate.setDate(currentDate.getDate() - 1);
           } else if (i === 0 && questionsOnThisDay > 0) {
+            // Today hasn't hit goal yet but has attempts
             currentDate.setDate(currentDate.getDate() - 1);
           } else {
             break;
@@ -171,8 +168,7 @@ const Leaderboard: React.FC = () => {
           streak,
           rank: 0,
           rank_change: 0,
-          questions_today: todayAttempts.length,
-          total_points: profile.total_points || 0
+          questions_today: todayAttempts.length
         });
       });
 
@@ -181,15 +177,17 @@ const Leaderboard: React.FC = () => {
       if (userStats.length === 0) {
         console.log('⚠️ No users with attempts in selected time period');
         setTopUsers([]);
-        setAllUsers([]);
         setCurrentUser(null);
         setLoading(false);
         return;
       }
 
-      // Sort by total_points (primary)
+      // Sort by total questions (primary) and accuracy (secondary)
       userStats.sort((a, b) => {
-        return b.total_points - a.total_points;
+        if (b.total_questions !== a.total_questions) {
+          return b.total_questions - a.total_questions;
+        }
+        return b.accuracy - a.accuracy;
       });
 
       // Assign ranks
@@ -202,16 +200,16 @@ const Leaderboard: React.FC = () => {
       const current = userStats.find(u => u.id === user?.id);
       if (current) {
         setCurrentUser(current);
-        console.log(`✅ Current user rank: ${current.rank} (${current.total_points} points)`);
+        console.log(`✅ Current user rank: ${current.rank} (${current.total_questions} questions)`);
       } else {
         console.log('⚠️ Current user not in leaderboard for this time period');
         setCurrentUser(null);
       }
 
-      // Store all users and top 10
-      setAllUsers(userStats);
-      setTopUsers(userStats.slice(0, 10));
-      console.log('✅ Leaderboard loaded:', userStats.length, 'total users');
+      // Set top 10 users
+      const top10 = userStats.slice(0, 10);
+      setTopUsers(top10);
+      console.log('✅ Top 10 users:', top10.map(u => `${u.full_name}: ${u.total_questions}Q`));
 
     } catch (error) {
       console.error('❌ Error fetching leaderboard:', error);
@@ -239,11 +237,9 @@ const Leaderboard: React.FC = () => {
     return "bg-gray-200 text-gray-700";
   };
 
-  const displayUsers = showAll ? allUsers : topUsers;
-
   if (loading) {
     return (
-      <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl h-full">
+      <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl">
         <CardContent className="p-6 flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Activity className="h-12 w-12 text-blue-500 animate-pulse mx-auto mb-3" />
@@ -255,8 +251,8 @@ const Leaderboard: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl h-full flex flex-col">
-      <CardHeader className="border-b border-slate-100 p-4 shrink-0">
+    <Card className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-2xl">
+      <CardHeader className="border-b border-slate-100 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="bg-gradient-to-br from-yellow-500 to-orange-600 p-2 rounded-lg">
@@ -264,7 +260,7 @@ const Leaderboard: React.FC = () => {
             </div>
             <div>
               <CardTitle className="text-lg font-bold">Leaderboard</CardTitle>
-              <p className="text-xs text-slate-500">Top {allUsers.length} competitors</p>
+              <p className="text-xs text-slate-500">Compete with top performers</p>
             </div>
           </div>
           <Badge className={`text-white text-xs transition-all ${
@@ -313,25 +309,25 @@ const Leaderboard: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 space-y-3 overflow-y-auto flex-1">
+      <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
         
-        {/* Current User Card - Show if rank > 10 and not showing all */}
-        {currentUser && currentUser.rank > 10 && !showAll && (
-          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300 sticky top-0 z-10">
+        {/* Current User Card - Show if rank > 10 */}
+        {currentUser && currentUser.rank > 10 && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-300">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                  #{currentUser.rank}
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                  {currentUser.rank}
                 </div>
                 <div>
                   <p className="font-bold text-sm text-slate-900">You</p>
                   <p className="text-xs text-slate-600">
-                    <span className="font-bold text-blue-600">{currentUser.total_points} pts</span> • {currentUser.total_questions}Q • {currentUser.accuracy}%
+                    {currentUser.total_questions} questions • {currentUser.accuracy}% accuracy
                   </p>
                 </div>
               </div>
               {currentUser.rank_change !== 0 && (
-                <Badge className={currentUser.rank_change > 0 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}>
+                <Badge className={currentUser.rank_change > 0 ? 'bg-green-500' : 'bg-red-500'}>
                   {currentUser.rank_change > 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
                   {Math.abs(currentUser.rank_change)}
                 </Badge>
@@ -341,123 +337,97 @@ const Leaderboard: React.FC = () => {
         )}
 
         {/* Top Users */}
-        {displayUsers.length === 0 ? (
+        {topUsers.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
             <Trophy className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="text-sm">No users found for this time period.</p>
             <p className="text-xs mt-1">Be the first to practice!</p>
           </div>
         ) : (
-          <>
-            <div className="space-y-2">
-              {displayUsers.map((leaderUser, index) => {
-                const isCurrentUser = leaderUser.id === currentUser?.id;
-                
-                return (
-                  <div
-                    key={leaderUser.id}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      isCurrentUser
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-lg'
-                        : index < 3
-                        ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        {/* Rank */}
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRankBadge(leaderUser.rank)}`}>
-                          {getRankIcon(leaderUser.rank) || `#${leaderUser.rank}`}
-                        </div>
-
-                        {/* User Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm text-slate-900 truncate">
-                              {isCurrentUser ? 'You' : leaderUser.full_name}
-                            </p>
-                            {leaderUser.streak >= 7 && (
-                              <Badge className="bg-orange-500 text-white text-xs">
-                                <Flame className="h-3 w-3 mr-1" />
-                                {leaderUser.streak}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-xs text-slate-600 mt-1 flex-wrap">
-                            <span className="flex items-center gap-1 font-bold text-blue-600">
-                              <Trophy className="h-3 w-3" />
-                              {leaderUser.total_points} pts
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Target className="h-3 w-3" />
-                              {leaderUser.total_questions}Q
-                            </span>
-                            <span className={`font-semibold ${
-                              leaderUser.accuracy >= 80 ? 'text-green-600' :
-                              leaderUser.accuracy >= 60 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
-                              {leaderUser.accuracy}%
-                            </span>
-                            {leaderUser.questions_today > 0 && (
-                              <Badge className="bg-blue-100 text-blue-700 text-xs">
-                                +{leaderUser.questions_today} today
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* Progress bar */}
-                          <Progress 
-                            value={leaderUser.accuracy} 
-                            className="h-1.5 mt-2"
-                          />
-                        </div>
+          <div className="space-y-2">
+            {topUsers.map((leaderUser, index) => {
+              const isCurrentUser = leaderUser.id === currentUser?.id;
+              
+              return (
+                <div
+                  key={leaderUser.id}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    isCurrentUser
+                      ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-lg'
+                      : index < 3
+                      ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200'
+                      : 'bg-white border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      {/* Rank */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRankBadge(leaderUser.rank)}`}>
+                        {getRankIcon(leaderUser.rank) || leaderUser.rank}
                       </div>
 
-                      {/* Rank Change */}
-                      {leaderUser.rank_change !== 0 && (
-                        <div className={`flex items-center gap-1 text-xs font-bold ml-2 ${
-                          leaderUser.rank_change > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {leaderUser.rank_change > 0 ? (
-                            <TrendingUp className="h-4 w-4" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4" />
+                      {/* User Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-slate-900 truncate">
+                            {isCurrentUser ? 'You' : leaderUser.full_name}
+                          </p>
+                          {leaderUser.streak >= 7 && (
+                            <Badge className="bg-orange-500 text-white text-xs">
+                              <Flame className="h-3 w-3 mr-1" />
+                              {leaderUser.streak}
+                            </Badge>
                           )}
-                          {Math.abs(leaderUser.rank_change)}
                         </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        
+                        <div className="flex items-center gap-3 text-xs text-slate-600 mt-1">
+                          <span className="flex items-center gap-1">
+                            <Target className="h-3 w-3" />
+                            {leaderUser.total_questions}
+                          </span>
+                          <span className={`font-semibold ${
+                            leaderUser.accuracy >= 80 ? 'text-green-600' :
+                            leaderUser.accuracy >= 60 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {leaderUser.accuracy}%
+                          </span>
+                          {leaderUser.questions_today > 0 && (
+                            <Badge className="bg-blue-100 text-blue-700 text-xs">
+                              +{leaderUser.questions_today} today
+                            </Badge>
+                          )}
+                        </div>
 
-            {/* Show More/Less Button */}
-            {allUsers.length > 10 && (
-              <button
-                onClick={() => setShowAll(!showAll)}
-                className="w-full mt-3 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold transition-all shadow-md flex items-center justify-center gap-2"
-              >
-                {showAll ? (
-                  <>
-                    <ChevronUp className="h-4 w-4" />
-                    Show Top 10 Only
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-4 w-4" />
-                    Show All {allUsers.length} Users
-                  </>
-                )}
-              </button>
-            )}
-          </>
+                        {/* Progress bar */}
+                        <Progress 
+                          value={leaderUser.accuracy} 
+                          className="h-1.5 mt-2"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Rank Change */}
+                    {leaderUser.rank_change !== 0 && (
+                      <div className={`flex items-center gap-1 text-xs font-bold ${
+                        leaderUser.rank_change > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {leaderUser.rank_change > 0 ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        {Math.abs(leaderUser.rank_change)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {/* Motivational Footer */}
-        {currentUser && displayUsers.length > 0 && (
+        {currentUser && topUsers.length > 0 && (
           <div className="mt-4 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="h-4 w-4 text-purple-600" />
