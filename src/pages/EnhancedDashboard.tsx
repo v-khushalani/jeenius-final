@@ -458,7 +458,7 @@ const EnhancedDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-6 pb-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-8 pb-8">
         <div className="flex flex-col gap-4">
           {/* Banner */}
           {showBanner && notification && (
