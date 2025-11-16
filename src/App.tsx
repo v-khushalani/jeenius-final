@@ -8,6 +8,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import FloatingAIButton from '@/components/FloatingAIButton';
 import SubscriptionPlans from '@/pages/SubscriptionPlans';
 import PricingPage from '@/components/Pricing';
+import { ErrorBoundary } from 'react-error-boundary';
+
 
 // Main pages
 import Index from "./pages/Index";
@@ -82,7 +84,8 @@ const App = () => (
             
             {/* Authentication Routes */}
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Navigate to="/login" replace />} /> {/* Redirect signup to login since we only use Google */}
+            // Redirect signup to login since we only use Google OAuth
+            <Route path="/signup" element={<Navigate to="/login" replace />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             
             {/* Goal Selection (might be needed after signup) */}
