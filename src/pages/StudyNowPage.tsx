@@ -13,18 +13,16 @@ import { toast } from "sonner";
 import PricingModal from '@/components/PricingModal';
 import Header from '@/components/Header';
 import LoadingScreen from '@/components/ui/LoadingScreen';
+import UpgradeModal from '@/components/UpgradeModal';
 import {
   Flame, ArrowLeft, Lightbulb, XCircle, CheckCircle2, Trophy, Target,
-  Sparkles, Zap, Play, Lock
+  Sparkles, Zap, Play, Lock, TrendingUp
 } from "lucide-react";
 
-/**
-  Enhanced StudyNowPage
-  - Theme aligned with EnhancedDashboard (soft gradients, glass cards, mobile-first)
-  - UI improvements only; backend logic untouched
-  - Mobile-first, cleaned cards, stronger CTAs
-  - Same functions & Supabase calls preserved
-*/
+// 🚀 NEW: Import gamification services
+import StreakService from '@/services/streakService';
+import UserLimitsService from '@/services/userLimitsService';
+import PointsService from '@/services/pointsService';
 
 const StudyNowPage = () => {
   const navigate = useNavigate();
@@ -48,15 +46,61 @@ const StudyNowPage = () => {
   const [showPaywall, setShowPaywall] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [dailyQuestionsUsed, setDailyQuestionsUsed] = useState(0);
+  
+  // 🚀 NEW: Gamification states
+  const [dailyTarget, setDailyTarget] = useState(15);
+  const [dailyLimit, setDailyLimit] = useState(20);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradePromptType, setUpgradePromptType] = useState('');
+  const [upgradePromptData, setUpgradePromptData] = useState<any>(null);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+
   const DAILY_LIMIT_FREE = 20;
 
-  // -- INITIAL LOAD
   useEffect(() => {
     checkSubscriptionStatus();
     loadProfile();
     fetchSubjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadGamificationData(); // 🚀 NEW
   }, []);
+
+  // 🚀 NEW: Load gamification data
+  const loadGamificationData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Load streak, target, and limits in parallel
+      const [streakStatus, proStatus, limit] = await Promise.all([
+        StreakService.getStreakStatus(user.id),
+        UserLimitsService.isPro(user.id),
+        UserLimitsService.getDailyLimit(user.id)
+      ]);
+
+      setCurrentStreak(streakStatus.currentStreak);
+      setDailyTarget(streakStatus.todayTarget);
+      setDailyQuestionsUsed(streakStatus.todayCompleted);
+      setDailyLimit(limit);
+      setIsPro(proStatus);
+
+      // Check if upgrade prompt should be shown
+      const shouldPrompt = await UserLimitsService.shouldShowUpgradePrompt(user.id);
+      if (shouldPrompt.show && !proStatus) {
+        setUpgradePromptType(shouldPrompt.promptType);
+        setUpgradePromptData(shouldPrompt.data);
+        
+        // Show modal after a delay for better UX
+        setTimeout(() => {
+          setShowUpgradeModal(true);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error loading gamification data:', error);
+    }
+  };
 
   const checkSubscriptionStatus = async () => {
     try {
@@ -95,7 +139,6 @@ const StudyNowPage = () => {
     }
   };
 
-  // FETCH SUBJECTS (kept backend logic intact, enhanced UI shaping)
   const fetchSubjects = async () => {
     setLoading(true);
     try {
@@ -184,7 +227,6 @@ const StudyNowPage = () => {
     }
   };
 
-  // CHAPTERS: unchanged logic, improved UI variables only
   const loadChapters = async (subject) => {
     setLoading(true);
     setSelectedSubject(subject);
@@ -227,7 +269,6 @@ const StudyNowPage = () => {
           const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
           const progress = attempted > 0 ? Math.min(100, Math.round((attempted / totalQuestions) * 100)) : 0;
 
-          // Check if locked - first 2 chapters are free (original logic preserved)
           const isLocked = !profile?.is_premium && index >= 2;
 
           return {
@@ -254,7 +295,6 @@ const StudyNowPage = () => {
     }
   };
 
-  // TOPICS: same logic, styled
   const loadTopics = async (chapter) => {
     setLoading(true);
     setSelectedChapter(chapter);
@@ -323,10 +363,12 @@ const StudyNowPage = () => {
     }
   };
 
-  // START PRACTICE - logic preserved exactly, UI/UX minor improvements only
   const startPractice = async (topic = null) => {
     setLoading(true);
     setSelectedTopic(topic);
+
+    // 🚀 NEW: Reset question timer
+    setQuestionStartTime(Date.now());
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -344,7 +386,6 @@ const StudyNowPage = () => {
         .eq('subject', selectedSubject)
         .eq('chapter', selectedChapter);
 
-      // apply filter if there are attempted IDs
       if (attemptedIds.length > 0) {
         query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
       }
@@ -379,13 +420,18 @@ const StudyNowPage = () => {
     }
   };
 
-  // HANDLE ANSWER: same functional flow, kept backend writes identical
+  // 🚀 MODIFIED: Enhanced answer handling with gamification
   const handleAnswer = async (answer) => {
     if (isSubmitting || showResult) return;
 
-    if (!isPro && dailyQuestionsUsed >= DAILY_LIMIT_FREE) {
-      toast.error('Daily limit reached!');
-      setTimeout(() => navigate('/subscription-plans'), 2000);
+    // 🚀 NEW: Check daily limit
+    const { data: { user } } = await supabase.auth.getUser();
+    const canSolve = await UserLimitsService.canSolveMore(user?.id);
+
+    if (!canSolve.canSolve) {
+      toast.error('Daily limit reached! Upgrade to PRO for unlimited questions.');
+      setShowUpgradeModal(true);
+      setUpgradePromptType('daily_limit_reached');
       return;
     }
 
@@ -397,6 +443,9 @@ const StudyNowPage = () => {
     const correctLetter = question.correct_option.replace('option_', '').toUpperCase();
     const isCorrect = answer === correctLetter;
 
+    // 🚀 NEW: Calculate time spent
+    const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
+
     // Update session stats locally
     setSessionStats(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
@@ -405,10 +454,9 @@ const StudyNowPage = () => {
     }));
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user?.id) return;
 
-      // Check if already attempted (keep same flow)
+      // Check if already attempted
       const { data: existingAttempt } = await supabase
         .from('question_attempts')
         .select('id')
@@ -429,7 +477,7 @@ const StudyNowPage = () => {
           question_id: question.id,
           selected_option: `option_${answer.toLowerCase()}`,
           is_correct: isCorrect,
-          time_taken: 30,
+          time_taken: timeSpent,
           mode: 'study'
         });
 
@@ -437,7 +485,28 @@ const StudyNowPage = () => {
         console.error('Insert error:', insertError);
       }
 
-      // Update usage limits exactly as original
+      // 🚀 NEW: Calculate and award points
+      const { points, breakdown } = await PointsService.calculatePoints(
+        user.id,
+        question.difficulty,
+        isCorrect,
+        timeSpent
+      );
+
+      // Show points animation
+      if (points > 0) {
+        setPointsEarned(points);
+        setShowPointsAnimation(true);
+        setTimeout(() => setShowPointsAnimation(false), 2000);
+      }
+
+      // 🚀 NEW: Update progress and streak
+      await StreakService.updateProgress(user.id);
+
+      // 🚀 NEW: Reload gamification data
+      await loadGamificationData();
+
+      // Update usage limits (existing logic)
       if (!isPro) {
         const today = new Date().toISOString().split('T')[0];
         const { data: usage } = await supabase
@@ -473,17 +542,16 @@ const StudyNowPage = () => {
       console.error('Error:', error);
     } finally {
       setIsSubmitting(false);
-      // small pause so user sees result
       setTimeout(() => nextQuestion(), 800);
     }
   };
 
   const nextQuestion = () => {
-    // advance exactly as original
     if (currentQuestionIndex < practiceQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      setQuestionStartTime(Date.now()); // 🚀 NEW: Reset timer
     } else {
       const accuracy = sessionStats.total > 0 ? (sessionStats.correct / sessionStats.total) * 100 : 0;
       toast.success(`🎉 Session Completed! Score: ${sessionStats.correct}/${sessionStats.total} (${Math.round(accuracy)}%)`);
@@ -495,7 +563,7 @@ const StudyNowPage = () => {
     return <LoadingScreen message="Loading..." />;
   }
 
-  // ---------- PRACTICE VIEW (mobile-first, Dashboard-theme)
+  // ---------- PRACTICE VIEW
   if (view === 'practice' && practiceQuestions.length > 0) {
     const question = practiceQuestions[currentQuestionIndex];
     const progress = ((currentQuestionIndex + 1) / practiceQuestions.length) * 100;
@@ -516,33 +584,46 @@ const StudyNowPage = () => {
               </Button>
             </div>
 
+            {/* 🚀 NEW: Enhanced daily progress with target */}
             {!isPro && (
               <Card className="mb-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 shadow-lg">
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Target className="w-4 h-4 text-orange-600" />
-                        <div className="text-sm font-bold text-orange-900">
-                          Daily Progress: {dailyQuestionsUsed}/{DAILY_LIMIT_FREE}
+                      <div className="flex items-center gap-2 justify-between">
+                        <div className="flex items-center gap-2">
+                          <Target className="w-4 h-4 text-orange-600" />
+                          <div className="text-sm font-bold text-orange-900">
+                            Daily: {dailyQuestionsUsed}/{dailyLimit}
+                          </div>
+                        </div>
+                        <div className="text-xs text-orange-700">
+                          Target: {dailyTarget} 🎯
                         </div>
                       </div>
                       <div className="mt-2 w-full rounded-full bg-orange-200 h-2">
                         <div
                           className="h-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all"
-                          style={{ width: `${Math.min(100, (dailyQuestionsUsed / DAILY_LIMIT_FREE) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (dailyQuestionsUsed / dailyLimit) * 100)}%` }}
                         />
                       </div>
                       <div className="text-xs text-orange-700 mt-2">
-                        {dailyQuestionsUsed >= DAILY_LIMIT_FREE - 5
-                          ? <span className="font-semibold">⚠️ Almost at your limit! Upgrade for unlimited practice.</span>
-                          : <span>Upgrade to Pro for unlimited questions + AI features!</span>}
+                        {dailyTarget > dailyLimit ? (
+                          <span className="font-semibold flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            Your target ({dailyTarget}) exceeds FREE limit ({dailyLimit})! Upgrade to continue streak.
+                          </span>
+                        ) : dailyQuestionsUsed >= dailyLimit - 5 ? (
+                          <span className="font-semibold">⚠️ Almost at your limit! Upgrade for unlimited.</span>
+                        ) : (
+                          <span>Upgrade to Pro for unlimited questions + AI features!</span>
+                        )}
                       </div>
                     </div>
 
                     <div className="shrink-0">
                       <Button
-                        onClick={() => navigate('/subscription-plans')}
+                        onClick={() => setShowUpgradeModal(true)}
                         className="bg-gradient-to-r from-green-500 to-blue-600 text-white px-3 py-2 text-sm shadow-lg"
                       >
                         <Sparkles className="w-4 h-4 mr-2 inline" />
@@ -552,6 +633,15 @@ const StudyNowPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* 🚀 NEW: Points animation */}
+            {showPointsAnimation && (
+              <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 animate-bounce">
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-3 rounded-full shadow-2xl text-2xl font-bold">
+                  +{pointsEarned} points! ⚡
+                </div>
+              </div>
             )}
 
             <Card className="mb-4 border border-slate-200 shadow-2xl bg-white/90">
@@ -635,7 +725,7 @@ const StudyNowPage = () => {
                   <div className="flex items-center gap-2">
                     <Button onClick={() => setShowAIModal(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 text-sm shadow">
                       <Sparkles className="w-4 h-4 mr-2 inline" />
-                      Ask AI for Help
+                      Ask AI
                     </Button>
                     <div className="w-28">
                       <Progress value={Math.round(progress)} className="h-2" />
@@ -659,16 +749,19 @@ const StudyNowPage = () => {
           </div>
         </div>
 
+        {/* 🚀 NEW: Upgrade Modal */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          promptType={upgradePromptType}
+          data={upgradePromptData}
+          userId={profile?.id || ''}
+        />
+
         <AIDoubtSolver
           question={practiceQuestions[currentQuestionIndex]}
           isOpen={showAIModal}
           onClose={() => setShowAIModal(false)}
-        />
-
-        <PricingModal
-          isOpen={dailyQuestionsUsed >= DAILY_LIMIT_FREE}
-          onClick={() => navigate('/subscription-plans')}
-          limitType="daily_limit"
         />
       </div>
     );
@@ -681,6 +774,41 @@ const StudyNowPage = () => {
         <Header />
         <div className="pt-20 sm:pt-24 pb-10">
           <div className="container mx-auto px-4 max-w-7xl">
+            {/* 🚀 NEW: Streak & Target Banner */}
+            {currentStreak > 0 && (
+              <Card className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-6 h-6 text-orange-500" fill="currentColor" />
+                        <div>
+                          <div className="text-2xl font-bold text-orange-900">{currentStreak} Day Streak!</div>
+                          <div className="text-sm text-orange-700">Keep it going! 🔥</div>
+                        </div>
+                      </div>
+                      
+                      <div className="h-12 w-px bg-orange-300 hidden sm:block"></div>
+                      
+                      <div className="hidden sm:flex items-center gap-2">
+                        <Target className="w-5 h-5 text-orange-600" />
+                        <div>
+                          <div className="text-lg font-bold text-orange-900">Today: {dailyQuestionsUsed}/{dailyTarget}</div>
+                          <div className="text-xs text-orange-700">Daily target</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {dailyQuestionsUsed < dailyTarget && (
+                      <Badge className="bg-orange-600 text-white px-3 py-1">
+                        {dailyTarget - dailyQuestionsUsed} more to go!
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {subjects.map((subject) => (
                 <Card
