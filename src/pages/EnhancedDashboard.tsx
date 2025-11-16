@@ -14,34 +14,18 @@ import {
   AlertCircle,
   X,
   Sparkles,
-  Star,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import Leaderboard from "@/components/Leaderboard";
-
-/**
- * EnhancedDashboard (polished & responsive)
- *
- * Notes:
- * - backend calls and logic preserved (unchanged)
- * - only visual/layout changes here:
- *    * consistent card sizing
- *    * improved spacing & typography
- *    * better mobile stacking
- *    * leaderboard scroll containment
- *    * lightweight accessible microcopy
- */
+import { useUserStats } from "@/hooks/useUserStats";
 
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { stats, profile, loading: isLoading } = useUserStats();
   const [showBanner, setShowBanner] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
     const lastShown = localStorage.getItem("welcomeLastShown");
@@ -58,263 +42,10 @@ const EnhancedDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (user && isClient) {
-      loadUserData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isClient]);
-
-  // Dynamic goal calculator (kept — uses real attempt counts)
-  const calculateDailyGoal = (totalQuestions: number, avgAccuracy: number, currentStreak: number) => {
-    let baseGoal = 20;
-
-    if (totalQuestions > 1000) baseGoal = 50;
-    else if (totalQuestions > 500) baseGoal = 40;
-    else if (totalQuestions > 200) baseGoal = 35;
-    else if (totalQuestions > 100) baseGoal = 30;
-    else if (totalQuestions > 50) baseGoal = 25;
-
-    if (avgAccuracy >= 90) baseGoal += 5;
-    else if (avgAccuracy >= 80) baseGoal += 3;
-
-    if (currentStreak >= 30) baseGoal += 10;
-    else if (currentStreak >= 14) baseGoal += 5;
-    else if (currentStreak >= 7) baseGoal += 3;
-
-    return Math.min(baseGoal, 60);
-  };
-
-  // Load user/profile/attempts and some leaderboard-derived metrics
-  const loadUserData = async () => {
-    try {
-      setIsLoading(true);
-
-      // 1) Profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user?.id)
-        .single();
-      if (profileError) console.error("Profile fetch error:", profileError);
-      setProfile(profileData);
-
-      // 2) Attempts (exclude test/battle as requested in original code)
-      const { data: allAttempts, error: attemptsError } = await supabase
-        .from("question_attempts")
-        .select("*, questions(subject, chapter, topic)")
-        .eq("user_id", user?.id)
-        .neq("mode", "test")
-        .neq("mode", "battle");
-
-      if (attemptsError) console.error("Attempts fetch error:", attemptsError);
-
-      const attempts = allAttempts || [];
-
-      // Normalize dates and compute useful windows
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      weekAgo.setHours(0, 0, 0, 0);
-      const twoWeeksAgo = new Date();
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      twoWeeksAgo.setHours(0, 0, 0, 0);
-
-      const parseDate = (d: any) => {
-        // Attempt to robustly parse created_at
-        const date = new Date(d);
-        if (isNaN(date.getTime())) return null;
-        return date;
-      };
-
-      const attemptsWithDate = attempts
-        .map((a: any) => ({ ...a, parsedDate: parseDate(a.created_at) }))
-        .filter((a: any) => a.parsedDate !== null);
-
-      // Totals and correctness
-      const totalQuestions = attemptsWithDate.length;
-      const correctAnswers = attemptsWithDate.filter((a: any) => a.is_correct).length;
-      const accuracy = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-
-      // Today and week attempts
-      const todayAttempts = attemptsWithDate.filter((a: any) => {
-        const d = new Date(a.parsedDate);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime() === today.getTime();
-      });
-      const todayTotal = todayAttempts.length;
-      const todayCorrect = todayAttempts.filter((a: any) => a.is_correct).length;
-      const todayAccuracy = todayTotal > 0 ? Math.round((todayCorrect / todayTotal) * 100) : 0;
-
-      const weekAttempts = attemptsWithDate.filter((a: any) => a.parsedDate >= weekAgo);
-      const weekCorrect = weekAttempts.filter((a: any) => a.is_correct).length;
-      const weekAccuracy = weekAttempts.length > 0 ? Math.round((weekCorrect / weekAttempts.length) * 100) : 0;
-
-      // Previous week (for accuracy delta)
-      const prevWeekAttempts = attemptsWithDate.filter(
-        (a: any) => a.parsedDate >= twoWeeksAgo && a.parsedDate < weekAgo
-      );
-      const prevWeekCorrect = prevWeekAttempts.filter((a: any) => a.is_correct).length;
-      const prevWeekAccuracy =
-        prevWeekAttempts.length > 0 ? Math.round((prevWeekCorrect / prevWeekAttempts.length) * 100) : null;
-      const accuracyChange =
-        prevWeekAccuracy === null ? 0 : Math.round((weekAccuracy - prevWeekAccuracy) * 10) / 10; // one decimal
-
-      // Streak calculation (Goal-based: >= DAILY_TARGET questions/day)
-      const DAILY_TARGET = 30;
-      let streak = 0;
-      let currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i < 365; i++) {
-        const questionsOnThisDay = attemptsWithDate.filter((a: any) => {
-          const attemptDate = new Date(a.parsedDate);
-          attemptDate.setHours(0, 0, 0, 0);
-          return attemptDate.getTime() === currentDate.getTime();
-        }).length;
-
-        if (questionsOnThisDay >= DAILY_TARGET) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else if (i === 0 && questionsOnThisDay > 0) {
-          // If today has >0 but < target, still continue (don't break immediately)
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-
-      // Topic / subject breakdown
-      const topicStats: any = {};
-      const subjectStats: any = {};
-      attemptsWithDate.forEach((attempt: any) => {
-        const topic = attempt.questions?.topic;
-        const subject = attempt.questions?.subject;
-
-        if (topic) {
-          if (!topicStats[topic]) {
-            topicStats[topic] = { correct: 0, total: 0 };
-          }
-          topicStats[topic].total++;
-          if (attempt.is_correct) topicStats[topic].correct++;
-        }
-
-        if (subject) {
-          if (!subjectStats[subject]) {
-            subjectStats[subject] = { correct: 0, total: 0 };
-          }
-          subjectStats[subject].total++;
-          if (attempt.is_correct) subjectStats[subject].correct++;
-        }
-      });
-
-      // Find weakest & strongest topics (minimum 5 attempts filter)
-      let weakestTopic = "Not enough data";
-      let strongestTopic = "Not enough data";
-      let lowestAccuracy = 100;
-      let highestAccuracy = 0;
-      Object.entries(topicStats).forEach(([topic, s]: [string, any]) => {
-        if (s.total >= 5) {
-          const acc = (s.correct / s.total) * 100;
-          if (acc < lowestAccuracy) {
-            lowestAccuracy = acc;
-            weakestTopic = topic;
-          }
-          if (acc > highestAccuracy) {
-            highestAccuracy = acc;
-            strongestTopic = topic;
-          }
-        }
-      });
-
-      // Dynamic daily goal based on real totals
-      const dynamicGoal = calculateDailyGoal(totalQuestions, accuracy, streak);
-
-      // Days active (from earliest attempt to today) for avgQuestionsPerDay
-      const earliestAttempt = attemptsWithDate.length > 0 ? attemptsWithDate.reduce((prev: any, curr: any) => (new Date(prev.parsedDate) < new Date(curr.parsedDate) ? prev : curr)) : null;
-      let daysActive = 1;
-      if (earliestAttempt) {
-        const diff = Math.ceil((new Date().setHours(0, 0, 0, 0) - new Date(earliestAttempt.parsedDate).setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
-        daysActive = Math.max(1, diff);
-      }
-
-      const avgQuestionsPerDay = Math.round(totalQuestions / daysActive);
-
-      // Additional leaderboard metrics (realistic, derived from profiles table)
-      // Compute rank, percentile, topRankersAvg — read-only selects only.
-      let rank = null;
-      let percentile = null;
-      let rankChange = null;
-      let topRankersAvg = null;
-
-      try {
-        // fetch top profiles with total_points
-        const { data: allProfiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, total_points")
-          .order("total_points", { ascending: false });
-
-        if (profilesError) {
-          console.error("profiles fetch error:", profilesError);
-        } else if (Array.isArray(allProfiles)) {
-          const sorted = allProfiles;
-          const totalUsers = sorted.length;
-          const idx = sorted.findIndex((p: any) => p.id === user?.id);
-          rank = idx >= 0 ? idx + 1 : null;
-          percentile = idx >= 0 ? Math.round(((totalUsers - idx) / totalUsers) * 10000) / 100 : null; // two decimals
-
-          // topRankersAvg -> average total_points of top 10 or top 5
-          const topSlice = sorted.slice(0, 10).filter((p: any) => typeof p.total_points === "number");
-          if (topSlice.length > 0) {
-            const sum = topSlice.reduce((acc: number, p: any) => acc + (p.total_points || 0), 0);
-          topRankersAvg = Math.round(sum / topSlice.length);
-        }
-
-        // Rank change tracking removed - not available in current schema
-        rankChange = null;
-        }
-      } catch (err) {
-        console.error("Error computing leaderboard metrics:", err);
-      }
-
-      // Points to next level (level size = 100 points)
-      const totalPoints = profileData?.total_points || 0;
-      const currentLevel = Math.floor(totalPoints / 100) + 1;
-      const nextLevelThreshold = currentLevel * 100;
-      const pointsToNext = Math.max(0, nextLevelThreshold - totalPoints);
-
-      setStats({
-        totalQuestions,
-        questionsToday: todayTotal,
-        questionsWeek: weekAttempts.length,
-        correctAnswers,
-        accuracy,
-        todayAccuracy,
-        accuracyChange,
-        streak,
-        rank,
-        rankChange,
-        percentile,
-        todayGoal: dynamicGoal,
-        todayProgress: todayTotal,
-        weakestTopic,
-        strongestTopic,
-        avgQuestionsPerDay,
-        topRankersAvg,
-        subjectStats,
-        pointsToNext,
-        currentLevel,
-        totalPoints,
-      });
-
-      // bump leaderboard key to refresh leaderboard component (if it uses same data)
+    if (stats) {
       setLeaderboardKey((prev) => prev + 1);
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [stats]);
 
   const displayName =
     profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Student";
@@ -332,10 +63,10 @@ const EnhancedDashboard = () => {
   };
 
   const timeMessage = currentTime !== null ? getTimeBasedMessage() : { greeting: "Hello", message: "Loading...", icon: "👋", action: "Start" };
+  
   const getSmartNotification = () => {
     if (!stats) return null;
   
-    // Low accuracy alert
     if (stats.todayAccuracy < 60 && stats.questionsToday >= 10) {
       return {
         message: "Focus needed! Review mistakes before continuing.",
@@ -344,7 +75,6 @@ const EnhancedDashboard = () => {
       };
     }
   
-    // Streak breaking warning
     if (stats.streak >= 7 && stats.questionsToday < 10) {
       return {
         message: `🔥 Don't break your ${stats.streak}-day streak! Complete today's goal.`,
@@ -353,7 +83,6 @@ const EnhancedDashboard = () => {
       };
     }
   
-    // Goal achievement
     if (stats.todayProgress >= stats.todayGoal && stats.todayAccuracy >= 80) {
       return {
         message: "🎉 Daily goal smashed with great accuracy! You're on fire!",
@@ -362,7 +91,6 @@ const EnhancedDashboard = () => {
       };
     }
   
-    // High performer
     if (stats.questionsToday >= 50 && stats.todayAccuracy >= 85) {
       return {
         message: "⭐ Outstanding performance today! Keep dominating!",
@@ -371,7 +99,6 @@ const EnhancedDashboard = () => {
       };
     }
   
-    // Rank improvement
     if (stats.rankChange && stats.rankChange > 0 && stats.rankChange >= 3) {
       return {
         message: `📈 Climbed ${stats.rankChange} ranks! You're moving up fast!`,
@@ -395,7 +122,6 @@ const EnhancedDashboard = () => {
     }
   }, [user, notification, isClient]);
 
-  // Enhanced "Your Progress" visuals helper
   const getProgressBadge = (accuracy: number) => {
     if (accuracy >= 95) {
       return {
@@ -453,7 +179,6 @@ const EnhancedDashboard = () => {
     return <LoadingScreen message="Preparing your genius dashboard..." />;
   }
 
-  // ---------- PRESENTATION ----------
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
@@ -680,7 +405,7 @@ const EnhancedDashboard = () => {
                 </CardHeader>
 
                 <CardContent className="p-4 space-y-4 max-h-[60vh] sm:max-h-[55vh] lg:max-h-[60vh] overflow-auto">
-                  {/* Subject cards grid (compact + premium spacing) */}
+                  {/* Subject cards grid */}
                   {stats?.subjectStats && Object.keys(stats.subjectStats).length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {Object.entries(stats.subjectStats).map(([subject, data]: [string, any]) => {
@@ -717,7 +442,7 @@ const EnhancedDashboard = () => {
                     </div>
                   )}
 
-                  {/* Points to next level */}
+                  {/* Enhanced Points Card */}
                   <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white p-5 rounded-xl border border-indigo-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
@@ -778,7 +503,7 @@ const EnhancedDashboard = () => {
               </Card>
             </div>
 
-            {/* Right: leaderboard (scrollable within column) */}
+            {/* Right: leaderboard */}
             <div className="h-full">
               <div className="h-full sticky top-6">
                 <div className="bg-white rounded-xl border border-slate-100 shadow-lg p-3 flex flex-col h-full">
@@ -790,10 +515,9 @@ const EnhancedDashboard = () => {
                     <div className="text-xs text-green-600 font-semibold">LIVE</div>
                   </div>
 
-                <div className="flex-1 overflow-auto py-2">
-                  {/* Use user's existing Leaderboard component — refresh using key */}
-                  <Leaderboard key={leaderboardKey} />
-                </div>
+                  <div className="flex-1 overflow-auto py-2">
+                    <Leaderboard key={leaderboardKey} />
+                  </div>
 
                   <div className="mt-3 text-xs text-slate-500">
                     <div className="flex items-center justify-between">
@@ -809,7 +533,7 @@ const EnhancedDashboard = () => {
                 </div>
               </div>
             </div>
-          </div> {/* end main content grid */}
+          </div>
         </div>
       </div>
     </div>
