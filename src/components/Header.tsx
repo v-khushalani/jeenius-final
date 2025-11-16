@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
+import PointsDisplay from '@/components/PointsDisplay';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -307,6 +308,7 @@ const Header = () => {
           </div>
         )}
       </div>
+      <PointsDisplay />
     </header>
   );
 };
