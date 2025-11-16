@@ -35,7 +35,12 @@ const Header = () => {
     { name: 'Home', href: '/', path: '/', icon: null, highlight: false },
     { name: 'Why Us', href: '/why-us', path: '/why-us', icon: null, highlight: false },
   ];
+
+  // ✅ FIXED: Remove or update this route
+  // Option A: Remove from dropdown if page doesn't exist
+  // Option B: Create a Features page or redirect to dashboard
   
+  // Recommended Fix:
   const featureDropdownItems = [
     { name: 'Dashboard', path: '/dashboard', icon: BarChart3, description: 'Your analytics hub' },
     { name: 'Study Planner', path: '/ai-planner', icon: Calendar, description: 'AI-powered planning' },
