@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award } from 'lucide-react';
+import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
+import PointsDisplay from '@/components/PointsDisplay';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +23,12 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signOut, isPremium } = useAuth();
+  const { isAdmin } = useAdminAuth();
+
+  const handleNavigation = (path: string) => {
+    setIsMenuOpen(false);
+    navigate(path);
+  };
 
   const publicNavItems = [
     { name: 'Home', href: '/', path: '/', icon: null, highlight: false },
@@ -31,56 +39,31 @@ const Header = () => {
     { name: 'All Features', path: '/features', icon: BarChart3, description: 'Explore all platform features' },
   ];
 
-  const navItems = isAuthenticated ? [
+  const navItems = isAuthenticated ? (
+  isAdmin ? [
+    { name: 'Dashboard', href: '/admin', path: '/admin', icon: BarChart3 },
+    { name: 'Analytics', href: '/admin/analytics', path: '/admin/analytics', icon: Target },
+    { name: 'Users', href: '/admin/users', path: '/admin/users', icon: BookOpen },
+    { name: 'Content', href: '/admin/content', path: '/admin/content', icon: Brain },
+  ] : [
     { name: 'Dashboard', href: '/dashboard', path: '/dashboard', icon: BarChart3 },
     { name: 'Study Now', href: '/study-now', path: '/study-now', icon: BookOpen, highlight: false },
-    ...(isPremium ? [{ name: 'AI Study Planner', href: '/ai-planner', path: '/ai-planner', icon: Brain, highlight: false }] : []),    { name: 'Tests', href: '/tests', path: '/tests', icon: Target },
-  ] : publicNavItems;
-    const handleNavigation = (path: string) => {
-      navigate(path);
-      setIsMenuOpen(false);
-    };
+    ...(isPremium ? [{ name: 'AI Study Planner', href: '/ai-planner', path: '/ai-planner', icon: Brain, highlight: false }] : []),
+    { name: 'Tests', href: '/tests', path: '/tests', icon: Target },
+  ]
+) : publicNavItems;
 
-  // Simplified and more reliable logout function
   const handleLogout = async () => {
     try {
-      console.log('🚪 Logging out...');
-      
-      // Close mobile menu first
       setIsMenuOpen(false);
-      
-      // Clear localStorage immediately
       localStorage.clear();
-      console.log('🧹 Cleared localStorage');
-      
-      // Call Supabase signOut
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Supabase signOut error:', error);
-      } else {
-        console.log('✅ Supabase signOut successful');
-      }
-      
-      // Call AuthContext signOut if available
-      if (signOut && typeof signOut === 'function') {
-        try {
-          await signOut();
-          console.log('✅ AuthContext signOut successful');
-        } catch (authError) {
-          console.error('AuthContext signOut error:', authError);
-        }
-      }
-      
-      // Redirect to home page with replace to prevent back navigation
-      window.location.replace('/');
-      
+      await supabase.auth.signOut();
+      if (signOut) await signOut();
+      window.location.href = '/';
     } catch (error) {
-      console.error('❌ Logout error:', error);
-      
-      // Fallback: Force logout anyway
+      console.error('Logout error:', error);
       localStorage.clear();
-      setIsMenuOpen(false);
-      window.location.replace('/');
+      window.location.href = '/';
     }
   };
 
@@ -93,7 +76,6 @@ const Header = () => {
     localStorage.setItem('appBannerDismissed', 'true');
   };
 
-  // Add/remove class to body for dynamic spacing
   React.useEffect(() => {
     if (showAppBanner) {
       document.body.classList.add('has-app-banner');
@@ -157,9 +139,12 @@ const Header = () => {
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => {
+                  console.log('Navigating to:', item.href || item.path);
+                  handleNavigation(item.href || item.path);
+                }}
                 className={`transition-colors duration-200 font-medium px-3 py-2 rounded-lg flex items-center space-x-2 ${
-                  location.pathname === item.path
+                  location.pathname === (item.href || item.path)
                     ? 'text-white bg-primary'
                     : item.highlight 
                     ? 'text-primary bg-primary/10 hover:bg-primary hover:text-white'
@@ -172,9 +157,11 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Language Toggle & Auth Buttons */}
+          {/* Right Side: Points Display + Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-                        
+            {/* 🚀 NEW: Points Display - Only show when authenticated */}
+            {isAuthenticated && <PointsDisplay />}
+            
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -198,6 +185,14 @@ const Header = () => {
                       <span>Settings</span>
                     </div>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => handleNavigation('/admin')}>
+                      <div className="flex items-center space-x-2 w-full">
+                        <Shield className="w-4 h-4 text-purple-600" />
+                        <span className="text-purple-600 font-semibold">Admin Panel</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={handleLogout}
                     className="text-red-600 focus:text-red-600"
@@ -235,6 +230,13 @@ const Header = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
+            {/* 🚀 NEW: Points Display for Mobile - Top of menu */}
+            {isAuthenticated && (
+              <div className="mb-4 flex justify-center">
+                <PointsDisplay />
+              </div>
+            )}
+
             <nav className="flex flex-col space-y-2">
               {navItems.map((item) => (
                 <button
@@ -272,6 +274,16 @@ const Header = () => {
                       <span className="text-lg">⚙️</span>
                       <span>Settings</span>
                     </Button>
+                    {isAdmin && (
+                      <Button 
+                        variant="outline"
+                        className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300"
+                        onClick={() => handleNavigation('/admin')}
+                      >
+                        <Shield className="w-5 h-5" />
+                        <span className="font-semibold">Admin Panel</span>
+                      </Button>
+                    )}
                     <Button 
                       variant="outline"
                       onClick={handleLogout}
@@ -298,5 +310,4 @@ const Header = () => {
   );
 };
 
-// IMPORTANT: Make sure to export as default
 export default Header;

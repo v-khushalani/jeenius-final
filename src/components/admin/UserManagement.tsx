@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Shield, ShieldCheck, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
 
 interface UserProfile {
   id: string;
@@ -15,41 +17,8 @@ interface UserProfile {
   joined_at: string;
   grade?: number;
   target_exam?: string;
-  role?: 'user' | 'admin' | 'super_admin';
+  role?: 'student' | 'admin' | 'super_admin';
 }
-
-// Mock users data
-const mockUsers: UserProfile[] = [
-  {
-    id: '1',
-    user_id: 'user1',
-    email: 'student1@example.com',
-    full_name: 'Rahul Sharma',
-    joined_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    grade: 12,
-    target_exam: 'JEE Main',
-    role: 'user'
-  },
-  {
-    id: '2',
-    user_id: 'user2',
-    email: 'student2@example.com',
-    full_name: 'Priya Patel',
-    joined_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    grade: 11,
-    target_exam: 'JEE Advanced',
-    role: 'user'
-  },
-  {
-    id: '3',
-    user_id: 'admin1',
-    email: 'admin@example.com',
-    full_name: 'Admin User',
-    joined_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-    target_exam: 'N/A',
-    role: 'admin'
-  }
-];
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -67,29 +36,41 @@ export const UserManagement: React.FC = () => {
     filterUsers();
   }, [users, searchTerm, roleFilter]);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Load users from localStorage or use mock data
-      const storedUsers = localStorage.getItem('mockUserManagement');
-      const usersData = storedUsers ? JSON.parse(storedUsers) : mockUsers;
-      
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchUsers = async () => {
+  try {
+    setLoading(true);
+    
+    // Fetch real users from Supabase
+    const { data: profilesData, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, created_at, grade, target_exam, role')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formattedUsers: UserProfile[] = (profilesData || []).map(profile => ({
+      id: profile.id,
+      user_id: profile.id,
+      email: profile.email || 'No email',
+      full_name: profile.full_name || 'No name',
+      joined_at: profile.created_at,
+      grade: profile.grade,
+      target_exam: profile.target_exam,
+      role: profile.role as 'student' | 'admin' | 'super_admin' || 'student'
+    }));
+    
+    setUsers(formattedUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch users",
+      variant: "destructive"
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const filterUsers = () => {
     let filtered = users;
@@ -110,32 +91,37 @@ export const UserManagement: React.FC = () => {
     setFilteredUsers(filtered);
   };
 
-  const updateUserRole = async (userId: string, newRole: 'user' | 'admin' | 'super_admin') => {
-    try {
-      // Update local state
-      const updatedUsers = users.map(user => 
-        user.user_id === userId ? { ...user, role: newRole } : user
-      );
-      
-      setUsers(updatedUsers);
-      
-      // Save to localStorage
-      localStorage.setItem('mockUserManagement', JSON.stringify(updatedUsers));
+  const updateUserRole = async (userId: string, newRole: 'student' | 'admin' | 'super_admin') => {
+  try {
+    // Update in Supabase
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId);
 
-      toast({
-        title: "Success",
-        description: `User role updated to ${newRole}`,
-      });
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update user role",
-        variant: "destructive"
-      });
-    }
-  };
+    if (error) throw error;
 
+    // Update local state
+    const updatedUsers = users.map(user => 
+      user.user_id === userId ? { ...user, role: newRole } : user
+    );
+    
+    setUsers(updatedUsers);
+
+    toast({
+      title: "Success",
+      description: `User role updated to ${newRole}`,
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update user role",
+      variant: "destructive"
+    });
+  }
+};
+  
   const getRoleIcon = (role?: string) => {
     switch (role) {
       case 'super_admin':
@@ -238,19 +224,19 @@ export const UserManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role || 'user'}
+                          {user.role || 'student'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={user.role || 'user'}
+                          value={user.role || 'student'}
                           onValueChange={(value) => updateUserRole(user.user_id, value as any)}
                         >
                           <SelectTrigger className="w-[120px]">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="super_admin">Super Admin</SelectItem>
                           </SelectContent>

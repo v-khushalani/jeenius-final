@@ -8,6 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isPremium: boolean;
+  userRole: 'admin' | 'student' | 'super_admin' | null;
   refreshPremium: () => Promise<void>;
   signInWithGoogle: () => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
@@ -29,14 +30,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'student' | 'super_admin' | null>(null);
   const listenerRef = React.useRef<any>(null);
 
-  // Check premium status
+  // Check premium status and user role
   const checkPremiumStatus = async (userId: string) => {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_premium, subscription_end_date')
+        .select('is_premium, subscription_end_date, role')
         .eq('id', userId)
         .single();
 
@@ -45,10 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         new Date(profile.subscription_end_date) > new Date();
 
       setIsPremium(!!isPremiumActive);
+      setUserRole((profile?.role as 'admin' | 'student' | 'super_admin') || 'student');
       console.log('✅ Premium status:', isPremiumActive ? 'PREMIUM' : 'FREE');
+      console.log('✅ User role:', profile?.role || 'student');
     } catch (error) {
       console.error('❌ Premium check error:', error);
       setIsPremium(false);
+      setUserRole('student');
     }
   };
 
@@ -66,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await checkPremiumStatus(session.user.id);
       } else {
         setIsPremium(false);
+        setUserRole(null);
       }
       
       setIsLoading(false);
@@ -97,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === "SIGNED_OUT") {
           setUser(null);
           setSession(null);
+          setUserRole(null);
         }
       }
     );
@@ -140,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             grade: null,
             subjects: null,
             goals_set: false,
+            role: 'student',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
@@ -156,37 +164,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
-    try {
-      setIsLoading(true);
-      console.log('🚀 Starting Google OAuth...');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          // ✅ FIXED: Correct redirect URL
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      });
+  try {
+    setIsLoading(true);
+    console.log('🚀 Starting Google OAuth...');
 
-      if (error) {
-        console.error('❌ Google OAuth error:', error);
-        setIsLoading(false);
-        return { error: error.message };
-      }
+    // 🔹 Always use window.location.origin which includes protocol
+    const redirectUrl = window.location.origin;
+    console.log('🔗 Redirect URL:', redirectUrl);
 
-      console.log('✅ OAuth initiated successfully');
-      // Don't set loading to false here - redirect will happen
-      return {};
-    } catch (error: any) {
-      console.error('❌ Sign-in error:', error);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${redirectUrl}/auth/callback`, // ✅ Correct redirect path
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      console.error('❌ Google OAuth error:', error);
       setIsLoading(false);
-      return { error: error.message || 'Failed to sign in' };
+      return { error: error.message };
     }
-  };
+
+    console.log('✅ OAuth initiated successfully');
+    // Supabase will redirect automatically
+    return {};
+  } catch (error: any) {
+    console.error('❌ Sign-in error:', error);
+    setIsLoading(false);
+    return { error: error.message || 'Failed to sign in' };
+  }
+};
 
   const signOut = async (): Promise<void> => {
     setIsLoading(true);
@@ -204,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Immediately clear auth state to update UI
     setUser(null);
     setSession(null);
+    setUserRole(null);
 
     setIsLoading(false);
     console.log('✅ Signed out successfully');
@@ -242,6 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     isLoading,
     isPremium,
+    userRole,
     refreshPremium,
     signInWithGoogle,
     signOut,

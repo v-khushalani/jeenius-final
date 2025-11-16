@@ -1,38 +1,118 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JEEnius AI - AI-Powered JEE Preparation Platform</title>
-    <meta name="description" content="Master JEE with AI-powered personalized learning, intelligent question banks, parent dashboards, and comprehensive analytics. Transform your JEE preparation with adaptive AI technology.">
-    <meta name="author" content="JEEnius AI" />
-    <meta name="keywords" content="JEE preparation, AI learning, personalized education, parent dashboard, question bank, JEE Main, JEE Advanced, IIT preparation">
-    <meta name="theme-color" content="#013062" />
-
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     
+    <!-- Primary Meta Tags -->
+    <title>JEEnius AI - AI-Powered JEE Preparation Platform | VK Academy</title>
+    <meta name="title" content="JEEnius AI - AI-Powered JEE Preparation Platform | VK Academy" />
+    <meta name="description" content="Master JEE Main & Advanced with AI-powered personalized learning, intelligent question banks, parent dashboards, and comprehensive analytics. Join thousands of successful students at VK Academy." />
+    <meta name="author" content="VK Academy" />
+    <meta name="keywords" content="JEE preparation, JEE Main, JEE Advanced, IIT JEE, AI learning, personalized education, online coaching, physics, chemistry, mathematics, mock tests, question bank, VK Academy, JEEnius AI" />
+    <meta name="theme-color" content="#013062" />
+    <link rel="canonical" href="https://www.vkacademy.online" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.vkacademy.online" />
     <meta property="og:title" content="JEEnius AI - AI-Powered JEE Preparation Platform" />
     <meta property="og:description" content="Master JEE with AI-powered personalized learning, intelligent question banks, and comprehensive parent dashboards." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8jxyISWVVlXEVLtjrdFuvTBjQY12/social-images/social-1757653992878-logo.png">
+    <meta property="og:image" content="https://www.vkacademy.online/og-image.jpg" />
+    <meta property="og:site_name" content="JEEnius AI - VK Academy" />
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@jeeniusai" />
+    <meta name="twitter:url" content="https://www.vkacademy.online" />
     <meta name="twitter:title" content="JEEnius AI - AI-Powered JEE Preparation" />
     <meta name="twitter:description" content="Transform your JEE preparation with AI-powered personalized learning and intelligent question banks." />
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8jxyISWVVlXEVLtjrdFuvTBjQY12/social-images/social-1757653992878-logo.png">
+    <meta name="twitter:image" content="https://www.vkacademy.online/og-image.jpg" />
 
     <!-- Performance Optimization -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="//checkout.razorpay.com" />
+    <link rel="dns-prefetch" href="//zbclponzlwulmltwkjga.supabase.co" />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://checkout.razorpay.com" crossorigin />
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "JEEnius AI - VK Academy",
+      "description": "AI-powered JEE preparation platform",
+      "url": "https://www.vkacademy.online",
+      "logo": "https://www.vkacademy.online/logo.png",
+      "sameAs": [
+        "https://facebook.com/vkacademy",
+        "https://twitter.com/vkacademy",
+        "https://instagram.com/vkacademy"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Support",
+        "email": "support@vkacademy.online"
+      }
+    }
+    </script>
+
+    <!-- Google Analytics (Add your GA4 ID) -->
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script> -->
   </head>
 
   <body>
+    <!-- Clear Service Workers & Cache on Load -->
+    <script>
+      // Clear service workers if any
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+      
+      // Clear cache
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) caches.delete(name);
+        });
+      }
+
+      // Log version for debugging
+      console.log('JEEnius AI v1.0.1 - Production Build');
+    </script>
+
+    <!-- React App Root -->
     <div id="root"></div>
+
+    <!-- Main App Script -->
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Razorpay Checkout SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+
+    <!-- Noscript Fallback -->
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>JEEnius AI requires JavaScript to run. Please enable JavaScript in your browser.</p>
+      </div>
+    </noscript>
   </body>
 </html>

@@ -20,7 +20,7 @@ const FloatingAIButton = () => {
     explanation: ""
   };
 
-  // Don't render if not premium
+  // Only show for premium users
   if (isLoading || !isAuthenticated || !isPremium) {
     return null;
   }
@@ -60,7 +60,7 @@ const FloatingAIButton = () => {
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg shadow-xl whitespace-nowrap">
               <p className="text-sm font-semibold">🤖 Ask AI Anything!</p>
               <p className="text-xs opacity-90">
-                Unlimited AI Queries
+                JEEnie - Premium AI Tutor 💎
               </p>
             </div>
             {/* Arrow */}

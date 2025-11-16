@@ -42,7 +42,7 @@ serve(async (req) => {
 
     const fullPrompt = `${systemPrompt}\n\nContext:\n${contextPrompt}\n\nAb answer do:`;
 
-    // Call Gemini API
+    // Call Gemini API with correct model name
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
