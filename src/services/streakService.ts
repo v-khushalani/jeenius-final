@@ -261,7 +261,7 @@ export class StreakService {
           .single();
 
         if (pointsData) {
-          const badges = (pointsData.badges as string[]) || [];
+          const badges = pointsData.badges || [];
           if (!badges.includes(milestone.badge)) {
             badges.push(milestone.badge);
 

@@ -90,22 +90,22 @@ export class PointsService {
     // Get current answer streak
     const { data: pointsData } = await supabase
       .from('jeenius_points')
-      .select('answer_streak, badges, longest_answer_streak')
+      .select('answer_streak, badges')
       .eq('user_id', userId)
-      .maybeSingle();
+      .single();
 
     if (!pointsData) {
       return { points: 0, streak: 0, badgeEarned: false };
     }
 
-    const newStreak = ((pointsData?.answer_streak as number) || 0) + 1;
+    const newStreak = (pointsData.answer_streak || 0) + 1;
 
     // Update answer streak
     await supabase
       .from('jeenius_points')
       .update({
         answer_streak: newStreak,
-        longest_answer_streak: Math.max(newStreak, (pointsData?.longest_answer_streak as number) || 0)
+        longest_answer_streak: Math.max(newStreak, pointsData.longest_answer_streak || 0)
       })
       .eq('user_id', userId);
 
@@ -120,14 +120,14 @@ export class PointsService {
     for (const milestone of milestones) {
       if (newStreak === milestone.streak) {
         // Award badge if not already earned
-        const badges = (pointsData?.badges as string[]) || [];
+        const badges = pointsData.badges || [];
         const badgeEarned = !badges.includes(milestone.badge);
         
         if (badgeEarned) {
           badges.push(milestone.badge);
           await supabase
             .from('jeenius_points')
-            .update({ badges: badges as any })
+            .update({ badges })
             .eq('user_id', userId);
         }
 
@@ -161,7 +161,7 @@ export class PointsService {
       .from('jeenius_points')
       .select('total_points')
       .eq('user_id', userId)
-      .maybeSingle();
+      .single();
 
     if (!pointsData) {
       // Create points record
@@ -173,7 +173,7 @@ export class PointsService {
       return;
     }
 
-    const newTotal = Math.max(0, ((pointsData?.total_points as number) || 0) + pointsToAdd);
+    const newTotal = Math.max(0, (pointsData.total_points || 0) + pointsToAdd);
 
     // Calculate level
     const level = this.calculateLevel(newTotal);
@@ -244,7 +244,7 @@ export class PointsService {
       .from('jeenius_points')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle();
+      .single();
 
     if (!pointsData) {
       return {
@@ -259,13 +259,13 @@ export class PointsService {
     }
 
     return {
-      totalPoints: (pointsData?.total_points as number) || 0,
-      level: (pointsData?.level as string) || 'BEGINNER',
-      levelProgress: (pointsData?.level_progress as number) || 0,
-      answerStreak: (pointsData?.answer_streak as number) || 0,
-      longestAnswerStreak: (pointsData?.longest_answer_streak as number) || 0,
-      badges: (pointsData?.badges as string[]) || [],
-      levelInfo: this.calculateLevel((pointsData?.total_points as number) || 0)
+      totalPoints: pointsData.total_points || 0,
+      level: pointsData.level || 'BEGINNER',
+      levelProgress: pointsData.level_progress || 0,
+      answerStreak: pointsData.answer_streak || 0,
+      longestAnswerStreak: pointsData.longest_answer_streak || 0,
+      badges: pointsData.badges || [],
+      levelInfo: this.calculateLevel(pointsData.total_points || 0)
     };
   }
 
@@ -284,7 +284,7 @@ export class PointsService {
 
     const { data } = await query;
 
-    return (data || []).map((entry: any, index: number) => ({
+    return (data || []).map((entry, index) => ({
       rank: index + 1,
       userId: entry.user_id,
       email: entry.profiles?.email || 'Anonymous',
@@ -331,15 +331,15 @@ export class PointsService {
       .from('jeenius_points')
       .select('badges')
       .eq('user_id', userId)
-      .maybeSingle();
+      .single();
 
     if (pointsData) {
-      const badges = (pointsData.badges as string[]) || [];
+      const badges = pointsData.badges || [];
       if (!badges.includes(badgeName)) {
         badges.push(badgeName);
         await supabase
           .from('jeenius_points')
-          .update({ badges: badges as any })
+          .update({ badges })
           .eq('user_id', userId);
       }
     }

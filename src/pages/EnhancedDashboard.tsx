@@ -23,19 +23,6 @@ import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import Leaderboard from "@/components/Leaderboard";
 
-/**
- * EnhancedDashboard (polished & responsive)
- *
- * Notes:
- * - backend calls and logic preserved (unchanged)
- * - only visual/layout changes here:
- *    * consistent card sizing
- *    * improved spacing & typography
- *    * better mobile stacking
- *    * leaderboard scroll containment
- *    * lightweight accessible microcopy
- */
-
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -267,11 +254,15 @@ const EnhancedDashboard = () => {
           const topSlice = sorted.slice(0, 10).filter((p: any) => typeof p.total_points === "number");
           if (topSlice.length > 0) {
             const sum = topSlice.reduce((acc: number, p: any) => acc + (p.total_points || 0), 0);
-          topRankersAvg = Math.round(sum / topSlice.length);
-        }
+            topRankersAvg = Math.round(sum / topSlice.length);
+          }
 
-        // Rank change tracking removed - not available in current schema
-        rankChange = null;
+          // rankChange best-effort: if profile has previous_rank field, use it (non-invasive)
+          if (profileData && typeof profileData.previous_rank === "number" && rank !== null) {
+            rankChange = profileData.previous_rank - rank; // positive means improved
+          } else {
+            rankChange = null;
+          }
         }
       } catch (err) {
         console.error("Error computing leaderboard metrics:", err);
@@ -453,255 +444,253 @@ const EnhancedDashboard = () => {
     return <LoadingScreen message="Preparing your genius dashboard..." />;
   }
 
-  // ---------- PRESENTATION ----------
+  // Desktop non-scrollable: md+ hide vertical scroll; mobile keep scroll for usability.
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-20 pb-8">
-        <div className="flex flex-col gap-4">
-          {/* Banner */}
+      {/* Main container: mobile-first single column; desktop uses grid with fixed area to avoid scroll */}
+      <div
+        className={`container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl ${
+          showBanner || showWelcome ? "pt-20 sm:pt-24" : "pt-16 sm:pt-18"
+        } h-full`}
+      >
+        {/* Allow inner content to scroll on small screens, but prevent outer page scroll on desktop */}
+        <div className="h-full w-full sm:overflow-auto md:overflow-hidden">
           {showBanner && notification && (
             <div
-              role="status"
-              className={`rounded-xl p-3 shadow-md relative overflow-hidden ${
+              className={`mb-3 sm:mb-4 text-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xl relative overflow-hidden ${
                 notification.color === "green"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600"
                   : notification.color === "orange"
-                  ? "bg-gradient-to-r from-orange-500 to-red-600 text-white"
-                  : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                  ? "bg-gradient-to-r from-orange-500 to-red-600"
+                  : "bg-gradient-to-r from-blue-500 to-indigo-600"
               }`}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  {notification.icon && <notification.icon className="h-5 w-5 shrink-0" />}
-                  <p className="truncate font-medium">{notification.message}</p>
+              <div className="absolute inset-0 bg-white/8"></div>
+              <div className="relative z-10 flex items-center justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  {/* render icon component */}
+                  {notification.icon && <notification.icon className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />}
+                  <p className="text-sm sm:text-base font-medium leading-tight truncate">{notification.message}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const bannerKey = `notification_seen_${user?.id}_${new Date().toDateString()}`;
+                    localStorage.setItem(bannerKey, "true");
+                    setShowBanner(false);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors shrink-0 p-1"
+                >
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showWelcome && (
+            <div className="mb-3 sm:mb-4">
+              <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 lg:p-6 shadow-2xl border border-blue-800/30 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/6 to-purple-600/6"></div>
+                <div className="relative z-10">
                   <button
                     onClick={() => {
-                      const bannerKey = `notification_seen_${user?.id}_${new Date().toDateString()}`;
-                      localStorage.setItem(bannerKey, "true");
-                      setShowBanner(false);
+                      localStorage.setItem("welcomeLastShown", new Date().toDateString());
+                      setShowWelcome(false);
                     }}
-                    aria-label="Dismiss notification"
-                    className="text-white/80 hover:text-white p-1"
+                    className="absolute top-1 right-1 sm:top-2 sm:right-2 text-white/60 hover:text-white transition-colors z-20 p-1"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
                   </button>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* Welcome card */}
-          {showWelcome && (
-            <div className="rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white shadow-2xl relative overflow-hidden">
-              <button
-                onClick={() => {
-                  localStorage.setItem("welcomeLastShown", new Date().toDateString());
-                  setShowWelcome(false);
-                }}
-                aria-label="Close welcome"
-                className="absolute top-3 right-3 text-white/70 hover:text-white p-1"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                    <Brain className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-2xl font-bold leading-tight truncate">
-                      {timeMessage.greeting}, {displayName}! {timeMessage.icon}
-                    </h2>
-                    <p className="text-sm text-slate-200">{timeMessage.message}</p>
-                  </div>
-                </div>
-
-                <div className="flex-1 flex items-center justify-end gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30 px-2 py-0.5">
-                      <Trophy className="h-4 w-4 mr-1" />
-                      #{stats?.rank || "-"}
-                    </Badge>
-                    <span className="text-slate-200">Top {stats?.percentile ?? "-"}%</span>
-                    {typeof stats?.rankChange === "number" && stats.rankChange > 0 && (
-                      <span className="text-green-300">↑ {stats.rankChange}</span>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => navigate("/study-now")}
-                      className="px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-md text-sm font-semibold shadow"
-                    >
-                      📚 {timeMessage.action}
-                    </button>
-                    <button
-                      onClick={() => navigate("/battle")}
-                      className="px-3 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-md text-sm font-semibold shadow"
-                    >
-                      ⚔️ Battle
-                    </button>
-                    <button
-                      onClick={() => navigate("/test")}
-                      className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-md text-sm font-semibold shadow"
-                    >
-                      🧪 Test
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Top metrics: 4 equal cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Questions */}
-            <Card className="h-full shadow-lg border border-slate-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 mb-1">Questions</p>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stats?.totalQuestions || 0}</h3>
-                      <span className="text-sm text-slate-500">total</span>
+                  <div className="flex flex-col gap-2 sm:gap-3 lg:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
+                        <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold truncate">
+                          {timeMessage.greeting}, {displayName}! {timeMessage.icon}
+                        </h1>
+                        <p className="text-slate-300 text-sm sm:text-base leading-tight">{timeMessage.message}</p>
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-2">
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-400/30 px-2 py-0.5">
+                          <Trophy className="h-4 w-4 mr-1" />
+                          #{stats?.rank || "-"}
+                        </Badge>
+                        <span className="text-blue-300 text-sm">Top {stats?.percentile ?? "-"}%</span>
+                        {typeof stats?.rankChange === "number" && stats.rankChange > 0 && (
+                          <span className="text-green-400 text-sm">↑ {stats.rankChange}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => navigate("/study-now")}
+                        className="px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg text-sm font-semibold transition-all shadow-lg active:scale-95"
+                      >
+                        📚 {timeMessage.action}
+                      </button>
+                      <button
+                        onClick={() => navigate("/battle")}
+                        className="px-3 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg text-sm font-semibold transition-all shadow-lg active:scale-95"
+                      >
+                        ⚔️ Battle
+                      </button>
+                      <button
+                        onClick={() => navigate("/test")}
+                        className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg text-sm font-semibold transition-all shadow-lg active:scale-95"
+                      >
+                        🧪 Test
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Top metrics grid - mobile-first (2 columns on small screens, 4 on lg) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 shadow-xl hover:shadow-2xl transition-all">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-blue-700 mb-0.5">Questions</p>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-blue-900">{stats?.totalQuestions || 0}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs">
                       <span className="text-green-600 font-semibold">+{stats?.questionsToday || 0} today</span>
-                      <span className="mx-2">•</span>
-                      <span>{stats?.questionsWeek || 0}/week</span>
+                      <span className="text-slate-500">•</span>
+                      <span className="text-slate-500">{stats?.questionsWeek || 0}/week</span>
                     </div>
                   </div>
-
-                  <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-lg text-white shadow">
-                    <Brain className="h-6 w-6" />
+                  <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-lg shadow-lg shrink-0">
+                    <Brain className="h-5 w-5 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Today's accuracy */}
-            <Card className="h-full shadow-lg border border-slate-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 mb-1">Today's Accuracy</p>
-                    <h3 className={`text-2xl sm:text-3xl font-extrabold ${stats?.todayAccuracy >= 85 ? "text-green-700" : stats?.todayAccuracy >= 70 ? "text-amber-700" : "text-red-700"}`}>
+            <Card className={`bg-gradient-to-br ${stats ? (stats.todayAccuracy >= 85 ? "from-green-50 to-emerald-50 border-green-200/30" : stats.todayAccuracy >= 70 ? "from-yellow-50 to-amber-50 border-yellow-200/30" : "from-red-50 to-orange-50 border-red-200/30") : "from-slate-50 to-slate-100" } shadow-xl`}>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-slate-700 mb-0.5">Today's Accuracy</p>
+                    <p className={`text-2xl sm:text-3xl font-extrabold ${stats?.todayAccuracy >= 85 ? "text-green-700" : stats?.todayAccuracy >= 70 ? "text-yellow-700" : "text-red-700"}`}>
                       {stats?.todayAccuracy ?? 0}%
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2 text-xs">
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 text-xs">
                       <span className={`${(stats?.accuracyChange || 0) >= 0 ? "text-green-600" : "text-red-600"} font-semibold`}>
                         {(stats?.accuracyChange || 0) >= 0 ? "↑" : "↓"} {Math.abs(stats?.accuracyChange || 0)}% (week)
                       </span>
                       {stats?.todayAccuracy < 70 && <Badge className="text-xs bg-orange-500 text-white px-2 py-0">Focus!</Badge>}
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">Overall: <span className="font-semibold text-slate-700">{stats?.accuracy ?? 0}%</span></p>
+                    <p className="text-xs text-slate-600 mt-2">Overall: <span className="font-semibold text-slate-700">{stats?.accuracy ?? 0}%</span></p>
                   </div>
-
-                  <div className={`p-3 rounded-lg text-white shadow ${stats ? (stats.todayAccuracy >= 85 ? "bg-gradient-to-br from-green-500 to-emerald-600" : stats.todayAccuracy >= 70 ? "bg-gradient-to-br from-amber-500 to-amber-600" : "bg-gradient-to-br from-red-500 to-orange-600") : "bg-slate-200"}`}>
-                    <Target className="h-6 w-6" />
+                  <div className={`p-2.5 rounded-lg shadow-lg shrink-0 ${stats ? (stats.todayAccuracy >= 85 ? "bg-gradient-to-br from-green-500 to-emerald-600" : stats.todayAccuracy >= 70 ? "bg-gradient-to-br from-yellow-500 to-amber-600" : "bg-gradient-to-br from-red-500 to-orange-600") : "bg-slate-200"}`}>
+                    <Target className="h-5 w-5 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Today's goal */}
-            <Card className="h-full shadow-lg border border-slate-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 mb-1">Today's Goal</p>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stats?.todayProgress || 0}</h3>
-                      <span className="text-sm text-slate-500">/{stats?.todayGoal || 30}</span>
+            {/* Today's goal / progress card */}
+            <Card className="relative overflow-hidden shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/10 pointer-events-none"></div>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 pr-2">
+                    <p className="text-xs font-medium text-slate-700 mb-0.5">Today's Goal</p>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-2xl sm:text-3xl font-extrabold text-slate-900">{stats?.todayProgress || 0}</p>
+                      <span className="text-base sm:text-lg font-semibold text-slate-700 opacity-70">/{stats?.todayGoal || 30}</span>
                     </div>
 
-                    <div className="mt-3">
-                      <Progress value={Math.min(100, Math.round(((stats?.todayProgress || 0) / Math.max(1, stats?.todayGoal || 30)) * 100))} className="h-2" />
-                      <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
-                        <Badge className={`px-2 py-0 text-xs ${stats?.todayProgress >= stats?.todayGoal ? "bg-green-500 text-white" : "bg-slate-100 text-slate-700"}`}>
-                          {stats?.todayProgress >= stats?.todayGoal ? "On Track" : "Keep Going"}
-                        </Badge>
-                        <div>{Math.round(((stats?.todayProgress || 0) / Math.max(1, stats?.todayGoal || 30)) * 100)}%</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1">
+                        <Progress value={Math.min(100, Math.round(((stats?.todayProgress || 0) / Math.max(1, stats?.todayGoal || 30)) * 100))} className="h-2" />
                       </div>
+                      <span className="text-sm font-semibold text-slate-700 w-12 text-right">{Math.round(((stats?.todayProgress || 0) / Math.max(1, stats?.todayGoal || 30)) * 100)}%</span>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs px-2 py-0">{stats?.todayProgress >= stats?.todayGoal ? "On Track" : "Keep Going"}</Badge>
+                      <p className="text-xs text-slate-600 line-clamp-2">{stats?.todayProgress >= stats?.todayGoal ? "Great job — maintain momentum!" : `${Math.max(0, (stats?.todayGoal || 30) - (stats?.todayProgress || 0))} more to hit today's target`}</p>
                     </div>
                   </div>
-
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow">
-                    <Calendar className="h-6 w-6" />
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-lg shrink-0">
+                    <Calendar className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Streak */}
-            <Card className="h-full shadow-lg border border-slate-100">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-slate-500 mb-1">Day Streak</p>
-                    <h3 className="text-2xl sm:text-3xl font-extrabold text-amber-900">{stats?.streak || 0}</h3>
-                    <div className="text-xs text-amber-600 mt-2">{stats?.streak >= 7 ? "On fire!" : "Keep going!"}</div>
-                    {stats?.streak >= 30 && <Badge className="mt-2 bg-amber-500 text-white text-xs px-2 py-0">🏆 Legend!</Badge>}
+            <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/50 shadow-xl">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-amber-700 mb-0.5">Day Streak</p>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-amber-900">{stats?.streak || 0}</p>
+                    <span className="text-xs text-amber-600 font-semibold">🔥 {stats?.streak >= 7 ? "On fire!" : "Keep going!"}</span>
+                    {stats?.streak >= 30 && <Badge className="mt-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs px-2 py-0">🏆 Legend!</Badge>}
                   </div>
-
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow">
-                    <Flame className="h-6 w-6" />
+                  <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2.5 rounded-lg shadow-lg shrink-0">
+                    <Flame className="h-5 w-5 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main content: left: progress; right: leaderboard */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: progress area (spans 2 columns on large) */}
-            <div className="lg:col-span-2">
-              <Card className="h-full shadow-2xl border border-slate-100 overflow-hidden">
-                <CardHeader className="p-4 border-b border-slate-100">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-indigo-600 text-white p-2 rounded-md">
-                        <TrendingUp className="h-4 w-4" />
+          {/* MAIN content area: on desktop show 2-column layout; on mobile stacked */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-320px)] lg:h-[calc(100vh-220px)]">
+            <div className="lg:col-span-2 h-full">
+              {/* Enhanced "Your Progress" card — visually stronger, clearer, and mobile-friendly */}
+              <Card className="bg-white/95 backdrop-blur-sm border border-slate-200 shadow-2xl h-full overflow-auto">
+                <CardHeader className="border-b border-slate-100 p-3">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-gradient-to-br from-indigo-600 to-blue-600 p-2 rounded-lg">
+                        <TrendingUp className="h-5 w-5 text-white" />
                       </div>
                       <div>
                         <div className="text-sm font-semibold">Your Progress</div>
                         <div className="text-xs text-slate-400">Overview — recent activity & strengths</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      <Badge className="bg-blue-50 text-blue-700 text-xs">This Week</Badge>
-                      <div>Avg/day: <span className="font-semibold text-slate-700">{stats?.avgQuestionsPerDay ?? "-"}</span></div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-100 text-blue-700 text-xs">This Week</Badge>
+                      <div className="text-xs text-slate-500">Avg/day: <span className="font-semibold text-slate-700">{stats?.avgQuestionsPerDay ?? "-"}</span></div>
                     </div>
                   </CardTitle>
                 </CardHeader>
 
-                <CardContent className="p-4 space-y-4 max-h-[60vh] sm:max-h-[55vh] lg:max-h-[60vh] overflow-auto">
-                  {/* Subject cards grid (compact + premium spacing) */}
+                <CardContent className="p-3 space-y-3">
                   {stats?.subjectStats && Object.keys(stats.subjectStats).length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {Object.entries(stats.subjectStats).map(([subject, data]: [string, any]) => {
                         const accuracy = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
                         const badge = getProgressBadge(accuracy);
                         return (
-                          <div key={subject} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
+                          <div key={subject} className="bg-gradient-to-br from-white to-slate-50 rounded-xl p-3 shadow-sm">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-semibold text-slate-800 truncate">{subject}</h4>
+                                  <span className="text-sm font-semibold text-slate-800">{subject}</span>
                                   <Badge className={`${badge.color} text-white text-xs px-2 py-0`}>{badge.text}</Badge>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">{data.correct}/{data.total} correct</p>
                               </div>
                               <div className="text-right ml-3">
-                                <div className={`text-lg font-bold ${accuracy >= 85 ? "text-green-700" : accuracy >= 70 ? "text-amber-700" : "text-red-700"}`}>{accuracy}%</div>
+                                <div className={`text-lg font-bold ${accuracy >= 85 ? "text-green-700" : accuracy >= 70 ? "text-yellow-700" : "text-red-700"}`}>{accuracy}%</div>
                                 <div className="text-xs text-slate-500">Accuracy</div>
                               </div>
                             </div>
-
                             <div className="mt-3 flex items-center gap-3">
                               <Progress value={accuracy} className="flex-1 h-2" />
                               <div className="text-xs text-slate-500 w-12 text-right">{accuracy}%</div>
@@ -711,105 +700,38 @@ const EnhancedDashboard = () => {
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-slate-500">
+                    <div className="text-center py-10 text-slate-500">
                       <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-60" />
                       <p className="text-sm">Practice to populate progress. Start with a short session — 10 questions.</p>
                     </div>
                   )}
 
-                  {/* Points to next level */}
-                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white p-5 rounded-xl border border-indigo-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
-                          <Trophy className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-slate-800">JEEnius Points</div>
-                          <div className="text-xs text-slate-500">Your achievement progress</div>
-                        </div>
+
+                  {/* Compact points-to-level display */}
+                  <div className="bg-gradient-to-r from-indigo-50 to-white p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500">Progress to next level</div>
+                      <div className="text-lg font-bold text-slate-800">{stats?.totalPoints ?? 0} points</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Level {stats?.currentLevel} • {stats?.pointsToNext} points to Level {stats ? stats.currentLevel + 1 : "-"}</div>
+                      <div className="mt-2">
+                        <Progress value={Math.min(100, Math.round((( (stats?.totalPoints ?? 0) % (stats?.currentLevel * 100 || 100)) / (stats?.currentLevel * 100 || 100)) * 100))} className="h-2" />
                       </div>
-                      <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-3 py-1">
-                        Level {stats?.currentLevel}
-                      </Badge>
                     </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-baseline gap-2">
-                        <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                          {stats?.totalPoints ?? 0}
-                        </div>
-                        <div className="text-sm text-slate-500">total points</div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-600">Progress to Level {stats ? stats.currentLevel + 1 : "-"}</span>
-                          <span className="font-semibold text-indigo-600">
-                            {stats?.pointsToNext} points needed
-                          </span>
-                        </div>
-                        <Progress 
-                          value={Math.min(100, Math.round((((stats?.totalPoints ?? 0) % (stats?.currentLevel * 100 || 100)) / (stats?.currentLevel * 100 || 100)) * 100))} 
-                          className="h-3 bg-indigo-100"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-200">
-                        <div className="text-center">
-                          <div className="text-xs text-slate-500">Rank</div>
-                          <div className="text-sm font-bold text-slate-800">#{stats?.rank ?? "-"}</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs text-slate-500">Percentile</div>
-                          <div className="text-sm font-bold text-slate-800">Top {stats?.percentile ?? "-"}%</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xs text-slate-500">Streak</div>
-                          <div className="text-sm font-bold text-amber-600 flex items-center justify-center gap-1">
-                            <Flame className="h-3 w-3" />
-                            {stats?.streak ?? 0}
-                          </div>
-                        </div>
-                      </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">Top rankers avg</div>
+                      <div className="text-lg font-extrabold text-slate-900">{stats?.topRankersAvg ?? "-"}</div>
+                      <div className="text-xs text-slate-500 mt-1">Avg top-10 points</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right: leaderboard (scrollable within column) */}
+            {/* Right column — compact leaderboard / quick actions */}
             <div className="h-full">
-              <div className="h-full sticky top-6">
-                <div className="bg-white rounded-xl border border-slate-100 shadow-lg p-3 flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-800">Leaderboard</h3>
-                      <div className="text-xs text-slate-400">Compete with top performers</div>
-                    </div>
-                    <div className="text-xs text-green-600 font-semibold">LIVE</div>
-                  </div>
-
-                <div className="flex-1 overflow-auto py-2">
-                  {/* Use user's existing Leaderboard component — refresh using key */}
-                  <Leaderboard key={leaderboardKey} />
-                </div>
-
-                  <div className="mt-3 text-xs text-slate-500">
-                    <div className="flex items-center justify-between">
-                      <span>You're at rank</span>
-                      <span className="font-semibold text-slate-700">#{stats?.rank ?? "-"}</span>
-                    </div>
-                    <div className="mt-2">
-                      <Button onClick={() => navigate("/tests")} variant="ghost" className="w-full">
-                        View contests & tests
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <Leaderboard key={leaderboardKey} compact />
             </div>
-          </div> {/* end main content grid */}
+          </div>
         </div>
       </div>
     </div>
