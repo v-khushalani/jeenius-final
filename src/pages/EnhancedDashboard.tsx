@@ -1,5 +1,5 @@
 // src/pages/EnhancedDashboard.tsx
-// ✅ FINAL: Interactive colors + No scroll + Symmetric
+// ✅ ELEGANT: Light cards, enhanced welcome, relative banners
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,24 +87,69 @@ const EnhancedDashboard = () => {
     if (!seen) setShowBanner(true);
   }, [user, notification, isClient]);
 
-  // ✅ INTERACTIVE: Color system (Red → Yellow → Green)
+  // ✅ ELEGANT: Light cards with colored accents (Red → Yellow → Green)
   const getAccuracyColor = (accuracy: number) => {
-    if (accuracy >= 80) return { bg: "from-green-500 to-emerald-600", text: "text-green-50", border: "border-green-400" };
-    if (accuracy >= 65) return { bg: "from-yellow-500 to-amber-600", text: "text-yellow-50", border: "border-yellow-400" };
-    return { bg: "from-red-500 to-orange-600", text: "text-red-50", border: "border-red-400" };
+    if (accuracy >= 80) return { 
+      border: "border-l-green-500", 
+      iconBg: "bg-green-500", 
+      text: "text-green-700",
+      lightBg: "bg-green-50"
+    };
+    if (accuracy >= 65) return { 
+      border: "border-l-yellow-500", 
+      iconBg: "bg-yellow-500", 
+      text: "text-yellow-700",
+      lightBg: "bg-yellow-50"
+    };
+    return { 
+      border: "border-l-red-500", 
+      iconBg: "bg-red-500", 
+      text: "text-red-700",
+      lightBg: "bg-red-50"
+    };
   };
 
   const getGoalColor = (progress: number, goal: number) => {
     const percentage = (progress / goal) * 100;
-    if (percentage >= 80) return { bg: "from-green-500 to-emerald-600", text: "text-green-50", border: "border-green-400" };
-    if (percentage >= 50) return { bg: "from-yellow-500 to-amber-600", text: "text-yellow-50", border: "border-yellow-400" };
-    return { bg: "from-red-500 to-orange-600", text: "text-red-50", border: "border-red-400" };
+    if (percentage >= 80) return { 
+      border: "border-l-green-500", 
+      iconBg: "bg-green-500", 
+      text: "text-green-700",
+      lightBg: "bg-green-50"
+    };
+    if (percentage >= 50) return { 
+      border: "border-l-yellow-500", 
+      iconBg: "bg-yellow-500", 
+      text: "text-yellow-700",
+      lightBg: "bg-yellow-50"
+    };
+    return { 
+      border: "border-l-red-500", 
+      iconBg: "bg-red-500", 
+      text: "text-red-700",
+      lightBg: "bg-red-50"
+    };
   };
 
   const getStreakColor = (streak: number) => {
-    if (streak >= 30) return { bg: "from-purple-500 to-pink-600", text: "text-purple-50", border: "border-purple-400" };
-    if (streak >= 7) return { bg: "from-amber-500 to-orange-600", text: "text-amber-50", border: "border-amber-400" };
-    return { bg: "from-slate-400 to-slate-500", text: "text-slate-50", border: "border-slate-400" };
+    if (streak >= 30) return { 
+      border: "border-l-purple-500", 
+      iconBg: "bg-purple-500", 
+      text: "text-purple-700",
+      lightBg: "bg-purple-50"
+    };
+    if (streak >= 7) return { 
+      border: "border-l-orange-500", 
+      iconBg: "bg-orange-500", 
+      text: "text-orange-700",
+      lightBg: "bg-orange-50"
+    };
+    return { 
+      border: "border-l-slate-400", 
+      iconBg: "bg-slate-400", 
+      text: "text-slate-700",
+      lightBg: "bg-slate-50"
+    };
   };
 
   const getProgressBadge = (accuracy: number) => {
@@ -131,220 +176,260 @@ const EnhancedDashboard = () => {
       {/* ✅ FIXED: No scroll container with exact height */}
       <div className="pt-[88px] sm:pt-[96px] lg:pt-[104px] h-screen">
         <div className="h-[calc(100vh-88px)] sm:h-[calc(100vh-96px)] lg:h-[calc(100vh-104px)] overflow-y-auto">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-3">
-            <div className="flex flex-col gap-3">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-4">
+            <div className="flex flex-col gap-4">
               
-              {/* Banner */}
+              {/* ✅ RELATIVE Banner */}
               {showBanner && notification && (
-                <div className={`rounded-xl p-2.5 shadow-md ${
+                <div className={`rounded-xl p-3 shadow-lg transition-all duration-300 ${
                   notification.color === "green" ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" :
                   notification.color === "orange" ? "bg-gradient-to-r from-orange-500 to-red-600 text-white" :
                   "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
                 }`}>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <notification.icon className="h-4 w-4 shrink-0" />
-                      <p className="truncate font-medium text-sm">{notification.message}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 bg-white/20 rounded-lg">
+                        <notification.icon className="h-5 w-5 shrink-0" />
+                      </div>
+                      <p className="truncate font-semibold text-sm">{notification.message}</p>
                     </div>
                     <button
                       onClick={() => {
                         localStorage.setItem(`notification_seen_${user.id}_${new Date().toDateString()}`, "true");
                         setShowBanner(false);
                       }}
-                      className="p-1 hover:bg-white/20 rounded-md"
+                      className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Welcome */}
+              {/* ✅ ENHANCED Welcome Banner */}
               {showWelcome && (
-                <div className="rounded-xl p-3 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white shadow-lg relative">
+                <div className="rounded-2xl p-6 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white shadow-2xl relative overflow-hidden">
+                  {/* Decorative elements */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                  
                   <button
                     onClick={() => {
                       localStorage.setItem("welcomeLastShown", new Date().toDateString());
                       setShowWelcome(false);
                     }}
-                    className="absolute top-2 right-2 text-white/70 hover:text-white"
+                    className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors z-10"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                        <Brain className="h-5 w-5 text-white" />
+                  <div className="relative z-10">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                          <Brain className="h-7 w-7 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl sm:text-2xl font-bold mb-1">
+                            {timeMessage.greeting}, {displayName}! {timeMessage.icon}
+                          </h2>
+                          <p className="text-sm sm:text-base text-slate-200">{timeMessage.message}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {stats?.questionsToday > 0 
+                              ? `You've answered ${stats.questionsToday} questions today!` 
+                              : "Let's make today count!"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h2 className="text-base font-bold">
-                          {timeMessage.greeting}, {displayName}! {timeMessage.icon}
-                        </h2>
-                        <p className="text-xs text-slate-300">{timeMessage.message}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => navigate("/study-now")} className="bg-blue-600 hover:bg-blue-700 text-xs h-8 px-3">
-                        📚 {timeMessage.action}
-                      </Button>
-                      <Button size="sm" onClick={() => navigate("/tests")} className="bg-indigo-600 hover:bg-indigo-700 text-xs h-8 px-3">
-                        🧪 Test
-                      </Button>
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <Button 
+                          size="default" 
+                          onClick={() => navigate("/study-now")} 
+                          className="bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all flex-1 sm:flex-none"
+                        >
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          {timeMessage.action}
+                        </Button>
+                        <Button 
+                          size="default" 
+                          onClick={() => navigate("/tests")} 
+                          variant="outline"
+                          className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40 shadow-lg transition-all flex-1 sm:flex-none"
+                        >
+                          <Target className="h-4 w-4 mr-2" />
+                          Take Test
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ✅ INTERACTIVE: Top 4 Cards (Red → Green) */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* ✅ ELEGANT: Light Cards with Colored Accents */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 
-                {/* Questions Card */}
-                <Card className="rounded-xl shadow-sm border-2 border-blue-200 bg-gradient-to-br from-blue-500 to-indigo-600"> 
-                  <CardContent className="p-3">
+                {/* Questions Card - Blue Theme */}
+                <Card className="rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-blue-500 bg-white"> 
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-xs text-blue-100">Questions</p>
-                        <h3 className="text-2xl font-bold text-white mt-1">{stats?.totalQuestions ?? 0}</h3>
-                        <p className="text-xs text-blue-100 mt-1">
-                          <span className="font-semibold">+{stats?.questionsToday}</span> today
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-2 bg-blue-500 rounded-lg">
+                            <Brain className="h-4 w-4 text-white" />
+                          </div>
+                          <p className="text-xs font-medium text-slate-600">Questions</p>
+                        </div>
+                        <h3 className="text-3xl font-bold text-slate-900">{stats?.totalQuestions ?? 0}</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          <span className="font-semibold text-blue-600">+{stats?.questionsToday}</span> today
                         </p>
                       </div>
-                      <Brain className="h-5 w-5 text-white" />
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* ✅ Accuracy Card (Dynamic Red → Green) */}
-                <Card className={`rounded-xl shadow-sm border-2 ${accuracyColors.border} bg-gradient-to-br ${accuracyColors.bg}`}> 
-                  <CardContent className="p-3">
+                <Card className={`rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 ${accuracyColors.border} ${accuracyColors.lightBg} bg-white`}> 
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <p className={`text-xs ${accuracyColors.text}`}>Today's Accuracy</p>
-                        <h3 className={`text-2xl font-bold ${accuracyColors.text} mt-1`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-2 ${accuracyColors.iconBg} rounded-lg`}>
+                            <Target className="h-4 w-4 text-white" />
+                          </div>
+                          <p className="text-xs font-medium text-slate-600">Accuracy</p>
+                        </div>
+                        <h3 className={`text-3xl font-bold ${accuracyColors.text}`}>
                           {stats?.todayAccuracy ?? 0}%
                         </h3>
+                        <Progress 
+                          className={`h-2 mt-2 ${accuracyColors.lightBg}`}
+                          value={stats?.todayAccuracy ?? 0}
+                        />
                       </div>
-                      <Target className={`h-5 w-5 ${accuracyColors.text}`} />
                     </div>
-                    <Progress 
-                      className="h-1.5 mt-2 bg-white/30"
-                      value={stats?.todayAccuracy ?? 0}
-                    />
                   </CardContent>
                 </Card>
 
                 {/* ✅ Goal Card (Dynamic Red → Green) */}
-                <Card className={`rounded-xl shadow-sm border-2 ${goalColors.border} bg-gradient-to-br ${goalColors.bg}`}> 
-                  <CardContent className="p-3">
+                <Card className={`rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 ${goalColors.border} ${goalColors.lightBg} bg-white`}> 
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className={`text-xs ${goalColors.text}`}>Daily Goal</p>
-                        <h3 className={`text-2xl font-bold ${goalColors.text} mt-1`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-2 ${goalColors.iconBg} rounded-lg`}>
+                            <Calendar className="h-4 w-4 text-white" />
+                          </div>
+                          <p className="text-xs font-medium text-slate-600">Daily Goal</p>
+                        </div>
+                        <h3 className={`text-3xl font-bold ${goalColors.text}`}>
                           {stats?.todayProgress}/{stats?.todayGoal ?? 30}
                         </h3>
                         <Progress 
-                          className="h-1.5 mt-2 bg-white/30"
+                          className={`h-2 mt-2 ${goalColors.lightBg}`}
                           value={(stats?.todayProgress / (stats?.todayGoal ?? 30)) * 100}
                         />
                       </div>
-                      <Calendar className={`h-5 w-5 ${goalColors.text}`} />
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* ✅ Streak Card (Dynamic) */}
-                <Card className={`rounded-xl shadow-sm border-2 ${streakColors.border} bg-gradient-to-br ${streakColors.bg}`}> 
-                  <CardContent className="p-3">
+                <Card className={`rounded-xl shadow-md hover:shadow-lg transition-shadow border-l-4 ${streakColors.border} ${streakColors.lightBg} bg-white`}> 
+                  <CardContent className="p-4">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <p className={`text-xs ${streakColors.text}`}>Streak</p>
-                        <h3 className={`text-2xl font-bold ${streakColors.text} mt-1`}>{stats?.streak}</h3>
-                        <p className={`text-xs ${streakColors.text} mt-1`}>days</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-2 ${streakColors.iconBg} rounded-lg`}>
+                            <Flame className="h-4 w-4 text-white" />
+                          </div>
+                          <p className="text-xs font-medium text-slate-600">Streak</p>
+                        </div>
+                        <h3 className={`text-3xl font-bold ${streakColors.text}`}>{stats?.streak}</h3>
+                        <p className="text-xs text-slate-500 mt-1">days strong</p>
                       </div>
-                      <Flame className={`h-5 w-5 ${streakColors.text}`} />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Main Area */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-                {/* ✅ SYMMETRIC: Left Progress */}
+                {/* ✅ ELEGANT: Left Progress */}
                 <div className="lg:col-span-2">
-                  <Card className="rounded-xl shadow-sm border border-slate-200 h-full">
-                    <CardHeader className="p-3 border-b border-slate-100">
+                  <Card className="rounded-xl shadow-md border border-slate-200 h-full bg-white">
+                    <CardHeader className="p-4 border-b border-slate-100">
                       <CardTitle className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div className="p-2 bg-indigo-600 text-white rounded-md">
-                            <TrendingUp className="h-4 w-4" />
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg shadow-md">
+                            <TrendingUp className="h-5 w-5" />
                           </div>
-                          <span className="text-sm font-semibold">Your Progress</span>
+                          <span className="text-base font-bold text-slate-900">Your Progress</span>
                         </div>
-                        <Badge className="bg-blue-50 text-blue-700 text-xs">This Week</Badge>
+                        <Badge className="bg-blue-50 text-blue-700 text-xs font-semibold px-3">This Week</Badge>
                       </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="p-3 space-y-3 max-h-[calc(100vh-480px)] overflow-auto">
+                    <CardContent className="p-4 space-y-4 max-h-[calc(100vh-480px)] overflow-auto">
 
-                      {/* ✅ SYMMETRIC: Subject Grid */}
+                      {/* ✅ ELEGANT: Subject Grid */}
                       {stats?.subjectStats ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {Object.entries(stats.subjectStats).map(([subject, data]: any) => {
                             const accuracy = Math.round((data.correct / data.total) * 100);
                             const badge = getProgressBadge(accuracy);
                             const colors = getAccuracyColor(accuracy);
 
                             return (
-                              <div key={subject} className="bg-white border rounded-xl p-3 shadow-sm">
-                                <div className="flex justify-between items-start mb-2">
+                              <div key={subject} className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-3">
                                   <div>
-                                    <h4 className="text-sm font-semibold">{subject}</h4>
-                                    <Badge className={`${badge.color} text-white text-xs mt-1`}>
+                                    <h4 className="text-sm font-bold text-slate-900 mb-1">{subject}</h4>
+                                    <Badge className={`${badge.color} text-white text-xs font-medium`}>
                                       {badge.text}
                                     </Badge>
                                   </div>
                                   <div className="text-right">
-                                    <h3 className="text-xl font-bold">{accuracy}%</h3>
-                                    <p className="text-xs text-slate-400">{data.correct}/{data.total}</p>
+                                    <h3 className="text-2xl font-bold text-slate-900">{accuracy}%</h3>
+                                    <p className="text-xs text-slate-500">{data.correct}/{data.total}</p>
                                   </div>
                                 </div>
-                                <Progress className="h-2 rounded-full" value={accuracy} />
+                                <Progress className="h-2.5 rounded-full bg-slate-100" value={accuracy} />
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-8 text-slate-400">
-                          <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-40" />
-                          <p className="text-sm">Start practicing to see progress</p>
+                        <div className="text-center py-12 text-slate-400">
+                          <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                          <p className="text-sm font-medium">Start practicing to see progress</p>
                         </div>
                       )}
 
-                      {/* ✅ REMOVED: Rank, Percentile, Streak from Points Card */}
-                      <div className="rounded-xl bg-gradient-to-br from-indigo-50 via-purple-50 to-white p-4 border shadow-sm">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 bg-indigo-600 text-white rounded-md">
-                              <Trophy className="h-4 w-4" />
+                      {/* ✅ ELEGANT: Points Card */}
+                      <div className="rounded-xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-5 border border-indigo-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg shadow-md">
+                              <Trophy className="h-5 w-5" />
                             </div>
                             <div>
-                              <p className="text-xs font-semibold">JEEnius Points</p>
-                              <Badge className="bg-indigo-600 text-white text-xs mt-0.5">
+                              <p className="text-sm font-bold text-slate-900">JEEnius Points</p>
+                              <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold mt-1">
                                 Level {stats?.currentLevel}
                               </Badge>
                             </div>
                           </div>
 
-                          <h3 className="text-2xl font-bold text-indigo-700">
+                          <h3 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                             {stats?.totalPoints}
                           </h3>
                         </div>
 
                         <Progress
-                          className="h-2 rounded-full"
+                          className="h-3 rounded-full bg-white/50"
                           value={
                             ((stats?.totalPoints % (stats?.currentLevel * 100)) /
                               (stats?.currentLevel * 100)) *
@@ -352,7 +437,7 @@ const EnhancedDashboard = () => {
                           }
                         />
 
-                        <p className="text-xs text-slate-500 mt-2 text-center">
+                        <p className="text-xs text-slate-600 mt-2 text-center font-medium">
                           {stats?.pointsToNext} points to Level {stats?.currentLevel + 1}
                         </p>
                       </div>
