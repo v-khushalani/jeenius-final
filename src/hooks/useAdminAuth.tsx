@@ -16,20 +16,21 @@ export const useAdminAuth = () => {
       }
 
       try {
-      // Check role directly from profiles table
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-    
-      if (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-      } else {
-        setIsAdmin(profile?.role === 'admin');
-      }
-    } catch (error) {
+        // Check role from user_roles table (secure, service-role-only table)
+        const { data: roleData, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .single();
+      
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(!!roleData);
+        }
+      } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
       }

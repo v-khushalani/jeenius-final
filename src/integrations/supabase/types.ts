@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_rate_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_reset_date: string | null
+          requests_today: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_reset_date?: string | null
+          requests_today?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_reset_date?: string | null
+          requests_today?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_usage_log: {
         Row: {
           count: number | null
@@ -110,6 +137,48 @@ export type Database = {
         }
         Relationships: []
       }
+      conversion_prompts: {
+        Row: {
+          action_taken: string | null
+          created_at: string | null
+          id: string
+          prompt_type: string | null
+          shown_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          prompt_type?: string | null
+          shown_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          prompt_type?: string | null
+          shown_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversion_prompts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversion_prompts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       daily_challenges: {
         Row: {
           active: boolean | null
@@ -184,6 +253,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      daily_progress: {
+        Row: {
+          accuracy_7day: number | null
+          created_at: string | null
+          daily_target: number | null
+          date: string | null
+          id: string
+          questions_completed: number | null
+          target_met: boolean | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accuracy_7day?: number | null
+          created_at?: string | null
+          daily_target?: number | null
+          date?: string | null
+          id?: string
+          questions_completed?: number | null
+          target_met?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accuracy_7day?: number | null
+          created_at?: string | null
+          daily_target?: number | null
+          date?: string | null
+          id?: string
+          questions_completed?: number | null
+          target_met?: boolean | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       daily_progress_log: {
         Row: {
@@ -274,6 +394,60 @@ export type Database = {
           limit_value?: number
         }
         Relationships: []
+      }
+      jeenius_points: {
+        Row: {
+          answer_streak: number | null
+          badges: Json | null
+          created_at: string | null
+          id: string
+          level: string | null
+          level_progress: number | null
+          longest_answer_streak: number | null
+          total_points: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          answer_streak?: number | null
+          badges?: Json | null
+          created_at?: string | null
+          id?: string
+          level?: string | null
+          level_progress?: number | null
+          longest_answer_streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          answer_streak?: number | null
+          badges?: Json | null
+          created_at?: string | null
+          id?: string
+          level?: string | null
+          level_progress?: number | null
+          longest_answer_streak?: number | null
+          total_points?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeenius_points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jeenius_points_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       mock_test_schedule: {
         Row: {
@@ -497,6 +671,54 @@ export type Database = {
         }
         Relationships: []
       }
+      prize_eligibility: {
+        Row: {
+          created_at: string | null
+          days_completed: number | null
+          id: string
+          is_eligible: boolean | null
+          last_updated: string | null
+          overall_accuracy: number | null
+          total_questions_solved: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_completed?: number | null
+          id?: string
+          is_eligible?: boolean | null
+          last_updated?: string | null
+          overall_accuracy?: number | null
+          total_questions_solved?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          days_completed?: number | null
+          id?: string
+          is_eligible?: boolean | null
+          last_updated?: string | null
+          overall_accuracy?: number | null
+          total_questions_solved?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_eligibility_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prize_eligibility_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -651,11 +873,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "question_attempts_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "question_attempts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -672,6 +908,7 @@ export type Database = {
           option_c: string
           option_d: string
           question: string
+          question_type: string
           subject: string
           topic: string
           year: number | null
@@ -688,6 +925,7 @@ export type Database = {
           option_c: string
           option_d: string
           question: string
+          question_type?: string
           subject: string
           topic: string
           year?: number | null
@@ -704,6 +942,7 @@ export type Database = {
           option_c?: string
           option_d?: string
           question?: string
+          question_type?: string
           subject?: string
           topic?: string
           year?: number | null
@@ -1163,6 +1402,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       topic_dependencies: {
@@ -1502,6 +1748,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_limits: {
+        Row: {
+          created_at: string | null
+          daily_question_limit: number | null
+          id: string
+          is_pro: boolean | null
+          subscription_end_date: string | null
+          subscription_start_date: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          daily_question_limit?: number | null
+          id?: string
+          is_pro?: boolean | null
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          daily_question_limit?: number | null
+          id?: string
+          is_pro?: boolean | null
+          subscription_end_date?: string | null
+          subscription_start_date?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       user_rankings: {
         Row: {
           accuracy: number | null
@@ -1646,6 +1940,64 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      user_streaks: {
+        Row: {
+          created_at: string | null
+          current_streak: number | null
+          id: string
+          last_activity_date: string | null
+          longest_streak: number | null
+          streak_freeze_available: boolean | null
+          total_streak_days: number | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_freeze_available?: boolean | null
+          total_streak_days?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_streak?: number | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          streak_freeze_available?: boolean | null
+          total_streak_days?: number | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_streaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_streaks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_complete_stats"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       user_subscriptions: {
@@ -1733,7 +2085,68 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      questions_safe: {
+        Row: {
+          chapter: string | null
+          created_at: string | null
+          difficulty: string | null
+          id: string | null
+          option_a: string | null
+          option_b: string | null
+          option_c: string | null
+          option_d: string | null
+          question: string | null
+          subject: string | null
+          topic: string | null
+          year: number | null
+        }
+        Insert: {
+          chapter?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          id?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question?: string | null
+          subject?: string | null
+          topic?: string | null
+          year?: number | null
+        }
+        Update: {
+          chapter?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          id?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question?: string | null
+          subject?: string | null
+          topic?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
+      user_complete_stats: {
+        Row: {
+          answer_streak: number | null
+          current_streak: number | null
+          daily_question_limit: number | null
+          days_completed: number | null
+          email: string | null
+          is_pro: boolean | null
+          level: string | null
+          longest_streak: number | null
+          overall_accuracy: number | null
+          prize_eligible: boolean | null
+          total_points: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       award_points: {
@@ -1745,6 +2158,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_ai_rate_limit: { Args: { p_user_id: string }; Returns: boolean }
       check_and_award_badges: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -1756,7 +2170,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ai_usage: { Args: { p_user_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
+      is_user_premium: { Args: { p_user_id: string }; Returns: boolean }
       validate_question_answer: {
         Args: { _question_id: string; _user_answer: string }
         Returns: {

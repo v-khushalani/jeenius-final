@@ -21,13 +21,17 @@ interface UsageStats {
 /**
  * Check if user can access a specific chapter
  */
+/**
+ * Check if user can access a specific chapter
+ * ✅ ALL CHAPTERS FREE FOR EVERYONE
+ */
 export const canAccessChapter = async (
   userId: string,
   subject: string,
   chapterName: string
 ): Promise<AccessResult> => {
   try {
-    // 1. Get chapter info - Cast to avoid deep type inference
+    // Get chapter info
     const { data: chapter } = await supabase
       .from('chapters')
       .select('id, is_free')
@@ -43,73 +47,10 @@ export const canAccessChapter = async (
       };
     }
 
-    // 2. Check if chapter is marked as free
-    if (chapter.is_free) {
-      return { allowed: true, reason: 'free_content' };
-    }
-
-    // 3. Check if user has active subscription
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString())
-      .single();
-
-    if (subscription) {
-      return { allowed: true, reason: 'premium_subscriber' };
-    }
-
-    // 4. Check free tier usage limit
-    const { data: freeLimit } = await supabase
-      .from('free_content_limits')
-      .select('limit_value')
-      .eq('limit_type', 'chapters')
-      .single();
-
-    // Get all chapters user has accessed
-    const accessedResult = (await supabase
-      .from('user_content_access')
-      .select('content_identifier, subject')
-      .eq('user_id', userId)
-      .eq('content_type', 'chapter')) as any;
-    
-    const accessedChapters = accessedResult.data || [];
-
-    // Count unique chapters accessed across all subjects
-    const uniqueChapters = new Set(
-      accessedChapters?.map(a => `${a.subject}-${a.content_identifier}`) || []
-    );
-
-    const limitValue = freeLimit?.limit_value || 5;
-
-    // Check if this chapter is already accessed
-    const alreadyAccessed = uniqueChapters.has(`${subject}-${chapterName}`);
-
-    if (alreadyAccessed || uniqueChapters.size < limitValue) {
-      // Track this access if not already tracked
-      if (!alreadyAccessed) {
-        await supabase.from('user_content_access').insert([{
-          user_id: userId,
-          content_type: 'chapter',
-          content_identifier: chapterName,
-          subject: subject
-        }]);
-      }
-
-      return {
-        allowed: true,
-        reason: 'free_tier',
-        remaining: Math.max(0, limitValue - uniqueChapters.size - (alreadyAccessed ? 0 : 1))
-      };
-    }
-
-    // 5. Limit exceeded
-    return {
-      allowed: false,
-      reason: 'limit_exceeded',
-      message: `You've used all ${limitValue} free chapters. Upgrade to Premium for unlimited access! 🚀`
+    // ✅ ALL CHAPTERS FREE - No restriction
+    return { 
+      allowed: true, 
+      reason: 'all_chapters_free' 
     };
 
   } catch (error) {

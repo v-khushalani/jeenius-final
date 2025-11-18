@@ -5,12 +5,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
+import PointsDisplay from '@/components/PointsDisplay';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Calendar } from "lucide-react";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -24,9 +26,8 @@ const Header = () => {
   const { isAuthenticated, signOut, isPremium } = useAuth();
   const { isAdmin } = useAdminAuth();
 
-  // Add the missing handleNavigation function
   const handleNavigation = (path: string) => {
-    setIsMenuOpen(false); // Close mobile menu if open
+    setIsMenuOpen(false);
     navigate(path);
   };
 
@@ -35,8 +36,14 @@ const Header = () => {
     { name: 'Why Us', href: '/why-us', path: '/why-us', icon: null, highlight: false },
   ];
 
+  // ✅ FIXED: Remove or update this route
+  // Option A: Remove from dropdown if page doesn't exist
+  // Option B: Create a Features page or redirect to dashboard
+  
+  // Recommended Fix:
   const featureDropdownItems = [
-    { name: 'All Features', path: '/features', icon: BarChart3, description: 'Explore all platform features' },
+    { name: 'Dashboard', path: '/dashboard', icon: BarChart3, description: 'Your analytics hub' },
+    { name: 'Study Planner', path: '/ai-planner', icon: Calendar, description: 'AI-powered planning' },
   ];
 
   const navItems = isAuthenticated ? (
@@ -53,21 +60,12 @@ const Header = () => {
   ]
 ) : publicNavItems;
 
-  // Simplified and more reliable logout function
   const handleLogout = async () => {
     try {
       setIsMenuOpen(false);
-      
-      // Clear localStorage first
       localStorage.clear();
-      
-      // Sign out from Supabase
       await supabase.auth.signOut();
-      
-      // Call context signOut
       if (signOut) await signOut();
-      
-      // Force reload to clear all state
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
@@ -85,7 +83,6 @@ const Header = () => {
     localStorage.setItem('appBannerDismissed', 'true');
   };
 
-  // Add/remove class to body for dynamic spacing
   React.useEffect(() => {
     if (showAppBanner) {
       document.body.classList.add('has-app-banner');
@@ -167,9 +164,11 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Language Toggle & Auth Buttons */}
+          {/* Right Side: Points Display + Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-                        
+            {/* 🚀 NEW: Points Display - Only show when authenticated */}
+            {isAuthenticated && <PointsDisplay />}
+            
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -238,6 +237,13 @@ const Header = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
+            {/* 🚀 NEW: Points Display for Mobile - Top of menu */}
+            {isAuthenticated && (
+              <div className="mb-4 flex justify-center">
+                <PointsDisplay />
+              </div>
+            )}
+
             <nav className="flex flex-col space-y-2">
               {navItems.map((item) => (
                 <button

@@ -7,17 +7,17 @@ export const SUBSCRIPTION_PLANS = {
     popular: false,
     bestValue: false,
     features: [
-      '✅ 25 questions per day',
+      '✅ 15 questions per day',
       '✅ 150 questions per month cap',
       '✅ 2 mock tests per month',
-      '✅ Basic dashboard',
+      '✅ Interactive Dashboard',
       '✅ Leaderboard access',
       '❌ No Jeenie AI assistant',
       '❌ No AI study planner',
       '❌ No performance analytics'
     ],
     limits: {
-      questionsPerDay: 25,
+      questionsPerDay: 15,
       questionsPerMonth: 150,
       testsPerMonth: 2,
       jeenieAccess: false,
@@ -30,43 +30,37 @@ export const SUBSCRIPTION_PLANS = {
   monthly: {
     name: 'Pro Monthly',
     price: 49,
-    originalPrice: null,
+    originalPrice: 99,
     duration: '1 month',
     displayDuration: 'per month',
-    savings: 0,
+    savings: 50,
     popular: false,
     bestValue: false,
     features: [
-      '✨ Unlimited Practice Questions',
-      '🤖 Jeenie AI Assistant (Unlimited)',
-      '📊 Unlimited Mock Tests',
-      '🎯 AI-powered Study Planner',
-      '📈 Advanced Performance Analytics',
+      '✨ 150 Questions Practice Monthly',
+      '📊 2 Monthly Mock Tests',
       '🏆 Full Leaderboard Access',
-      '💾 Bookmarks & Notes',
-      '⚡ Priority Support'
+
     ],
-    tagline: 'Less than a pizza — but can change your rank!',
+    tagline: 'Less than a cold coffee per month',
     razorpayPlanId: 'plan_monthly_49' // Replace with actual Razorpay plan ID
   },
   
   yearly: {
     name: 'Pro Yearly',
     price: 499,
-    originalPrice: 588,
+    originalPrice: 1199,
     duration: '12 months',
     displayDuration: 'per year',
-    savings: 89,
+    savings: 700,
     popular: true,
     bestValue: true,
     features: [
       '✨ Everything in Pro Monthly',
-      '💚 2 Months FREE (Save ₹89)',
-      '🤖 Unlimited AI Doubt Solver',
-      '📊 Unlimited Mock Tests',
-      '🎯 Dynamic AI Study Planner',
+      '🤖 JEEnie (AI Assistant)',
+      '🎯 AI-powered Study Planner',
       '📈 Advanced Performance Analytics',
-      '🏆 Premium Leaderboard Badges',
+      '💾 Bookmarks & Notes (Coming Soon)',
       '⚡ Priority Support 24/7',
       '🚀 Early Access to New Features'
     ],
@@ -77,7 +71,7 @@ export const SUBSCRIPTION_PLANS = {
 
 // Updated Free Plan Limits
 export const FREE_PLAN_LIMITS = {
-  questionsPerDay: 25,
+  questionsPerDay: 15,
   questionsPerMonth: 150,
   mockTestsPerMonth: 2,
   jeenieAccess: false,
@@ -102,7 +96,7 @@ export const PRO_PLAN_FEATURES = {
 export const CONVERSION_MESSAGES = {
   dailyLimit: {
     title: '🚀 Daily Limit Reached!',
-    message: 'You\'ve solved 25 questions today. Come back tomorrow or unlock unlimited practice with Pro!',
+    message: 'You\'ve solved 15 questions today. Come back tomorrow or unlock unlimited practice with Pro!',
     cta: 'Upgrade to Pro - ₹499/year',
     subtitle: 'Less than ₹2 per day! 🎯'
   },
@@ -119,7 +113,7 @@ export const CONVERSION_MESSAGES = {
     subtitle: 'Practice makes perfect! 💪'
   },
   jeenieBlocked: {
-    title: '🤖 Jeenie AI - Pro Feature',
+    title: '🤖 JEEnie AI - Pro Feature',
     message: 'Jeenie AI assistant is available only for Pro users. Get instant doubt solving 24/7!',
     cta: 'Unlock Jeenie AI',
     subtitle: 'Your personal AI tutor awaits'

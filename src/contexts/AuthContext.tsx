@@ -36,9 +36,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check premium status and user role
   const checkPremiumStatus = async (userId: string) => {
     try {
+      // Get premium status from profiles
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_premium, subscription_end_date, role')
+        .select('is_premium, subscription_end_date')
         .eq('id', userId)
         .single();
 
@@ -47,9 +48,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         new Date(profile.subscription_end_date) > new Date();
 
       setIsPremium(!!isPremiumActive);
-      setUserRole((profile?.role as 'admin' | 'student' | 'super_admin') || 'student');
+      
+      // Get role from user_roles table (secure, service-role-only table)
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+      
+      setUserRole((roleData?.role as 'admin' | 'student' | 'super_admin') || 'student');
       console.log('✅ Premium status:', isPremiumActive ? 'PREMIUM' : 'FREE');
-      console.log('✅ User role:', profile?.role || 'student');
+      console.log('✅ User role:', roleData?.role || 'student');
     } catch (error) {
       console.error('❌ Premium check error:', error);
       setIsPremium(false);
