@@ -1,5 +1,5 @@
 // src/services/pointsService.ts
-// REPLACE ENTIRE FILE WITH THIS
+// REPLACE ENTIRE FILE WITH THIS FIXED VERSION
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,6 +17,8 @@ export class PointsService {
     points: number;
     breakdown: Array<{ type: string; points: number; label: string }>;
   }> {
+    console.log('🎯 calculatePoints called:', { userId, difficulty, isCorrect });
+    
     let points = 0;
     const breakdown: Array<{ type: string; points: number; label: string }> = [];
 
@@ -32,8 +34,9 @@ export class PointsService {
         points: basePoints,
         label: `${difficulty} question`
       });
+      console.log('✅ Base points:', basePoints);
 
-      // B. Answer Streak Bonus
+      // B. Answer Streak Bonus (BEFORE updating points)
       const streakBonus = await this.calculateStreakBonus(userId);
       if (streakBonus.points > 0) {
         points += streakBonus.points;
@@ -42,6 +45,7 @@ export class PointsService {
           points: streakBonus.points,
           label: `${streakBonus.streak} answer streak! 🔥`
         });
+        console.log('🔥 Streak bonus:', streakBonus.points);
       }
 
       // C. Badge milestone
@@ -61,13 +65,22 @@ export class PointsService {
         points: -2,
         label: 'Wrong answer'
       });
+      console.log('❌ Wrong answer penalty: -2');
 
       // Reset answer streak
       await this.resetAnswerStreak(userId);
     }
 
-    // Update user points
-    await this.updateUserPoints(userId, points);
+    console.log('💰 Total points to add:', points);
+
+    // Update user points - THIS IS CRITICAL
+    const updateSuccess = await this.updateUserPoints(userId, points);
+    
+    if (!updateSuccess) {
+      console.error('❌ Failed to update points in database!');
+    } else {
+      console.log('✅ Points updated successfully in database');
+    }
 
     return { points, breakdown };
   }
@@ -76,23 +89,35 @@ export class PointsService {
    * Ensure user has points record (create if missing)
    */
   private static async ensureUserPointsExist(userId: string) {
-    const { data: existing } = await supabase
+    const { data: existing, error: selectError } = await supabase
       .from('jeenius_points')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
 
+    if (selectError) {
+      console.error('Error checking points record:', selectError);
+    }
+
     if (!existing) {
-      console.log('Creating points record for user:', userId);
-      await supabase.from('jeenius_points').insert({
-        user_id: userId,
-        total_points: 0,
-        level: 'BEGINNER',
-        level_progress: 0,
-        answer_streak: 0,
-        longest_answer_streak: 0,
-        badges: []
-      });
+      console.log('📝 Creating new points record for user:', userId);
+      const { error: insertError } = await supabase
+        .from('jeenius_points')
+        .insert({
+          user_id: userId,
+          total_points: 0,
+          level: 'BEGINNER',
+          level_progress: 0,
+          answer_streak: 0,
+          longest_answer_streak: 0,
+          badges: []
+        });
+      
+      if (insertError) {
+        console.error('❌ Error creating points record:', insertError);
+      } else {
+        console.log('✅ Points record created successfully');
+      }
     }
   }
 
@@ -121,27 +146,34 @@ export class PointsService {
     badgeName?: string;
   }> {
     // Get current answer streak
-    const { data: pointsData } = await supabase
+    const { data: pointsData, error } = await supabase
       .from('jeenius_points')
       .select('answer_streak, badges, longest_answer_streak')
       .eq('user_id', userId)
       .single();
 
-    if (!pointsData) {
+    if (error || !pointsData) {
+      console.error('Error fetching streak data:', error);
       return { points: 0, streak: 0, badgeEarned: false };
     }
 
     const currentStreak = (pointsData.answer_streak as number) || 0;
     const newStreak = currentStreak + 1;
 
+    console.log('📊 Streak: Current =', currentStreak, ', New =', newStreak);
+
     // Update answer streak
-    await supabase
+    const { error: updateError } = await supabase
       .from('jeenius_points')
       .update({
         answer_streak: newStreak,
         longest_answer_streak: Math.max(newStreak, (pointsData.longest_answer_streak as number) || 0)
       })
       .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('Error updating streak:', updateError);
+    }
 
     // Check for streak milestones
     const milestones = [
@@ -163,6 +195,8 @@ export class PointsService {
             .from('jeenius_points')
             .update({ badges: badges as any })
             .eq('user_id', userId);
+          
+          console.log('🏆 Badge earned:', milestone.badge);
         }
 
         return {
@@ -181,41 +215,67 @@ export class PointsService {
    * Reset answer streak on wrong answer
    */
   private static async resetAnswerStreak(userId: string) {
-    await supabase
+    console.log('🔄 Resetting answer streak to 0');
+    const { error } = await supabase
       .from('jeenius_points')
       .update({ answer_streak: 0 })
       .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Error resetting streak:', error);
+    }
   }
 
   /**
-   * Update user total points
+   * Update user total points - FIXED VERSION
    */
-  private static async updateUserPoints(userId: string, pointsToAdd: number) {
-    const { data: pointsData } = await supabase
+  private static async updateUserPoints(userId: string, pointsToAdd: number): Promise<boolean> {
+    console.log('💾 Updating points in database...');
+    console.log('   User ID:', userId);
+    console.log('   Points to add:', pointsToAdd);
+
+    // Get current points
+    const { data: pointsData, error: selectError } = await supabase
       .from('jeenius_points')
       .select('total_points')
       .eq('user_id', userId)
       .single();
 
-    if (!pointsData) {
-      console.error('Points data not found for user:', userId);
-      return;
+    if (selectError || !pointsData) {
+      console.error('❌ Error fetching current points:', selectError);
+      return false;
     }
 
     const currentPoints = (pointsData.total_points as number) || 0;
     const newTotal = Math.max(0, currentPoints + pointsToAdd);
 
+    console.log('   Current points:', currentPoints);
+    console.log('   New total:', newTotal);
+
     // Calculate level
     const level = this.calculateLevel(newTotal);
+    console.log('   New level:', level.name);
 
-    await supabase
+    // Update database
+    const { data: updateData, error: updateError } = await supabase
       .from('jeenius_points')
       .update({
         total_points: newTotal,
         level: level.name,
         level_progress: level.progress
       })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .select();
+
+    if (updateError) {
+      console.error('❌ Error updating points:', updateError);
+      console.error('Error details:', JSON.stringify(updateError, null, 2));
+      return false;
+    }
+
+    console.log('✅ Database updated successfully');
+    console.log('Updated data:', updateData);
+    return true;
   }
 
   /**
