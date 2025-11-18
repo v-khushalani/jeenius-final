@@ -21,6 +21,7 @@ import {
 import StreakService from '@/services/streakService';
 import UserLimitsService from '@/services/userLimitsService';
 import PointsService from '@/services/pointsService';
+import PointsDisplayCard from '@/components/PointsDisplayCard';
 
 const StudyNowPage = () => {
   const navigate = useNavigate();
@@ -804,6 +805,9 @@ const handleAnswer = async (answer: string) => {
                 </CardContent>
               </Card>
             )}
+
+            {/* 🔥 ADD THIS LINE HERE: */}
+            <PointsDisplayCard />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {subjects.map((subject) => (
