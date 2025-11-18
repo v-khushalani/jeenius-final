@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { checkIsPremium } from '@/utils/premiumChecker';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,14 +26,14 @@ const TestPage = () => {
   const [availableChapters, setAvailableChapters] = useState([]);
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [isPro, setIsPro] = useState(false);
+  const { isPremium } = useAuth();
   const [monthlyTestsUsed, setMonthlyTestsUsed] = useState(0);
   const MONTHLY_LIMIT_FREE = 2;
 
   useEffect(() => {
-    checkSubscription();
+    checkMonthlyUsage();
     fetchSubjectsAndChapters();
-  }, []);
+  }, [isPremium]);
 
   const fetchSubjectsAndChapters = async () => {
     try {
@@ -63,11 +63,8 @@ const TestPage = () => {
     }
   };
 
-  const checkSubscription = async () => {
+  const checkMonthlyUsage = async () => {
     try {
-      const isPremium = await checkIsPremium();
-      setIsPro(isPremium);
-      
       if (!isPremium) {
         const { data: { user } } = await supabase.auth.getUser();
         const startOfMonth = new Date();
@@ -110,7 +107,7 @@ const TestPage = () => {
   };
 
   const startTest = async (mode = testMode) => {
-    if (!isPro && monthlyTestsUsed >= MONTHLY_LIMIT_FREE) {
+    if (!isPremium && monthlyTestsUsed >= MONTHLY_LIMIT_FREE) {
       setShowUpgradeModal(true);
       toast.error(`You've used all ${MONTHLY_LIMIT_FREE} free tests this month!`);
       return;
@@ -172,7 +169,7 @@ const TestPage = () => {
 
         localStorage.setItem('currentTest', JSON.stringify(testSession));
 
-        if (!isPro) {
+        if (!isPremium) {
           await supabase.from('test_attempts').insert({
             user_id: user?.id,
             test_type: 'full',
@@ -263,7 +260,7 @@ const TestPage = () => {
 
       localStorage.setItem('currentTest', JSON.stringify(testSession));
 
-      if (!isPro) {
+      if (!isPremium) {
         await supabase.from('test_attempts').insert({
           user_id: user?.id,
           test_type: mode,
@@ -312,7 +309,7 @@ const TestPage = () => {
         <Header />
         <div className="flex-1 overflow-y-auto pt-16 sm:pt-20 pb-4">
           <div className="container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl">
-            {!isPro && (
+            {!isPremium && (
               <div className="mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-md">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1">

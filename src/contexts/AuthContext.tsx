@@ -43,11 +43,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      const isPremiumActive = profile?.is_premium && 
-        profile?.subscription_end_date &&
-        new Date(profile.subscription_end_date) > new Date();
+    // ✅ FIX: Check is_premium flag OR valid subscription_end_date
+    const isPremiumActive = profile?.is_premium || 
+      (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
-      setIsPremium(!!isPremiumActive);
+    setIsPremium(!!isPremiumActive);
       
       // Get role from user_roles table (secure, service-role-only table)
       const { data: roleData } = await supabase

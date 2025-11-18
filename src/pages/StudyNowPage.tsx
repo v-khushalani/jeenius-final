@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import FloatingAIButton from '@/components/FloatingAIButton';
-import { checkIsPremium } from '@/utils/premiumChecker';
+import { useAuth } from '@/contexts/AuthContext';
 import AIDoubtSolver from '@/components/AIDoubtSolver';
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -103,13 +103,11 @@ const StudyNowPage = () => {
     }
   };
 
+  const { isPremium } = useAuth();
+
   const checkSubscriptionStatus = async () => {
-    try {
-      const isPremium = await checkIsPremium();
-      setIsPro(isPremium);
-    } catch (error) {
-      console.error('Error checking subscription:', error);
-    }
+    // Now using isPremium from AuthContext
+    setIsPro(isPremium);
   };
 
   const loadProfile = async () => {

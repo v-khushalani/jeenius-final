@@ -22,13 +22,13 @@ export class PointsService {
     await this.ensureUserPointsExist(userId);
 
     if (isCorrect) {
-      // Base points
+      // Base points - Consistent with display
       const basePoints = this.getBasePoints(difficulty);
       points += basePoints;
       breakdown.push({
         type: 'base',
         points: basePoints,
-        label: `${difficulty} question`
+        label: `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} question`
       });
 
       // Streak bonus

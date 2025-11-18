@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { checkIsPremium } from "@/utils/premiumChecker";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   X,
   Send,
@@ -49,21 +49,12 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({
 
   const RATE_LIMIT_MS = 3000;
 
-  // ✅ Load subscription status once
+  // ✅ Use isPremium from AuthContext
+  const { isPremium } = useAuth();
+  
   useEffect(() => {
-    checkSubscription();
-  }, []);
-
-  const checkSubscription = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return setIsPro(false);
-      const isPremium = await checkIsPremium();
-      setIsPro(isPremium);
-    } catch (error) {
-      console.error("Error checking subscription:", error);
-    }
-  };
+    setIsPro(isPremium);
+  }, [isPremium]);
 
   // ✅ Initial welcome message
   const initialMessage = useMemo(() => {

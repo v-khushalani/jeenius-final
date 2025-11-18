@@ -70,7 +70,4 @@ export const FREE_LIMITS = {
 };
 
 // ✅ Helper function
-export const checkIsPremium = (subscriptionEndDate: string | null): boolean => {
-  if (!subscriptionEndDate) return false;
-  return new Date(subscriptionEndDate) > new Date();
-};
+// Removed duplicate - use AuthContext.isPremium instead
