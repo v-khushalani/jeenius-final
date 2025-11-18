@@ -19,36 +19,30 @@ static async getDailyLimit(userId: string): Promise<number> {
     .eq('id', userId)
     .single();
 
-  const isPremiumActive = profile?.is_premium && 
-    profile?.subscription_end_date &&
-    new Date(profile.subscription_end_date) > new Date();
+  // ✅ FIX: Check is_premium flag OR valid subscription_end_date (same as AuthContext)
+  const isPremiumActive = profile?.is_premium || 
+    (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
   // ✅ 15 questions for free, unlimited for premium
   return isPremiumActive ? Infinity : 15;
 }
   /**
-   * Check if user is PRO
+   * Check if user is PRO (checks profiles table for consistency)
    */
   static async isPro(userId: string): Promise<boolean> {
-    const { data: limits } = await supabase
-      .from('user_limits')
-      .select('is_pro, subscription_end_date')
-      .eq('user_id', userId)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_premium, subscription_end_date')
+      .eq('id', userId)
       .single();
 
-    if (!limits) return false;
+    if (!profile) return false;
 
-    // Check if subscription is active
-    if (limits.is_pro && limits.subscription_end_date) {
-      const isActive = new Date(limits.subscription_end_date) > new Date();
-      if (!isActive) {
-        // Subscription expired, downgrade to FREE
-        await this.downgradeToPRO(userId);
-        return false;
-      }
-    }
+    // ✅ FIX: Check is_premium flag OR valid subscription_end_date (same as AuthContext)
+    const isPremiumActive = profile.is_premium || 
+      (profile.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
-    return limits.is_pro || false;
+    return isPremiumActive;
   }
 
   /**
