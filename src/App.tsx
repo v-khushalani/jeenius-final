@@ -19,7 +19,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
-// Auth pages
+// Auth pages - Only Login needed for Google auth
 import Login from "./pages/Login";
 import AuthCallback from '@/pages/AuthCallback';
 
@@ -38,75 +38,19 @@ import AdminRoute from "@/components/AdminRoute";
 import AdminDashboard from "@/pages/AdminDashboard";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
-// ✅ NEW: Error Boundary Component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('🔴 App Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
-            <div className="text-red-500 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Oops! Kuch gadbad ho gayi
-            </h1>
-            <p className="text-gray-600 mb-6">
-              {this.state.error?.message || 'An unexpected error occurred'}
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
-              >
-                🔄 Refresh Karo
-              </button>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition font-semibold"
-              >
-                🏠 Home Pe Jao
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
+// Create QueryClient with optimized settings for better performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
       retry: 1,
       refetchOnWindowFocus: false,
     },
   },
 });
 
-// Dashboard Router Component
+// Dashboard Router Component - Must be inside Router context
 const DashboardRouter = () => {
   const { userRole, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -129,131 +73,129 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <TooltipProvider>
-          {/* ✅ WRAPPED WITH ERROR BOUNDARY */}
-          <ErrorBoundary>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/why-us" element={<WhyUsPage />} />
-              
-              {/* Authentication Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Navigate to="/login" replace />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              
-              {/* Goal Selection */}
-              <Route path="/goal-selection" element={<GoalSelectionPage />} />
-              
-              {/* Dashboard */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardRouter />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Test Routes */}
-              <Route path="/test-attempt/:testId" element={<TestAttemptPage />} />
-              <Route path="/test-attempt" element={<TestAttemptPage />} />
-              <Route path="/test-results" element={<TestResultsPage />} />
-              <Route path="/analytics" element={<AnalyticsPage />} />
-              <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+          <Toaster />
+          <Sonner />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/why-us" element={<WhyUsPage />} />
             
-              {/* AI Study Planner */}
-              <Route
-                path="/ai-planner"
-                element={
-                  <ProtectedRoute>
-                    <AIStudyPlannerPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Study Routes */}
-              <Route
-                path="/study-now"
-                element={
-                  <ProtectedRoute>
-                    <StudyNowPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Test Management */}
-              <Route
-                path="/tests"
-                element={
-                  <ProtectedRoute>
-                    <TestPage />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Settings */}
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Profile */}
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              
-              {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/analytics"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/content"
-                element={
-                  <AdminRoute>
-                    <AdminDashboard />
-                  </AdminRoute>
-                }
-              />
-              
-              <Route path="/pricing" element={<PricingPage />} />
+            {/* Authentication Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Navigate to="/login" replace />} /> {/* Redirect signup to login since we only use Google */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* Goal Selection (might be needed after signup) */}
+            <Route path="/goal-selection" element={<GoalSelectionPage />} />
+            
+            {/* Dashboard with Admin Redirect */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardRouter />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Test Routes - Some public, some protected */}
+            <Route path="/test-attempt/:testId" element={<TestAttemptPage />} />
+            <Route path="/test-attempt" element={<TestAttemptPage />} />
+            <Route path="/test-results" element={<TestResultsPage />} />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <FloatingAIButton />
-          </ErrorBoundary>
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/subscription-plans" element={<SubscriptionPlans />} />
+          
+            {/* AI Study Planner */}
+            <Route
+              path="/ai-planner"
+              element={
+                <ProtectedRoute>
+                  <AIStudyPlannerPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Study Routes */}
+            <Route
+              path="/study-now"
+              element={
+                <ProtectedRoute>
+                  <StudyNowPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Test Management */}
+            <Route
+              path="/tests"
+              element={
+                <ProtectedRoute>
+                  <TestPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Settings */}
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Profile */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/content"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            
+            <Route path="/pricing" element={<PricingPage />} />
+
+            {/* Catch-all route - 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <FloatingAIButton />
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>

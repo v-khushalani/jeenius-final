@@ -1,8 +1,3 @@
-// src/utils/conversionManager.ts
-// ✅ UPDATED WITH SAFE LOCALSTORAGE
-
-import { safeLocalStorage } from './safeStorage';
-
 export class ConversionManager {
   private storageKey = 'pricing_conversion_data';
 
@@ -25,19 +20,20 @@ export class ConversionManager {
   }
 
   private getData() {
-    // ✅ SAFE: Won't crash in incognito mode
-    return safeLocalStorage.getJSON(this.storageKey, {});
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
   }
 
   private saveData(data: any) {
-    const current = this.getData();
-    const merged = { ...current, ...data };
-    
-    // ✅ SAFE: Won't crash if storage is full
-    const success = safeLocalStorage.setJSON(this.storageKey, merged);
-    
-    if (!success) {
-      console.warn('⚠️ Failed to save conversion data - localStorage unavailable');
+    try {
+      const current = this.getData();
+      localStorage.setItem(this.storageKey, JSON.stringify({ ...current, ...data }));
+    } catch (error) {
+      console.error('Failed to save conversion data:', error);
     }
   }
 
@@ -68,13 +64,7 @@ export class ConversionManager {
 
     // Rule 3: Same limit type - once per session
     const limitKey = `${limitType}_shown`;
-    
-    // ✅ SAFE: sessionStorage check
-    try {
-      if (sessionStorage.getItem(limitKey)) return false;
-    } catch (error) {
-      console.warn('⚠️ sessionStorage unavailable', error);
-    }
+    if (sessionStorage.getItem(limitKey)) return false;
 
     return true;
   }
@@ -92,12 +82,7 @@ export class ConversionManager {
       },
     });
 
-    // ✅ SAFE: sessionStorage set
-    try {
-      sessionStorage.setItem(`${limitType}_shown`, 'true');
-    } catch (error) {
-      console.warn('⚠️ Failed to set sessionStorage', error);
-    }
+    sessionStorage.setItem(`${limitType}_shown`, 'true');
   }
 
   shouldShowInlineCTA(): boolean {

@@ -7,25 +7,26 @@ export class UserLimitsService {
   /**
    * Get user's daily question limit
    */
-  /**
- * Get user's daily question limit
- * ✅ 15 for free, unlimited for premium
- */
-static async getDailyLimit(userId: string): Promise<number> {
-  // Check if user is premium
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_premium, subscription_end_date')
-    .eq('id', userId)
-    .single();
+  static async getDailyLimit(userId: string): Promise<number> {
+    const { data: limits } = await supabase
+      .from('user_limits')
+      .select('is_pro, daily_question_limit')
+      .eq('user_id', userId)
+      .single();
 
-  const isPremiumActive = profile?.is_premium && 
-    profile?.subscription_end_date &&
-    new Date(profile.subscription_end_date) > new Date();
+    if (!limits) {
+      // Create default limits
+      await supabase.from('user_limits').insert({
+        user_id: userId,
+        is_pro: false,
+        daily_question_limit: 20
+      });
+      return 20;
+    }
 
-  // ✅ 15 questions for free, unlimited for premium
-  return isPremiumActive ? Infinity : 15;
-}
+    return limits.is_pro ? Infinity : limits.daily_question_limit;
+  }
+
   /**
    * Check if user is PRO
    */

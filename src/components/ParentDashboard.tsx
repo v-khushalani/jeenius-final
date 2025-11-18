@@ -1,24 +1,14 @@
+
 import React from 'react';
 import { BarChart3, TrendingUp, Clock, Target, Star, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { useUserStats } from '@/hooks/useUserStats';
+import { useUserData } from '@/hooks/useUserData';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ParentDashboard = () => {
   const { user } = useAuth();
-  const { stats, profile, loading } = useUserStats();
-
-  // ✅ Convert subjectStats to array format (useUserData format)
-  const subjectProgress = React.useMemo(() => {
-    if (!stats?.subjectStats) return [];
-    
-    return Object.entries(stats.subjectStats).map(([subject, data]: [string, any]) => ({
-      subject,
-      progress: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
-      accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
-    }));
-  }, [stats]);
+  const { stats, profile, subjectProgress, loading } = useUserData();
 
   if (loading) {
     return (
@@ -31,10 +21,10 @@ const ParentDashboard = () => {
     );
   }
 
-  // ✅ Mock recent activity (would come from detailed attempts data)
+  // Recent activity mock (would come from a dedicated activity tracking system)
   const recentActivity = [
     { date: '2024-01-15', subject: 'Physics', problems: stats?.totalQuestions || 0, time: '45 min' },
-    { date: '2024-01-14', subject: 'Chemistry', problems: stats?.correctAnswers || 0, time: '60 min' },
+    { date: '2024-01-14', subject: 'Chemistry', problems: stats?.problemsSolved || 0, time: '60 min' },
     { date: '2024-01-13', subject: 'Mathematics', problems: Math.floor((stats?.totalQuestions || 0) * 0.6), time: '50 min' },
   ];
 
@@ -79,8 +69,8 @@ const ParentDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Study Streak</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats?.streak || 0} days</p>
+                      <p className="text-sm text-gray-600">Weekly Hours</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats?.weeklyHours || 0}h</p>
                     </div>
                     <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                       <Clock className="w-6 h-6 text-white" />
@@ -94,7 +84,7 @@ const ParentDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600">Problems Solved</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats?.correctAnswers || 0}</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats?.problemsSolved || 0}</p>
                     </div>
                     <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
                       <Target className="w-6 h-6 text-white" />
@@ -107,8 +97,8 @@ const ParentDashboard = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Total Questions</p>
-                      <p className="text-2xl font-bold text-gray-900">{stats?.totalQuestions || 0}</p>
+                      <p className="text-sm text-gray-600">Accuracy</p>
+                      <p className="text-2xl font-bold text-gray-900">{stats?.accuracy || 0}%</p>
                     </div>
                     <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
                       <Star className="w-6 h-6 text-white" />
@@ -194,27 +184,16 @@ const ParentDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {stats?.accuracy < 70 ? (
-                  <div className="p-3 bg-red-50 rounded-lg">
-                    <p className="text-sm text-red-800">
-                      <strong>Focus needed:</strong> Overall accuracy is {stats.accuracy}%. Recommend more practice in weak areas.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm text-green-800">
-                      <strong>Great progress!</strong> Maintaining {stats?.accuracy}% accuracy. Keep it up!
-                    </p>
-                  </div>
-                )}
-                
-                {stats?.streak >= 7 && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      <strong>Excellent consistency!</strong> {stats.streak}-day streak shows strong dedication.
-                    </p>
-                  </div>
-                )}
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Physics</strong> needs more attention. Recommend 30 min daily practice.
+                  </p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    Excellent progress in <strong>Mathematics</strong>. Consider advanced topics.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
