@@ -1,13 +1,10 @@
 // src/services/pointsService.ts
-// REPLACE ENTIRE FILE WITH THIS FIXED VERSION
+// ✅ FIXED VERSION - Points now save to BOTH tables
 
 import { supabase } from '@/integrations/supabase/client';
 
 export class PointsService {
   
-  /**
-   * Calculate points for a question attempt
-   */
   static async calculatePoints(
     userId: string,
     difficulty: string,
@@ -17,16 +14,15 @@ export class PointsService {
     points: number;
     breakdown: Array<{ type: string; points: number; label: string }>;
   }> {
-    console.log('🎯 calculatePoints called:', { userId, difficulty, isCorrect });
+    console.log('🎯 calculatePoints:', { userId, difficulty, isCorrect });
     
     let points = 0;
     const breakdown: Array<{ type: string; points: number; label: string }> = [];
 
-    // Ensure user points record exists
     await this.ensureUserPointsExist(userId);
 
     if (isCorrect) {
-      // A. Base Points
+      // Base points
       const basePoints = this.getBasePoints(difficulty);
       points += basePoints;
       breakdown.push({
@@ -34,9 +30,8 @@ export class PointsService {
         points: basePoints,
         label: `${difficulty} question`
       });
-      console.log('✅ Base points:', basePoints);
 
-      // B. Answer Streak Bonus (BEFORE updating points)
+      // Streak bonus
       const streakBonus = await this.calculateStreakBonus(userId);
       if (streakBonus.points > 0) {
         points += streakBonus.points;
@@ -45,10 +40,8 @@ export class PointsService {
           points: streakBonus.points,
           label: `${streakBonus.streak} answer streak! 🔥`
         });
-        console.log('🔥 Streak bonus:', streakBonus.points);
       }
 
-      // C. Badge milestone
       if (streakBonus.badgeEarned) {
         breakdown.push({
           type: 'badge',
@@ -65,105 +58,67 @@ export class PointsService {
         points: -2,
         label: 'Wrong answer'
       });
-      console.log('❌ Wrong answer penalty: -2');
 
-      // Reset answer streak
       await this.resetAnswerStreak(userId);
     }
 
     console.log('💰 Total points to add:', points);
 
-    // Update user points - THIS IS CRITICAL
-    const updateSuccess = await this.updateUserPoints(userId, points);
-    
-    if (!updateSuccess) {
-      console.error('❌ Failed to update points in database!');
-    } else {
-      console.log('✅ Points updated successfully in database');
-    }
+    // ✅ CRITICAL FIX: Update BOTH tables
+    await this.updateUserPoints(userId, points);
 
     return { points, breakdown };
   }
 
-  /**
-   * Ensure user has points record (create if missing)
-   */
   private static async ensureUserPointsExist(userId: string) {
-    const { data: existing, error: selectError } = await supabase
+    const { data: existing } = await supabase
       .from('jeenius_points')
       .select('id')
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (selectError) {
-      console.error('Error checking points record:', selectError);
-    }
-
     if (!existing) {
-      console.log('📝 Creating new points record for user:', userId);
-      const { error: insertError } = await supabase
-        .from('jeenius_points')
-        .insert({
-          user_id: userId,
-          total_points: 0,
-          level: 'BEGINNER',
-          level_progress: 0,
-          answer_streak: 0,
-          longest_answer_streak: 0,
-          badges: []
-        });
-      
-      if (insertError) {
-        console.error('❌ Error creating points record:', insertError);
-      } else {
-        console.log('✅ Points record created successfully');
-      }
+      await supabase.from('jeenius_points').insert({
+        user_id: userId,
+        total_points: 0,
+        level: 'BEGINNER',
+        level_progress: 0,
+        answer_streak: 0,
+        longest_answer_streak: 0,
+        badges: []
+      });
     }
   }
 
-  /**
-   * Get base points for difficulty
-   */
   private static getBasePoints(difficulty: string): number {
-    const difficultyMap: Record<string, number> = {
-      easy: 5,
-      Easy: 5,
-      medium: 10,
-      Medium: 10,
-      hard: 20,
-      Hard: 20
+    const map: Record<string, number> = {
+      easy: 5, Easy: 5,
+      medium: 10, Medium: 10,
+      hard: 20, Hard: 20
     };
-    return difficultyMap[difficulty] || 5;
+    return map[difficulty] || 5;
   }
 
-  /**
-   * Calculate answer streak bonus
-   */
   private static async calculateStreakBonus(userId: string): Promise<{
     points: number;
     streak: number;
     badgeEarned: boolean;
     badgeName?: string;
   }> {
-    // Get current answer streak
-    const { data: pointsData, error } = await supabase
+    const { data: pointsData } = await supabase
       .from('jeenius_points')
       .select('answer_streak, badges, longest_answer_streak')
       .eq('user_id', userId)
       .single();
 
-    if (error || !pointsData) {
-      console.error('Error fetching streak data:', error);
+    if (!pointsData) {
       return { points: 0, streak: 0, badgeEarned: false };
     }
 
     const currentStreak = (pointsData.answer_streak as number) || 0;
     const newStreak = currentStreak + 1;
 
-    console.log('📊 Streak: Current =', currentStreak, ', New =', newStreak);
-
-    // Update answer streak
-    const { error: updateError } = await supabase
+    await supabase
       .from('jeenius_points')
       .update({
         answer_streak: newStreak,
@@ -171,11 +126,6 @@ export class PointsService {
       })
       .eq('user_id', userId);
 
-    if (updateError) {
-      console.error('Error updating streak:', updateError);
-    }
-
-    // Check for streak milestones
     const milestones = [
       { streak: 5, points: 20, badge: 'Hot Streak' },
       { streak: 10, points: 50, badge: 'On Fire' },
@@ -185,7 +135,6 @@ export class PointsService {
 
     for (const milestone of milestones) {
       if (newStreak === milestone.streak) {
-        // Award badge if not already earned
         const badges = (pointsData.badges as string[]) || [];
         const badgeEarned = !badges.includes(milestone.badge);
         
@@ -195,8 +144,6 @@ export class PointsService {
             .from('jeenius_points')
             .update({ badges: badges as any })
             .eq('user_id', userId);
-          
-          console.log('🏆 Badge earned:', milestone.badge);
         }
 
         return {
@@ -211,76 +158,54 @@ export class PointsService {
     return { points: 0, streak: newStreak, badgeEarned: false };
   }
 
-  /**
-   * Reset answer streak on wrong answer
-   */
   private static async resetAnswerStreak(userId: string) {
-    console.log('🔄 Resetting answer streak to 0');
-    const { error } = await supabase
+    await supabase
       .from('jeenius_points')
       .update({ answer_streak: 0 })
       .eq('user_id', userId);
-    
-    if (error) {
-      console.error('Error resetting streak:', error);
-    }
   }
 
-  /**
-   * Update user total points - FIXED VERSION
-   */
+  // ✅ CRITICAL FIX: Update BOTH jeenius_points AND profiles.total_points
   private static async updateUserPoints(userId: string, pointsToAdd: number): Promise<boolean> {
     console.log('💾 Updating points in database...');
-    console.log('   User ID:', userId);
-    console.log('   Points to add:', pointsToAdd);
 
-    // Get current points
-    const { data: pointsData, error: selectError } = await supabase
-      .from('jeenius_points')
-      .select('total_points')
-      .eq('user_id', userId)
-      .single();
+    try {
+      // 1️⃣ Update jeenius_points table
+      const { data: pointsData } = await supabase
+        .from('jeenius_points')
+        .select('total_points')
+        .eq('user_id', userId)
+        .single();
 
-    if (selectError || !pointsData) {
-      console.error('❌ Error fetching current points:', selectError);
+      if (!pointsData) return false;
+
+      const currentPoints = (pointsData.total_points as number) || 0;
+      const newTotal = Math.max(0, currentPoints + pointsToAdd);
+      const level = this.calculateLevel(newTotal);
+
+      await supabase
+        .from('jeenius_points')
+        .update({
+          total_points: newTotal,
+          level: level.name,
+          level_progress: level.progress
+        })
+        .eq('user_id', userId);
+
+      // 2️⃣ ✅ ALSO UPDATE profiles.total_points
+      await supabase
+        .from('profiles')
+        .update({ total_points: newTotal })
+        .eq('id', userId);
+
+      console.log('✅ Points updated successfully:', newTotal);
+      return true;
+    } catch (error) {
+      console.error('❌ Error updating points:', error);
       return false;
     }
-
-    const currentPoints = (pointsData.total_points as number) || 0;
-    const newTotal = Math.max(0, currentPoints + pointsToAdd);
-
-    console.log('   Current points:', currentPoints);
-    console.log('   New total:', newTotal);
-
-    // Calculate level
-    const level = this.calculateLevel(newTotal);
-    console.log('   New level:', level.name);
-
-    // Update database
-    const { data: updateData, error: updateError } = await supabase
-      .from('jeenius_points')
-      .update({
-        total_points: newTotal,
-        level: level.name,
-        level_progress: level.progress
-      })
-      .eq('user_id', userId)
-      .select();
-
-    if (updateError) {
-      console.error('❌ Error updating points:', updateError);
-      console.error('Error details:', JSON.stringify(updateError, null, 2));
-      return false;
-    }
-
-    console.log('✅ Database updated successfully');
-    console.log('Updated data:', updateData);
-    return true;
   }
 
-  /**
-   * Calculate user level based on points
-   */
   private static calculateLevel(points: number): {
     name: string;
     progress: number;
@@ -326,9 +251,6 @@ export class PointsService {
     };
   }
 
-  /**
-   * Get user points and stats
-   */
   static async getUserPoints(userId: string) {
     const { data: pointsData } = await supabase
       .from('jeenius_points')
@@ -337,7 +259,6 @@ export class PointsService {
       .maybeSingle();
 
     if (!pointsData) {
-      // Return default values
       return {
         totalPoints: 0,
         level: 'BEGINNER',
@@ -360,9 +281,6 @@ export class PointsService {
     };
   }
 
-  /**
-   * Get leaderboard
-   */
   static async getLeaderboard(limit: number = 100) {
     const { data } = await supabase
       .from('jeenius_points')
@@ -380,9 +298,6 @@ export class PointsService {
     }));
   }
 
-  /**
-   * Get user rank
-   */
   static async getUserRank(userId: string): Promise<number> {
     const { data: allUsers } = await supabase
       .from('jeenius_points')
