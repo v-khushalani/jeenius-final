@@ -411,16 +411,7 @@ const handleAnswer = async (answer: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Check daily limit FIRST (fast fail)
-  const canSolve = await UserLimitsService.canSolveMore(user.id);
-  if (!canSolve.canSolve) {
-    toast.error('Daily limit reached! Upgrade to PRO for unlimited questions.');
-    setShowUpgradeModal(true);
-    setUpgradePromptType('daily_limit_reached');
-    return;
-  }
-
-  // INSTANT UI feedback - NO WAIT
+  // ✅ INSTANT UI feedback - NO BLOCKING CHECKS
   setIsSubmitting(true);
   setSelectedAnswer(answer);
   setShowResult(true);
@@ -515,6 +506,14 @@ const handleAnswer = async (answer: string) => {
         toast.error(`${points} points - Keep trying! 💪`, { duration: 2000 });
       }
     }
+
+    // ✅ Check limits AFTER submission (non-blocking UX)
+    UserLimitsService.canSolveMore(user.id).then(canSolve => {
+      if (!canSolve.canSolve) {
+        setShowUpgradeModal(true);
+        setUpgradePromptType('daily_limit_reached');
+      }
+    }).catch(e => console.error('Limit check error:', e));
 
     // Update streak in background (non-blocking)
     setTimeout(() => {
