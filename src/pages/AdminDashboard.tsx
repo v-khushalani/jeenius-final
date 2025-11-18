@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -7,8 +7,7 @@ import {
   BookOpen, 
   TrendingUp, 
   Award, 
-  Shield,
-  AlertCircle
+  Shield
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
@@ -16,18 +15,10 @@ import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
 import { UserManagement } from '@/components/admin/UserManagement';
 import ChapterManager from '@/components/admin/ChapterManager';
 
-interface QuickStat {
-  title: string;
-  value: string;
-  icon: any;
-  color: string;
-  change: string;
-  subtext: string;
-}
-
 const AdminDashboard = () => {
   const location = useLocation();
   
+  // Determine which content to show based on URL
   const getActiveContent = () => {
     if (location.pathname === '/admin/analytics') {
       return <AdminAnalytics />;
@@ -52,6 +43,7 @@ const AdminDashboard = () => {
       <Header />
       
       <div className="container mx-auto px-4 pt-20">
+        {/* Admin Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -66,17 +58,17 @@ const AdminDashboard = () => {
           </Badge>
         </div>
 
+        {/* Content based on route */}
         {getActiveContent()}
       </div>
     </div>
   );
 };
 
+// Quick Stats Component with Real Data
 const QuickStatsOverview = () => {
-  const navigate = useNavigate();
-  const [stats, setStats] = useState<QuickStat[]>([]);
+  const [stats, setStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQuickStats();
@@ -84,49 +76,50 @@ const QuickStatsOverview = () => {
 
   const fetchQuickStats = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      // Total users
+      const { count: totalUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
-      // Fetch all data in parallel
-      const [
-        usersResult,
-        activeTodayResult,
-        questionsResult,
-        premiumResult,
-        lastWeekResult
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('question_attempts')
-          .select('user_id')
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
-        supabase.from('question_attempts').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_premium', true),
-        supabase.from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      ]);
+      // Active users today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: activeToday } = await supabase
+        .from('question_attempts')
+        .select('user_id')
+        .gte('created_at', today.toISOString());
 
-      // Handle errors
-      if (usersResult.error) throw usersResult.error;
-      if (activeTodayResult.error) throw activeTodayResult.error;
-      if (questionsResult.error) throw questionsResult.error;
-      if (premiumResult.error) throw premiumResult.error;
-      if (lastWeekResult.error) throw lastWeekResult.error;
+      const uniqueActiveToday = new Set(activeToday?.map(a => a.user_id)).size;
 
-      const totalUsers = usersResult.count || 0;
-      const uniqueActiveToday = new Set(activeTodayResult.data?.map(a => a.user_id) || []).size;
-      const totalQuestions = questionsResult.count || 0;
-      const premiumUsers = premiumResult.count || 0;
-      const lastWeekUsers = lastWeekResult.count || 0;
+      // Total questions attempted
+      const { count: totalQuestions } = await supabase
+        .from('question_attempts')
+        .select('*', { count: 'exact', head: true });
 
-      const userGrowth = totalUsers > 0 
+      // Premium users
+      const { count: premiumUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_premium', true);
+
+      // Previous week data for comparison
+      const lastWeek = new Date();
+      lastWeek.setDate(lastWeek.getDate() - 7);
+      
+      const { count: lastWeekUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', lastWeek.toISOString());
+
+      const userGrowth = lastWeekUsers && totalUsers 
         ? ((lastWeekUsers / totalUsers) * 100).toFixed(1) 
         : '0';
 
       setStats([
         {
           title: 'Total Users',
-          value: totalUsers.toLocaleString(),
+          value: totalUsers?.toLocaleString() || '0',
           icon: Users,
           color: 'blue',
           change: `+${userGrowth}%`,
@@ -142,7 +135,7 @@ const QuickStatsOverview = () => {
         },
         {
           title: 'Total Questions',
-          value: totalQuestions.toLocaleString(),
+          value: totalQuestions?.toLocaleString() || '0',
           icon: BookOpen,
           color: 'purple',
           change: 'All time',
@@ -150,16 +143,15 @@ const QuickStatsOverview = () => {
         },
         {
           title: 'Premium Users',
-          value: premiumUsers.toLocaleString(),
+          value: premiumUsers?.toLocaleString() || '0',
           icon: Award,
           color: 'amber',
-          change: totalUsers > 0 ? `${((premiumUsers / totalUsers) * 100).toFixed(1)}%` : '0%',
+          change: totalUsers ? `${((premiumUsers || 0) / totalUsers * 100).toFixed(1)}%` : '0%',
           subtext: 'of total'
         }
       ]);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching quick stats:', error);
-      setError(error.message || 'Failed to load statistics');
     } finally {
       setLoading(false);
     }
@@ -168,24 +160,7 @@ const QuickStatsOverview = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading statistics...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Data</h3>
-            <p className="text-red-700">{error}</p>
-          </CardContent>
-        </Card>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -225,28 +200,19 @@ const QuickStatsOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button 
-              onClick={() => navigate('/admin/users')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
-            >
+            <button className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left">
               <Users className="h-6 w-6 text-purple-600 mb-2" />
               <h3 className="font-semibold text-slate-900">Manage Users</h3>
               <p className="text-sm text-slate-600">View and edit user accounts</p>
             </button>
             
-            <button 
-              onClick={() => navigate('/admin/content')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-            >
+            <button className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
               <BookOpen className="h-6 w-6 text-blue-600 mb-2" />
               <h3 className="font-semibold text-slate-900">Add Content</h3>
               <p className="text-sm text-slate-600">Upload new questions</p>
             </button>
             
-            <button 
-              onClick={() => navigate('/admin/analytics')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
-            >
+            <button className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left">
               <TrendingUp className="h-6 w-6 text-green-600 mb-2" />
               <h3 className="font-semibold text-slate-900">View Reports</h3>
               <p className="text-sm text-slate-600">Detailed analytics</p>
