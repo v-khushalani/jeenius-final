@@ -57,7 +57,12 @@ export const JEE_CONFIG = {
     REVISION: 0.25, // 25% of total time
     MOCK_TESTS: 0.15 // 15% of total time
   },
-  DAILY_TARGET: 30, // questions
+  // ✅ DYNAMIC DAILY GOALS (Powered by StreakService)
+  // Start: 15 questions/day
+  // Scaling: Based on 7-day accuracy (0-5 questions/week increase)
+  // Max: 75 questions/day
+  DAILY_TARGET_MIN: 15,
+  DAILY_TARGET_MAX: 75,
   MIN_STUDY_HOURS: 4,
   MAX_STUDY_HOURS: 10
 };

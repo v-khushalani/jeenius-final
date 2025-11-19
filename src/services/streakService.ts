@@ -40,16 +40,20 @@ export class StreakService {
         (1000 * 60 * 60 * 24 * 7)
       );
 
-      // Calculate weekly increase based on accuracy
+      // ✅ DYNAMIC: Weekly increase based on accuracy (15 → 75 scaling)
       let weeklyIncrease = 0;
       if (accuracy < 50) {
         weeklyIncrease = 0; // Struggling - keep target same
+      } else if (accuracy < 60) {
+        weeklyIncrease = 1; // Improving - very slow growth
       } else if (accuracy < 70) {
         weeklyIncrease = 2; // Average - slow growth
-      } else if (accuracy < 85) {
+      } else if (accuracy < 80) {
         weeklyIncrease = 3; // Good - normal growth
+      } else if (accuracy < 90) {
+        weeklyIncrease = 4; // Very good - fast growth
       } else {
-        weeklyIncrease = 5; // Excellent - fast growth
+        weeklyIncrease = 5; // Excellent - maximum growth
       }
 
       // Calculate new target with cap at 75

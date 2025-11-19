@@ -26,24 +26,7 @@ export interface UserStats {
   totalPoints: number;
 }
 
-const calculateDailyGoal = (totalQuestions: number, avgAccuracy: number, currentStreak: number): number => {
-  let baseGoal = 20;
-
-  if (totalQuestions > 1000) baseGoal = 50;
-  else if (totalQuestions > 500) baseGoal = 40;
-  else if (totalQuestions > 200) baseGoal = 35;
-  else if (totalQuestions > 100) baseGoal = 30;
-  else if (totalQuestions > 50) baseGoal = 25;
-
-  if (avgAccuracy >= 90) baseGoal += 5;
-  else if (avgAccuracy >= 80) baseGoal += 3;
-
-  if (currentStreak >= 30) baseGoal += 10;
-  else if (currentStreak >= 14) baseGoal += 5;
-  else if (currentStreak >= 7) baseGoal += 3;
-
-  return Math.min(baseGoal, 60);
-};
+// ✅ REMOVED: Use StreakService.getTodayProgress() for consistent goal calculation
 
 export const useUserStats = () => {
   const { user } = useAuth();
@@ -206,8 +189,15 @@ export const useUserStats = () => {
         }
       });
 
-      // Dynamic daily goal
-      const dynamicGoal = calculateDailyGoal(totalQuestions, accuracy, streak);
+      // ✅ Get today's goal from daily_progress (uses StreakService dynamic calculation: 15-75)
+      const { data: todayProgress } = await supabase
+        .from("daily_progress")
+        .select("daily_target")
+        .eq("user_id", user.id)
+        .eq("date", new Date().toISOString().split('T')[0])
+        .single();
+      
+      const dynamicGoal = todayProgress?.daily_target || 15; // Default to 15 if not set
 
       // Days active calculation
       const earliestAttempt = attemptsWithDate.length > 0 
