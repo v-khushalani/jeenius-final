@@ -26,6 +26,18 @@ serve(async (req) => {
       );
     }
 
+    // Validate prompt length (prevent token overflow)
+    if (!contextPrompt || contextPrompt.length > 4000) {
+      console.error("❌ Prompt too long or empty:", contextPrompt?.length || 0);
+      return new Response(
+        JSON.stringify({ 
+          error: "INVALID_PROMPT",
+          message: "Please ask a shorter question (max 4000 characters)"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check for API key
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
@@ -43,33 +55,78 @@ serve(async (req) => {
 
     const fullPrompt = `${systemPrompt}\n\nContext:\n${contextPrompt}\n\nAb answer do:`;
 
-    // Call Gemini API - using Gemini 2.5 Flash (correct model)
+    // Call Gemini API with retry logic - using Gemini 2.5 Flash
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     console.log("🌐 API URL:", apiUrl.replace(GEMINI_API_KEY, "***"));
 
-    const geminiResponse = await fetch(apiUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: fullPrompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2000,
-          topK: 40,
-          topP: 0.95,
-        },
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ]
-      }),
-    });
+    let geminiResponse: Response | null = null;
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    // Retry logic for transient failures
+    while (retryCount <= maxRetries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+        geminiResponse = await fetch(apiUrl, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: fullPrompt }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2000,
+              topK: 40,
+              topP: 0.95,
+            },
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ]
+          }),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+        break; // Success, exit retry loop
+      } catch (fetchError) {
+        retryCount++;
+        console.warn(`⚠️ Attempt ${retryCount} failed:`, fetchError);
+        
+        if (retryCount > maxRetries) {
+          console.error("❌ All retry attempts failed");
+          return new Response(
+            JSON.stringify({ 
+              error: "SERVICE_TIMEOUT",
+              message: "JEEnie is taking too long to respond. Please try again."
+            }),
+            { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Wait before retry (exponential backoff: 1s, 2s)
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
+    }
+
+    // Safety check
+    if (!geminiResponse) {
+      console.error("❌ No response received after retries");
+      return new Response(
+        JSON.stringify({ 
+          error: "SERVICE_ERROR",
+          message: "JEEnie is temporarily unavailable. Please try again."
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     console.log("📡 Gemini API response status:", geminiResponse.status);
 
@@ -127,14 +184,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: "EMPTY_RESPONSE",
-          message: "No response generated. Please try rephrasing your question."
+          message: "JEEnie couldn't generate a response. Please try asking in a different way."
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Log success metrics for monitoring
     console.log("✅ Success - Content length:", content.length);
-    
+    console.log("📊 Tokens used:", data.usageMetadata?.totalTokenCount || 'N/A');
+
     return new Response(
       JSON.stringify({ content: content.trim() }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
