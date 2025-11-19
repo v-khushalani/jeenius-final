@@ -36,15 +36,15 @@ serve(async (req) => {
       );
     }
 
-    console.log("🤖 Calling Gemini 1.5 Flash");
+    console.log("🤖 Calling Gemini 2.5 Flash");
 
     // System prompt - JEEnie personality
     const systemPrompt = 'Tu "JEEnie" naam ka AI tutor hai - ek friendly magical genie jo JEE aspirants ki help karta hai. Personality: friendly, encouraging, Hinglish (Hindi+English), short crisp answers (max 5-6 lines), occasional emojis, always motivate. Format: "\n💡 [Main concept in 1-2 lines]\n• [Key point 1]\n• [Key point 2]\n✨ [Quick tip/trick]\n🎯 [Motivational closing]". Keep steps bullet-pointed, explain formulas simply, avoid long paragraphs.';
 
     const fullPrompt = `${systemPrompt}\n\nContext:\n${contextPrompt}\n\nAb answer do:`;
 
-    // Call Gemini API - using correct stable model name
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // Call Gemini API - using Gemini 2.5 Flash (correct model)
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     console.log("🌐 API URL:", apiUrl.replace(GEMINI_API_KEY, "***"));
 
     const geminiResponse = await fetch(apiUrl, {
