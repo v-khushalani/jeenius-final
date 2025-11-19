@@ -223,9 +223,9 @@ const Settings = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Header />
         <div className="pt-24 pb-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
             <div className="text-center py-12">
@@ -471,7 +471,7 @@ const Settings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-700 mb-2">
                     <strong>Account Security:</strong> Your account is secured with email authentication.
                   </p>

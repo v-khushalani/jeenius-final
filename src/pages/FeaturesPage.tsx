@@ -72,7 +72,7 @@ const FeaturesPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -142,7 +142,7 @@ const FeaturesPage = () => {
 
           {/* Feature Comparison */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4">
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50 px-6 py-4">
               <h2 className="text-2xl font-bold text-gray-900">Feature Comparison</h2>
             </div>
             <div className="p-6">

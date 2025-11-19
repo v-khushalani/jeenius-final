@@ -90,7 +90,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <Header />
         <div className="pt-24 pb-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
@@ -120,7 +120,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
       <div className="pt-24 pb-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">

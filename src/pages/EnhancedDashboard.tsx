@@ -182,8 +182,8 @@ const EnhancedDashboard = () => {
     <div className="min-h-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
 
-      {/* ✅ FIXED: Container with proper header offset */}
-      <div className="fixed top-[64px] left-0 right-0 bottom-0 overflow-hidden">
+      {/* ✅ FIXED: Container with proper header offset and banner space */}
+      <div className={`fixed left-0 right-0 bottom-0 overflow-hidden transition-all duration-300 ${showBanner && notification ? 'top-[64px]' : 'top-[64px]'}`}>
         <div className="h-full overflow-y-auto">
           <div className="container mx-auto px-3 sm:px-4 lg:px-6 max-w-7xl py-3">
             
@@ -279,18 +279,20 @@ const EnhancedDashboard = () => {
               {/* ✅ NEW: 4 Dynamic Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 
-                {/* Questions Card */}
-                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-blue-500 bg-blue-50/80 backdrop-blur-sm`}> 
+                {/* Streak Card with Day Counter */}
+                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <div className="p-1.5 sm:p-2 bg-blue-500 rounded-lg flex-shrink-0">
-                        <Brain className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                      <div className={`p-1.5 sm:p-2 ${streakColors.iconBg} rounded-lg flex-shrink-0 animate-pulse`}>
+                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
-                      <p className="text-xs font-medium text-blue-900/70">Questions</p>
+                      <p className="text-xs font-medium text-slate-700">Streak</p>
                     </div>
-                    <h3 className="text-2xl sm:text-3xl font-bold text-blue-900">{stats?.totalQuestions ?? 0}</h3>
-                    <p className="text-xs text-blue-700/60 mt-1">
-                      <span className="font-semibold text-blue-700">+{stats?.questionsToday}</span> today
+                    <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>
+                      Day {stats?.streak ?? 0}
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-1">
+                      {stats?.streak > 0 ? `${stats.streak} day${stats.streak > 1 ? 's' : ''} strong 🔥` : 'Start today!'}
                     </p>
                   </CardContent>
                 </Card>
@@ -333,17 +335,21 @@ const EnhancedDashboard = () => {
                   </CardContent>
                 </Card>
 
-                {/* Streak Card */}
-                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 
+                {/* JEEnius Points Card (moved from Streak position) */}
+                <Card className="rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-purple-500 bg-gradient-to-br from-purple-50/80 to-pink-50/80 backdrop-blur-sm"> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <div className={`p-1.5 sm:p-2 ${streakColors.iconBg} rounded-lg flex-shrink-0`}>
-                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex-shrink-0">
+                        <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
-                      <p className="text-xs font-medium text-slate-700">Streak</p>
+                      <p className="text-xs font-medium text-purple-900/70">Points</p>
                     </div>
-                    <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>{stats?.streak}</h3>
-                    <p className="text-xs text-slate-600 mt-1">days strong</p>
+                    <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      {stats?.totalPoints ?? 0}
+                    </h3>
+                    <p className="text-xs text-purple-700/60 mt-1">
+                      <span className="font-semibold">Level {stats?.currentLevel ?? 1}</span> · {stats?.pointsToNext ?? 0} to go
+                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -401,39 +407,6 @@ const EnhancedDashboard = () => {
                         </div>
                       )}
 
-                      {/* Points Card */}
-                      <div className="rounded-xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 sm:p-5 border border-indigo-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-2 sm:mb-3">
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg shadow-md">
-                              <Trophy className="h-4 w-4 sm:h-5 sm:w-5" />
-                            </div>
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-slate-900">JEEnius Points</p>
-                              <Badge className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold mt-1">
-                                Level {stats?.currentLevel}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                            {stats?.totalPoints}
-                          </h3>
-                        </div>
-
-                        <Progress
-                          className="h-2.5 sm:h-3 rounded-full bg-white/50"
-                          value={
-                            ((stats?.totalPoints % (stats?.currentLevel * 100)) /
-                              (stats?.currentLevel * 100)) *
-                            100
-                          }
-                        />
-
-                        <p className="text-xs text-slate-600 mt-2 text-center font-medium">
-                          {stats?.pointsToNext} points to Level {stats?.currentLevel + 1}
-                        </p>
-                      </div>
                     </CardContent>
                   </Card>
                 </div>
