@@ -62,9 +62,9 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
   }
 };
 
-// ✅ Freemium Limits
+// ✅ Freemium Limits (All chapters free now)
 export const FREE_LIMITS = {
-  chapters: 2,
+  chapters: 999, // All chapters free
   dailyQuestions: 20,
   aiQueries: 3
 };

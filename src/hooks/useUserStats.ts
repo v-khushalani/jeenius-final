@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import PointsService from '@/services/pointsService';
 
 export interface UserStats {
   totalQuestions: number;
@@ -245,11 +246,22 @@ export const useUserStats = () => {
         console.error("Error computing leaderboard metrics:", err);
       }
 
-      // Points and level
+      // Points and level using PointsService
       const totalPoints = profileData?.total_points || 0;
-      const currentLevel = Math.floor(totalPoints / 100) + 1;
-      const nextLevelThreshold = currentLevel * 100;
-      const pointsToNext = Math.max(0, nextLevelThreshold - totalPoints);
+      const levelInfo = await PointsService.getUserPoints(user.id);
+      const pointsToNext = levelInfo.levelInfo.pointsToNext;
+      const currentLevel = (() => {
+        const levelName = levelInfo.level;
+        const levelMap: Record<string, number> = {
+          'BEGINNER': 1,
+          'LEARNER': 2,
+          'ACHIEVER': 3,
+          'EXPERT': 4,
+          'MASTER': 5,
+          'LEGEND': 6
+        };
+        return levelMap[levelName] || 1;
+      })();
 
       setStats({
         totalQuestions,

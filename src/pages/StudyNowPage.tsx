@@ -17,10 +17,11 @@ import {
   Sparkles, Zap, Play, Lock, TrendingUp
 } from "lucide-react";
 
-// 🚀 Import gamification services
+// Import gamification services
 import StreakService from '@/services/streakService';
 import UserLimitsService from '@/services/userLimitsService';
 import PointsService from '@/services/pointsService';
+import { useStreakData } from '@/hooks/useStreakData';
 
 const StudyNowPage = () => {
   const navigate = useNavigate();
@@ -47,16 +48,18 @@ const StudyNowPage = () => {
   const [isPro, setIsPro] = useState(false);
   const [dailyQuestionsUsed, setDailyQuestionsUsed] = useState(0);
   
-  // 🚀 Gamification states
+  // Gamification states
   const [dailyTarget, setDailyTarget] = useState(15);
   const [dailyLimit, setDailyLimit] = useState(20);
-  const [currentStreak, setCurrentStreak] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradePromptType, setUpgradePromptType] = useState('');
   const [upgradePromptData, setUpgradePromptData] = useState(null);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+
+  const { isPremium } = useAuth();
+  const { streak } = useStreakData();
 
   useEffect(() => {
     initializePage();
@@ -65,7 +68,6 @@ const StudyNowPage = () => {
   const initializePage = async () => {
     try {
       await Promise.all([
-        checkSubscriptionStatus(),
         loadProfile(),
         fetchSubjects(),
         loadGamificationData()
@@ -75,39 +77,30 @@ const StudyNowPage = () => {
     }
   };
 
-  // 🚀 Load gamification data
+  // Load gamification data
   const loadGamificationData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [streakStatus, proStatus, limit] = await Promise.all([
+      const [streakStatus, limit] = await Promise.all([
         StreakService.getStreakStatus(user.id),
-        UserLimitsService.isPro(user.id),
         UserLimitsService.getDailyLimit(user.id)
       ]);
 
-      setCurrentStreak(streakStatus.currentStreak);
       setDailyTarget(streakStatus.todayTarget);
       setDailyQuestionsUsed(streakStatus.todayCompleted);
       setDailyLimit(limit);
-      setIsPro(proStatus);
+      setIsPro(isPremium);
 
       const shouldPrompt = await UserLimitsService.shouldShowUpgradePrompt(user.id);
-      if (shouldPrompt.show && !proStatus) {
+      if (shouldPrompt.show && !isPremium) {
         setUpgradePromptType(shouldPrompt.promptType);
         setUpgradePromptData(shouldPrompt.data);
       }
     } catch (error) {
       console.error('Error loading gamification data:', error);
     }
-  };
-
-  const { isPremium } = useAuth();
-
-  const checkSubscriptionStatus = async () => {
-    // Now using isPremium from AuthContext
-    setIsPro(isPremium);
   };
 
   const loadProfile = async () => {
@@ -768,7 +761,7 @@ const handleAnswer = async (answer: string) => {
         <Header />
         <div className="pt-20 sm:pt-24 pb-10">
           <div className="container mx-auto px-4 max-w-7xl">
-            {currentStreak > 0 && (
+            {streak > 0 && (
               <Card className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-xl">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -776,7 +769,7 @@ const handleAnswer = async (answer: string) => {
                       <div className="flex items-center gap-2">
                         <Flame className="w-6 h-6 text-orange-500" fill="currentColor" />
                         <div>
-                          <div className="text-2xl font-bold text-orange-900">{currentStreak} Day Streak!</div>
+                          <div className="text-2xl font-bold text-orange-900">{streak} Day Streak!</div>
                           <div className="text-sm text-orange-700">Keep it going! 🔥</div>
                         </div>
                       </div>
