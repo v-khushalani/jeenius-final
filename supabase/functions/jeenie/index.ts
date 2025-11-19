@@ -95,13 +95,40 @@ serve(async (req) => {
         });
 
         clearTimeout(timeoutId);
-        break; // Success, exit retry loop
+        
+        // Check if response is retriable error (503 service unavailable, 429 rate limit)
+        if (geminiResponse.status === 503 || geminiResponse.status === 429) {
+          retryCount++;
+          const errorText = await geminiResponse.text();
+          console.warn(`⚠️ Retriable error (${geminiResponse.status}) on attempt ${retryCount}:`, errorText);
+          
+          if (retryCount > maxRetries) {
+            console.error("❌ All retry attempts exhausted");
+            return new Response(
+              JSON.stringify({ 
+                error: "SERVICE_UNAVAILABLE",
+                message: "JEEnie is temporarily overloaded. Please try again in a moment."
+              }),
+              { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          
+          // Exponential backoff: 2s, 4s, 8s
+          const backoffMs = 2000 * Math.pow(2, retryCount - 1);
+          console.log(`⏳ Waiting ${backoffMs}ms before retry ${retryCount}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          continue; // Retry
+        }
+        
+        // Success or non-retriable error, exit retry loop
+        break;
+        
       } catch (fetchError) {
         retryCount++;
-        console.warn(`⚠️ Attempt ${retryCount} failed:`, fetchError);
+        console.warn(`⚠️ Network error on attempt ${retryCount}:`, fetchError);
         
         if (retryCount > maxRetries) {
-          console.error("❌ All retry attempts failed");
+          console.error("❌ All retry attempts failed due to network errors");
           return new Response(
             JSON.stringify({ 
               error: "SERVICE_TIMEOUT",
@@ -111,8 +138,10 @@ serve(async (req) => {
           );
         }
         
-        // Wait before retry (exponential backoff: 1s, 2s)
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        // Exponential backoff: 1s, 2s, 4s
+        const backoffMs = 1000 * Math.pow(2, retryCount - 1);
+        console.log(`⏳ Waiting ${backoffMs}ms before retry ${retryCount}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
       }
     }
 
