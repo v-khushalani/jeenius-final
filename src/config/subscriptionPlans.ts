@@ -45,8 +45,8 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
     duration: 365,
     popular: true,
     bestValue: true,
-    savings: 89,
-    originalPrice: 588,
+    savings: 700,
+    originalPrice: 1199,
     features: [
       '✨ Everything in Pro Monthly',
       '💚 2 Months FREE (Save ₹89)',
