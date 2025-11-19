@@ -64,20 +64,26 @@ const TestPage = () => {
   };
 
   const checkMonthlyUsage = async () => {
+    // Skip check for premium users
+    if (isPremium) {
+      setMonthlyTestsUsed(0);
+      return;
+    }
+
     try {
-      if (!isPremium) {
-        const { data: { user } } = await supabase.auth.getUser();
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        
-        const { data: tests } = await supabase
-          .from('test_attempts')
-          .select('id')
-          .eq('user_id', user?.id)
-          .gte('created_at', startOfMonth.toISOString());
-        
-        setMonthlyTestsUsed(tests?.length || 0);
-      }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      
+      const { data: tests } = await supabase
+        .from('test_attempts')
+        .select('id')
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString());
+      
+      setMonthlyTestsUsed(tests?.length || 0);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -107,6 +113,7 @@ const TestPage = () => {
   };
 
   const startTest = async (mode = testMode) => {
+    // Early exit for free users who exceeded limit
     if (!isPremium && monthlyTestsUsed >= MONTHLY_LIMIT_FREE) {
       setShowUpgradeModal(true);
       toast.error(`You've used all ${MONTHLY_LIMIT_FREE} free tests this month!`);

@@ -24,11 +24,13 @@ import Header from "@/components/Header";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import Leaderboard from "@/components/Leaderboard";
 import { useUserStats } from "@/hooks/useUserStats";
+import { useStreakData } from "@/hooks/useStreakData";
 
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { stats, profile, loading: isLoading } = useUserStats();
+  const { streak } = useStreakData();
   const [showBanner, setShowBanner] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
     const lastShown = localStorage.getItem("welcomeLastShown");
@@ -67,8 +69,8 @@ const EnhancedDashboard = () => {
     if (!stats) return null;
     if (stats.todayAccuracy < 60 && stats.questionsToday >= 10)
       return { message: "Focus needed! Review mistakes.", color: "orange", icon: AlertCircle };
-    if (stats.streak >= 7 && stats.questionsToday < 10)
-      return { message: `🔥 Don't break your ${stats.streak}-day streak!`, color: "orange", icon: Flame };
+    if (streak >= 7 && stats.questionsToday < 10)
+      return { message: `🔥 Don't break your ${streak}-day streak!`, color: "orange", icon: Flame };
     if (stats.todayProgress >= stats.todayGoal && stats.todayAccuracy >= 80)
       return { message: "🎉 Daily goal smashed!", color: "green", icon: Trophy };
     if (stats.questionsToday >= 50 && stats.todayAccuracy >= 85)
@@ -289,10 +291,10 @@ const EnhancedDashboard = () => {
                       <p className="text-xs font-medium text-slate-700">Streak</p>
                     </div>
                     <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>
-                      Day {stats?.streak ?? 0}
+                      Day {streak}
                     </h3>
                     <p className="text-xs text-slate-600 mt-1">
-                      {stats?.streak > 0 ? `${stats.streak} day${stats.streak > 1 ? 's' : ''} strong 🔥` : 'Start today!'}
+                      {streak > 0 ? `${streak} day${streak > 1 ? 's' : ''} strong 🔥` : 'Start today!'}
                     </p>
                   </CardContent>
                 </Card>

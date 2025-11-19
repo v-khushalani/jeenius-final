@@ -5,12 +5,13 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Flame, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStreakData } from '@/hooks/useStreakData';
 
 const PointsDisplay = () => {
   const { user } = useAuth();
+  const { streak } = useStreakData();
   const [stats, setStats] = useState({
     totalPoints: 0,
-    streak: 0,
     todayProgress: 0,
     todayGoal: 15
   });
@@ -21,9 +22,9 @@ const PointsDisplay = () => {
 
     loadStats();
 
-    // ✅ Real-time subscription to points changes
-    const pointsSubscription = supabase
-      .channel('points-updates')
+    // Real-time subscription to points and questions
+    const subscription = supabase
+      .channel('stats-updates')
       .on(
         'postgres_changes',
         {
@@ -32,15 +33,22 @@ const PointsDisplay = () => {
           table: 'profiles',
           filter: `id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('✅ Points updated:', payload);
-          loadStats();
-        }
+        () => loadStats()
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'question_attempts',
+          filter: `user_id=eq.${user.id}`
+        },
+        () => loadStats()
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(pointsSubscription);
+      supabase.removeChannel(subscription);
     };
   }, [user?.id]);
 
@@ -64,16 +72,8 @@ const PointsDisplay = () => {
         .gte('created_at', `${today}T00:00:00.000Z`)
         .lte('created_at', `${today}T23:59:59.999Z`);
 
-      // Get streak
-      const { data: streakData } = await supabase
-        .from('user_streaks')
-        .select('current_streak')
-        .eq('user_id', user.id)
-        .single();
-
       setStats({
         totalPoints: profile?.total_points || 0,
-        streak: streakData?.current_streak || 0,
         todayProgress: count || 0,
         todayGoal: 15
       });
@@ -108,9 +108,9 @@ const PointsDisplay = () => {
       <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-100 hover:shadow-md transition-shadow">
         <Flame className="h-4 w-4 text-amber-600" />
         <span className="text-sm font-bold text-amber-900">
-          {stats.streak}
+          {streak}
         </span>
-        <span className="text-xs text-slate-500">day{stats.streak !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-slate-500">day{streak !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Today's Goal */}
