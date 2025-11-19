@@ -118,6 +118,10 @@ ${question.option_a ? `A) ${question.option_a}\n` : ""}${
         
         if (errorType === "RATE_LIMIT") {
           throw new Error("JEEnie is a bit busy! Please wait a moment and try again.");
+        } else if (errorType === "SERVICE_UNAVAILABLE") {
+          throw new Error("JEEnie is temporarily overloaded. Please try again in a moment.");
+        } else if (errorType === "SERVICE_TIMEOUT") {
+          throw new Error("JEEnie is taking too long. Please try again.");
         } else if (errorType === "SAFETY_BLOCK") {
           throw new Error("Please rephrase your question in a different way.");
         } else if (errorType === "EMPTY_RESPONSE") {
