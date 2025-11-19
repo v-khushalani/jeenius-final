@@ -121,20 +121,17 @@ const Header = () => {
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo - Enhanced for visibility */}
           <div 
-            className="flex items-center space-x-3 cursor-pointer"
+            className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group"
             onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
           >
-          <img 
-            src="logo.png" 
-            alt="JEEnius Logo" 
-            className="w-10 h-10 object-contain rounded-lg"
-          />
-            <div>
-              <span className="text-xl font-bold text-primary">JEEnius</span>
-              <div className="text-xs text-gray-500">AI Learning Platform</div>
+            <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-1.5 sm:p-2 rounded-lg shadow-lg group-hover:shadow-xl transition-all group-hover:scale-105">
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
+            <span className="font-bold text-lg sm:text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
+              JEEnius
+            </span>
           </div>
 
           {/* Desktop Navigation */}

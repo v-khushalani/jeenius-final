@@ -89,33 +89,66 @@ const EnhancedDashboard = () => {
     if (!seen) setShowBanner(true);
   }, [user, notification, isClient]);
 
-  // ✅ NEW: Dynamic color system with light tinted backgrounds
   const getAccuracyColor = (accuracy: number) => {
+    if (accuracy >= 90) return { 
+      bg: "bg-emerald-100/90", 
+      border: "border-emerald-600",
+      iconBg: "bg-emerald-600", 
+      text: "text-emerald-800",
+      progressBg: "bg-emerald-100",
+      gradient: "from-emerald-500/30 to-green-600/30"
+    };
     if (accuracy >= 80) return { 
       bg: "bg-green-50/80", 
-      border: "border-green-400",
+      border: "border-green-500",
       iconBg: "bg-green-500", 
       text: "text-green-700",
-      progressBg: "bg-green-100"
+      progressBg: "bg-green-100",
+      gradient: "from-green-400/20 to-emerald-500/20"
     };
-    if (accuracy >= 65) return { 
-      bg: "bg-yellow-50/80", 
+    if (accuracy >= 70) return {
+      bg: "bg-lime-50/80",
+      border: "border-lime-500",
+      iconBg: "bg-lime-500",
+      text: "text-lime-700",
+      progressBg: "bg-lime-100",
+      gradient: "from-lime-400/20 to-green-400/20"
+    };
+    if (accuracy >= 60) return {
+      bg: "bg-yellow-50/80",
       border: "border-yellow-400",
-      iconBg: "bg-yellow-500", 
+      iconBg: "bg-yellow-500",
       text: "text-yellow-700",
-      progressBg: "bg-yellow-100"
+      progressBg: "bg-yellow-100",
+      gradient: "from-yellow-400/20 to-orange-400/20"
+    };
+    if (accuracy >= 50) return {
+      bg: "bg-orange-50/80",
+      border: "border-orange-400",
+      iconBg: "bg-orange-500",
+      text: "text-orange-700",
+      progressBg: "bg-orange-100",
+      gradient: "from-orange-400/20 to-red-400/20"
     };
     return { 
       bg: "bg-red-50/80", 
-      border: "border-red-400",
+      border: "border-red-500",
       iconBg: "bg-red-500", 
       text: "text-red-700",
-      progressBg: "bg-red-100"
+      progressBg: "bg-red-100",
+      gradient: "from-red-400/20 to-pink-500/20"
     };
   };
 
   const getGoalColor = (progress: number, goal: number) => {
     const percentage = (progress / goal) * 100;
+    if (percentage >= 100) return { 
+      bg: "bg-emerald-100/90", 
+      border: "border-emerald-600",
+      iconBg: "bg-emerald-600", 
+      text: "text-emerald-800",
+      progressBg: "bg-emerald-100"
+    };
     if (percentage >= 80) return { 
       bg: "bg-green-50/80", 
       border: "border-green-400",
