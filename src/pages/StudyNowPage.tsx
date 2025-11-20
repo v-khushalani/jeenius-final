@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import FloatingAIButton from '@/components/FloatingAIButton';
 import { useAuth } from '@/contexts/AuthContext';
 import AIDoubtSolver from '@/components/AIDoubtSolver';
+import AdaptiveLevelService from '@/services/adaptiveLevelService';
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -345,6 +345,23 @@ const StudyNowPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Get user's current level for this topic (starts at easy/1)
+      const userLevel = await AdaptiveLevelService.getTopicLevel(
+        user.id,
+        selectedSubject,
+        selectedChapter,
+        topic || selectedChapter
+      );
+      
+      setCurrentLevel(userLevel);
+      
+      // Map level to difficulty
+      const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+      const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || 'Easy';
+
+      // Show level info
+      toast.info(`Starting at ${targetDifficulty} level`, { duration: 2000 });
+
       const { data: attemptedQuestions } = await supabase
         .from('question_attempts')
         .select('question_id')
@@ -356,7 +373,8 @@ const StudyNowPage = () => {
         .from('questions')
         .select('*')
         .eq('subject', selectedSubject)
-        .eq('chapter', selectedChapter);
+        .eq('chapter', selectedChapter)
+        .eq('difficulty', targetDifficulty); // Filter by user's level
 
       if (attemptedIds.length > 0) {
         query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
@@ -366,19 +384,18 @@ const StudyNowPage = () => {
         query = query.eq('topic', topic);
       }
 
-      const { data, error } = await query.limit(50);
+      const { data, error } = await query; // No limit - unlimited questions
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        toast.info('🎉 You\'ve completed all questions in this topic!');
+        toast.info('🎉 You\'ve completed all questions at this level!');
         setLoading(false);
         return;
       }
 
       const shuffled = data.sort(() => Math.random() - 0.5);
-      const selected = shuffled.slice(0, Math.min(25, shuffled.length));
 
-      setPracticeQuestions(selected);
+      setPracticeQuestions(shuffled); // All questions, no 25 limit
       setCurrentQuestionIndex(0);
       setSessionStats({ correct: 0, total: 0, streak: 0 });
       setSelectedAnswer(null);
@@ -456,8 +473,22 @@ const handleAnswer = async (answer: string) => {
       )
     ]);
 
-    // Update topic mastery for AI Study Planner
+    // Update adaptive level and topic mastery
     try {
+      const levelResult = await AdaptiveLevelService.updateTopicLevel(
+        user.id,
+        question.subject,
+        question.chapter,
+        question.topic || question.chapter,
+        isCorrect
+      );
+
+      if (levelResult.leveledUp && levelResult.message) {
+        toast.success(levelResult.message, { duration: 3000 });
+        setCurrentLevel(levelResult.newLevel);
+      }
+
+      // Update topic mastery for AI Study Planner
       await supabase.functions.invoke('calculate-topic-mastery', {
         body: {
           subject: question.subject,
@@ -466,7 +497,7 @@ const handleAnswer = async (answer: string) => {
         }
       });
     } catch (error) {
-      console.log('Topic mastery update queued');
+      console.log('Level update queued');
     }
 
     // Display points with detailed breakdown
@@ -545,9 +576,13 @@ const handleAnswer = async (answer: string) => {
       setShowResult(false);
       setQuestionStartTime(Date.now());
     } else {
+      // Session complete - no forced end
       const accuracy = sessionStats.total > 0 ? (sessionStats.correct / sessionStats.total) * 100 : 0;
-      toast.success(`🎉 Session Completed! Score: ${sessionStats.correct}/${sessionStats.total} (${Math.round(accuracy)}%)`);
-      setView('topics');
+      toast.success(`🎉 Great work! Score: ${sessionStats.correct}/${sessionStats.total} (${Math.round(accuracy)}%)`, {
+        duration: 4000
+      });
+      // Load more questions at current level
+      startPractice(selectedTopic);
     }
   };
 
@@ -708,20 +743,14 @@ const handleAnswer = async (answer: string) => {
                   })}
                 </div>
 
-                <div className="mt-4 flex justify-between items-center">
-                  <div className="text-xs text-slate-500">{Math.round(progress)}% completed</div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      onClick={() => setShowAIModal(true)} 
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 text-sm shadow"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2 inline" />
-                      Ask AI
-                    </Button>
-                    <div className="w-28">
-                      <Progress value={Math.round(progress)} className="h-2" />
-                    </div>
-                  </div>
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    onClick={() => setShowAIModal(true)} 
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2.5 text-sm shadow-lg"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2 inline" />
+                    Ask AI
+                  </Button>
                 </div>
 
                 {showResult && question.explanation && (
@@ -810,8 +839,6 @@ const handleAnswer = async (answer: string) => {
               ))}
             </div>
           </div>
-
-          {isPro && <FloatingAIButton />}
         </div>
       </div>
     );
@@ -949,8 +976,6 @@ const handleAnswer = async (answer: string) => {
                 );
               })}
             </div>
-
-            {isPro && <FloatingAIButton />}
           </div>
         </div>
       </div>
@@ -1026,8 +1051,6 @@ const handleAnswer = async (answer: string) => {
                 </Card>
               ))}
             </div>
-
-            {isPro && <FloatingAIButton />}
           </div>
         </div>
       </div>

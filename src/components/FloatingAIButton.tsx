@@ -20,7 +20,7 @@ const FloatingAIButton = () => {
     explanation: ""
   };
 
-  // Don't show at all (as per user request)
+  // Completely disabled - never show
   return null;
 
   return (
