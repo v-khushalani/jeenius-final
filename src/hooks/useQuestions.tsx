@@ -109,15 +109,8 @@ const getRandomQuestions = async (
 
     const { supabase } = await import('@/integrations/supabase/client');
     
-    // Get already attempted question IDs
+    // For adaptive learning, only exclude questions attempted at THIS difficulty level
     if (isAuthenticated && user) {
-      const { data: attemptedQuestions } = await supabase
-        .from('question_attempts')
-        .select('question_id')
-        .eq('user_id', user.id);
-      
-      const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
-      
       let query = supabase
         .from('questions')
         .select('*');
@@ -133,12 +126,21 @@ const getRandomQuestions = async (
 
       if (difficulty) {
         const difficultyMap = { 1: '1', 2: '2', 3: '3' };
-        query = query.eq('difficulty', difficultyMap[difficulty as keyof typeof difficultyMap]);
-      }
-
-      // Exclude already attempted questions
-      if (attemptedIds.length > 0) {
-        query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
+        const targetDifficulty = difficultyMap[difficulty as keyof typeof difficultyMap];
+        query = query.eq('difficulty', targetDifficulty);
+        
+        // Only exclude questions attempted at THIS difficulty level
+        const { data: attemptedAtLevel } = await supabase
+          .from('question_attempts')
+          .select('question_id, questions!inner(difficulty)')
+          .eq('user_id', user.id)
+          .eq('questions.difficulty', targetDifficulty);
+        
+        const attemptedIds = attemptedAtLevel?.map(a => a.question_id) || [];
+        
+        if (attemptedIds.length > 0) {
+          query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
+        }
       }
 
       // Fetch more than needed for random selection
@@ -149,7 +151,7 @@ const getRandomQuestions = async (
       if (queryError) throw queryError;
 
       if (!data || data.length === 0) {
-        setError('No new questions available. All questions attempted!');
+        setError('No new questions available at this level!');
         return [];
       }
 

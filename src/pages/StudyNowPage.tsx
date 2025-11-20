@@ -355,26 +355,30 @@ const StudyNowPage = () => {
       
       setCurrentLevel(userLevel);
       
-      // Map level to difficulty
-      const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-      const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || 'Easy';
+      // Map level to difficulty (database uses '1', '2', '3')
+      const difficultyMap = { 1: '1', 2: '2', 3: '3' };
+      const difficultyNames = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
+      const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || '1';
 
       // Show level info
-      toast.info(`Starting at ${targetDifficulty} level`, { duration: 2000 });
+      toast.info(`Starting at ${difficultyNames[userLevel as keyof typeof difficultyNames]} level`, { duration: 2000 });
 
-      const { data: attemptedQuestions } = await supabase
+      // For adaptive learning, allow re-attempts at different difficulty levels
+      // Only exclude questions attempted at the CURRENT difficulty level
+      const { data: attemptedAtLevel } = await supabase
         .from('question_attempts')
-        .select('question_id')
-        .eq('user_id', user.id);
+        .select('question_id, questions!inner(difficulty)')
+        .eq('user_id', user.id)
+        .eq('questions.difficulty', targetDifficulty);
 
-      const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
+      const attemptedIds = attemptedAtLevel?.map(a => a.question_id) || [];
 
       let query = supabase
         .from('questions')
         .select('*')
         .eq('subject', selectedSubject)
         .eq('chapter', selectedChapter)
-        .eq('difficulty', targetDifficulty); // Filter by user's level
+        .eq('difficulty', targetDifficulty);
 
       if (attemptedIds.length > 0) {
         query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
@@ -387,12 +391,21 @@ const StudyNowPage = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // If no questions at current level, try next level
+      // If no questions at current level, allow level progression
       if (!data || data.length === 0) {
         const nextLevel = Math.min(userLevel + 1, 3);
         if (nextLevel > userLevel) {
           const nextDifficulty = difficultyMap[nextLevel as keyof typeof difficultyMap];
-          toast.info(`Moving to ${nextDifficulty} level!`, { duration: 2000 });
+          toast.success(`Level up! Moving to ${difficultyNames[nextLevel as keyof typeof difficultyNames]} level!`, { duration: 2000 });
+          
+          // Update user's level in database
+          await AdaptiveLevelService.updateTopicLevel(
+            user.id,
+            selectedSubject,
+            selectedChapter,
+            topic || selectedChapter,
+            true // Mark as correct to trigger level up
+          );
           
           let nextQuery = supabase
             .from('questions')
@@ -401,9 +414,6 @@ const StudyNowPage = () => {
             .eq('chapter', selectedChapter)
             .eq('difficulty', nextDifficulty);
           
-          if (attemptedIds.length > 0) {
-            nextQuery = nextQuery.not('id', 'in', `(${attemptedIds.join(',')})`);
-          }
           if (topic) {
             nextQuery = nextQuery.eq('topic', topic);
           }
@@ -700,6 +710,13 @@ const handleAnswer = async (answer: string) => {
                   <div className="flex items-center gap-3">
                     <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs">
                       {`Q ${currentQuestionIndex + 1}/${practiceQuestions.length}`}
+                    </Badge>
+                    <Badge className={`text-xs font-semibold ${
+                      currentLevel === 1 ? 'bg-green-100 text-green-700 border-green-300' :
+                      currentLevel === 2 ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                      'bg-red-100 text-red-700 border-red-300'
+                    }`}>
+                      {currentLevel === 1 ? '🟢 Easy' : currentLevel === 2 ? '🟡 Medium' : '🔴 Hard'}
                     </Badge>
                     <div className="text-sm text-slate-500 hidden sm:block">
                       {selectedSubject} • {selectedChapter}
