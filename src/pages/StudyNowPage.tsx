@@ -518,74 +518,28 @@ const handleAnswer = async (answer: string) => {
       )
     ]);
 
-    // Update adaptive level and topic mastery
-    try {
-      const levelResult = await AdaptiveLevelService.updateTopicLevel(
-        user.id,
-        question.subject,
-        question.chapter,
-        question.topic || question.chapter,
-        isCorrect
-      );
-
+    // Update adaptive level and topic mastery (NON-BLOCKING)
+    AdaptiveLevelService.updateTopicLevel(
+      user.id,
+      question.subject,
+      question.chapter,
+      question.topic || question.chapter,
+      isCorrect
+    ).then(levelResult => {
       if (levelResult.leveledUp && levelResult.message) {
         toast.success(levelResult.message, { duration: 3000 });
         setCurrentLevel(levelResult.newLevel);
       }
+    }).catch(error => console.log('Level update queued'));
 
-      // Update topic mastery for AI Study Planner
-      await supabase.functions.invoke('calculate-topic-mastery', {
-        body: {
-          subject: question.subject,
-          chapter: question.chapter,
-          topic: question.topic
-        }
-      });
-    } catch (error) {
-      console.log('Level update queued');
-    }
-
-    // Display points with detailed breakdown
-    const { points, breakdown } = pointsResult;
-    
-    console.log('✅ Points Earned:', points);
-    console.log('📊 Breakdown:', breakdown);
-
-    if (points !== 0) {
-      setPointsEarned(points);
-      setShowPointsAnimation(true);
-      setTimeout(() => setShowPointsAnimation(false), 2000);
-      
-      // Show detailed breakdown in console
-      breakdown.forEach(b => {
-        console.log(`  ${b.label}: ${b.points > 0 ? '+' : ''}${b.points}`);
-      });
-      
-      // Show toast with breakdown
-      if (points > 0) {
-        const details = breakdown
-          .filter(b => b.type !== 'badge')
-          .map(b => `${b.label}`)
-          .join(' • ');
-        
-        const badges = breakdown
-          .filter(b => b.type === 'badge')
-          .map(b => b.label);
-        
-        if (badges.length > 0) {
-          // Show badge toast separately
-          badges.forEach(badge => {
-            setTimeout(() => {
-              toast.success(badge, { duration: 4000 });
-            }, 500);
-          });
-        }
-        
-        toast.success(`+${points} Points! ${details}`, { duration: 3000 });
-      } else {
-        toast.error(`${points} points - Keep trying! 💪`, { duration: 2000 });
+    // Update topic mastery for AI Study Planner (NON-BLOCKING)
+    supabase.functions.invoke('calculate-topic-mastery', {
+      body: {
+        subject: question.subject,
+        chapter: question.chapter,
+        topic: question.topic
       }
-    }
+    }).catch(error => console.log('Topic mastery update queued'));
 
     // ✅ Check limits AFTER submission (non-blocking UX)
     UserLimitsService.canSolveMore(user.id).then(canSolve => {
@@ -608,8 +562,8 @@ const handleAnswer = async (answer: string) => {
     toast.error('Something went wrong!');
   } finally {
     setIsSubmitting(false);
-    // Auto-advance to next question
-    setTimeout(() => nextQuestion(), 1200);
+    // Auto-advance to next question (faster!)
+    setTimeout(() => nextQuestion(), 600);
   }
 };
 
