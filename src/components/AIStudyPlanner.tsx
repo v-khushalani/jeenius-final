@@ -93,10 +93,12 @@ export default function AIStudyPlanner() {
           if (profile?.daily_study_hours) {
             generateWeeklyPlan(profile.daily_study_hours, masteryData);
           }
-          
-          // Auto-refresh after data threshold is met
-          setTimeout(() => setRefresh(prev => prev + 1), 2000);
+        } else {
+          setHasData(false);
         }
+      } else {
+        setHasData(false);
+        setTotalQuestions(0);
       }
     } catch (error) {
       console.error('Error loading study data:', error);
@@ -201,14 +203,24 @@ export default function AIStudyPlanner() {
             </div>
 
             <div className="pt-4">
-              <Button 
-                onClick={() => navigate('/study-now')}
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
-              >
-                <Play className="h-5 w-5 mr-2" />
-                Start Practicing Now
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                <Button 
+                  onClick={() => navigate('/study-now')}
+                  size="lg"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Play className="h-5 w-5 mr-2" />
+                  Start Practicing Now
+                </Button>
+                <Button
+                  onClick={() => loadStudyData()}
+                  variant="outline"
+                  size="lg"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  🔄 Refresh Data
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-200">
@@ -249,9 +261,19 @@ export default function AIStudyPlanner() {
                 <p className="text-sm text-white/80 mt-1">Your personalized path to JEE success</p>
               </div>
             </div>
-            <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
-              {studyHours}h daily
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => loadStudyData()}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border-white/30 text-white"
+              >
+                🔄 Refresh
+              </Button>
+              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
+                {studyHours}h daily
+              </Badge>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 mt-6">

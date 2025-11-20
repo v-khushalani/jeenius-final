@@ -456,6 +456,19 @@ const handleAnswer = async (answer: string) => {
       )
     ]);
 
+    // Update topic mastery for AI Study Planner
+    try {
+      await supabase.functions.invoke('calculate-topic-mastery', {
+        body: {
+          subject: question.subject,
+          chapter: question.chapter,
+          topic: question.topic
+        }
+      });
+    } catch (error) {
+      console.log('Topic mastery update queued');
+    }
+
     // Display points with detailed breakdown
     const { points, breakdown } = pointsResult;
     
