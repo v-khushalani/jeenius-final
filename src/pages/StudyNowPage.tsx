@@ -49,7 +49,6 @@ const StudyNowPage = () => {
   const [dailyQuestionsUsed, setDailyQuestionsUsed] = useState(0);
   
   // Gamification states
-  const [dailyTarget, setDailyTarget] = useState(15);
   const [dailyLimit, setDailyLimit] = useState(20);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradePromptType, setUpgradePromptType] = useState('');
@@ -57,9 +56,9 @@ const StudyNowPage = () => {
   const [pointsEarned, setPointsEarned] = useState(0);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [currentLevel, setCurrentLevel] = useState(1); // Adaptive level
 
   const { isPremium } = useAuth();
-  const { streak } = useStreakData();
 
   useEffect(() => {
     initializePage();

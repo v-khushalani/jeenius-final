@@ -45,10 +45,11 @@ export default function AIStudyPlanner() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [hasData, setHasData] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
     loadStudyData();
-  }, []);
+  }, [refresh]);
 
   const loadStudyData = async () => {
     try {
@@ -92,6 +93,9 @@ export default function AIStudyPlanner() {
           if (profile?.daily_study_hours) {
             generateWeeklyPlan(profile.daily_study_hours, masteryData);
           }
+          
+          // Auto-refresh after data threshold is met
+          setTimeout(() => setRefresh(prev => prev + 1), 2000);
         }
       }
     } catch (error) {

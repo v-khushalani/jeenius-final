@@ -20,10 +20,8 @@ const FloatingAIButton = () => {
     explanation: ""
   };
 
-  // Only show for premium users
-  if (isLoading || !isAuthenticated || !isPremium) {
-    return null;
-  }
+  // Don't show at all (as per user request)
+  return null;
 
   return (
     <>
