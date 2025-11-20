@@ -587,25 +587,25 @@ const TestPage = () => {
                         {selectedChapters.length} selected
                       </Badge>
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3 max-h-[400px] overflow-y-auto pr-2">
                       {availableChapters.map(({ subject, chapter }) => (
                         <div 
                           key={`${subject}-${chapter}`}
-                          className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                          className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                             selectedChapters.some(ch => ch.subject === subject && ch.chapter === chapter)
                               ? 'border-purple-500 bg-purple-50 shadow-sm'
                               : 'border-gray-200 bg-white hover:border-purple-300'
                           }`}
                           onClick={() => handleChapterToggle(subject, chapter)}
                         >
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
                             <Checkbox 
                               checked={selectedChapters.some(ch => ch.subject === subject && ch.chapter === chapter)}
-                              className="w-4 h-4 sm:w-5 sm:h-5"
+                              className="w-4 h-4 shrink-0"
                             />
-                            <label className="cursor-pointer flex-1">
-                              <span className="font-semibold text-gray-900 block text-sm sm:text-base">{chapter}</span>
-                              <Badge variant="outline" className="text-xs mt-1">
+                            <label className="cursor-pointer flex-1 min-w-0">
+                              <span className="font-semibold text-gray-900 block text-xs sm:text-sm truncate">{chapter}</span>
+                              <Badge variant="outline" className="text-[10px] mt-0.5">
                                 {subject}
                               </Badge>
                             </label>

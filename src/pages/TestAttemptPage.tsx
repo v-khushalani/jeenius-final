@@ -280,7 +280,8 @@ const TestAttemptPage = () => {
     if (!userAnswer) return "not-visited";
     if (userAnswer.isMarkedForReview) return "marked-for-review";
     if (userAnswer.selectedOption) return "answered";
-    return "visited";
+    // Visited but not answered - show as "not-answered"
+    return "not-answered";
   };
 
   const getStatusColor = (status: string) => {
@@ -289,7 +290,7 @@ const TestAttemptPage = () => {
         return "bg-green-500 text-white";
       case "marked-for-review":
         return "bg-yellow-500 text-white";
-      case "visited":
+      case "not-answered":
         return "bg-red-500 text-white";
       default:
         return "bg-gray-200 text-gray-700";
@@ -496,7 +497,9 @@ const TestAttemptPage = () => {
                   <CardTitle className="text-base">Question Palette</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-5 gap-2 mb-4">
+                  <div className={`grid gap-1.5 mb-4 ${
+                    testSession.questions.length > 50 ? 'grid-cols-10' : 'grid-cols-5'
+                  }`}>
                     {testSession.questions.map((_, index) => {
                       const status = getQuestionStatus(index);
                       const isCurrent = index === currentQuestionIndex;
@@ -505,7 +508,9 @@ const TestAttemptPage = () => {
                         <button
                           key={index}
                           onClick={() => navigateQuestion(index)}
-                          className={`w-8 h-8 text-xs rounded border-2 transition-all ${
+                          className={`${
+                            testSession.questions.length > 50 ? 'w-7 h-7 text-[10px]' : 'w-8 h-8 text-xs'
+                          } rounded border-2 transition-all ${
                             isCurrent
                               ? "border-primary scale-110"
                               : "border-transparent"
@@ -596,7 +601,9 @@ const TestAttemptPage = () => {
               </div>
 
               {/* Question Grid */}
-              <div className="grid grid-cols-5 gap-2 mb-4">
+              <div className={`grid gap-2 mb-4 ${
+                testSession.questions.length > 50 ? 'grid-cols-6' : 'grid-cols-5'
+              }`}>
                 {testSession.questions.map((_, index) => {
                   const status = getQuestionStatus(index);
                   const isCurrent = index === currentQuestionIndex;
@@ -608,7 +615,9 @@ const TestAttemptPage = () => {
                         navigateQuestion(index);
                         setShowMobilePalette(false);
                       }}
-                      className={`w-12 h-12 text-sm rounded border-2 transition-all ${
+                      className={`${
+                        testSession.questions.length > 50 ? 'w-10 h-10 text-xs' : 'w-12 h-12 text-sm'
+                      } rounded border-2 transition-all ${
                         isCurrent
                           ? "border-primary scale-110 ring-2 ring-primary"
                           : "border-transparent"
