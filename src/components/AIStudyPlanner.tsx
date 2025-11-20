@@ -3,10 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   TrendingUp, Target, Calendar, Clock, 
   Sparkles, ChevronDown, ChevronUp, CheckCircle2,
-  Brain, Zap, Trophy, Star, Play, BookOpen, AlertCircle
+  Brain, Zap, Trophy, Star, Play, BookOpen, AlertCircle, 
+  Timer, TrendingDown, Award
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,11 +48,15 @@ export default function AIStudyPlanner() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [hasData, setHasData] = useState(false);
   const [totalQuestions, setTotalQuestions] = useState(0);
-  const [refresh, setRefresh] = useState(0);
+  const [targetExam, setTargetExam] = useState<'JEE' | 'NEET'>('JEE');
+  const [targetExamDate, setTargetExamDate] = useState<string>('');
+  const [daysRemaining, setDaysRemaining] = useState<number>(0);
+  const [predictedRank, setPredictedRank] = useState<number>(0);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     loadStudyData();
-  }, [refresh]);
+  }, []);
 
   const loadStudyData = async () => {
     try {
@@ -60,15 +67,21 @@ export default function AIStudyPlanner() {
         return;
       }
 
-      // Load study hours preference
+      // Load profile preferences
       const { data: profile } = await supabase
         .from('profiles')
-        .select('daily_study_hours')
+        .select('daily_study_hours, target_exam, target_exam_date')
         .eq('id', user.id)
         .single();
 
-      if (profile?.daily_study_hours) {
-        setStudyHours(profile.daily_study_hours);
+      if (profile) {
+        if (profile.daily_study_hours) setStudyHours(profile.daily_study_hours);
+        if (profile.target_exam) setTargetExam(profile.target_exam as 'JEE' | 'NEET');
+        if (profile.target_exam_date) {
+          setTargetExamDate(profile.target_exam_date);
+          const days = Math.ceil((new Date(profile.target_exam_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          setDaysRemaining(days);
+        }
       }
 
       // Load topic mastery data
@@ -89,6 +102,11 @@ export default function AIStudyPlanner() {
           
           setStrengths(goodTopics.slice(0, 5));
           setWeaknesses(weakTopics.slice(0, 10));
+
+          // Calculate predicted rank based on performance
+          const avgAccuracy = masteryData.reduce((sum, t) => sum + t.accuracy, 0) / masteryData.length;
+          const estimatedRank = Math.round(500000 * (1 - avgAccuracy / 100));
+          setPredictedRank(estimatedRank);
 
           if (profile?.daily_study_hours) {
             generateWeeklyPlan(profile.daily_study_hours, masteryData);
@@ -120,7 +138,7 @@ export default function AIStudyPlanner() {
       const tasks: DailyTask[] = [];
       let remainingMinutes = dailyMinutes;
 
-      // Allocate 60% time to weak topics
+      // 60% time to weak topics
       const weakTime = Math.floor(dailyMinutes * 0.6);
       if (weakTopics.length > 0) {
         const topicsToday = weakTopics.slice(idx % weakTopics.length, (idx % weakTopics.length) + 2);
@@ -133,7 +151,7 @@ export default function AIStudyPlanner() {
         });
       }
 
-      // Allocate 30% time to medium topics
+      // 30% time to medium topics
       const mediumTime = Math.floor(dailyMinutes * 0.3);
       if (mediumTopics.length > 0 && remainingMinutes > 0) {
         const topic = mediumTopics[idx % mediumTopics.length];
@@ -142,7 +160,7 @@ export default function AIStudyPlanner() {
         remainingMinutes -= time;
       }
 
-      // Allocate 10% time to strong topics (revision)
+      // 10% time to strong topics (revision)
       if (strongTopics.length > 0 && remainingMinutes > 0) {
         const topic = strongTopics[idx % strongTopics.length];
         tasks.push({ ...topic, timeMinutes: Math.floor(remainingMinutes), priority: 'low' });
@@ -156,6 +174,31 @@ export default function AIStudyPlanner() {
     });
 
     setWeeklyPlan(plan);
+  };
+
+  const updateSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          daily_study_hours: studyHours,
+          target_exam: targetExam,
+          target_exam_date: targetExamDate
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Settings updated!');
+      setShowSettings(false);
+      loadStudyData();
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      toast.error('Failed to update settings');
+    }
   };
 
   if (loading) {
@@ -245,65 +288,130 @@ export default function AIStudyPlanner() {
 
   return (
     <div className="space-y-6 pb-6">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 p-6 sm:p-8 text-white shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl"></div>
-        
-        <div className="relative z-10">
-          <div className="flex items-start justify-between mb-4">
+      {/* Hero Stats - No overlap */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-700 text-white border-0">
+          <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Sparkles className="h-6 w-6" />
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Target className="h-5 w-5" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">AI Study Planner</h1>
-                <p className="text-sm text-white/80 mt-1">Your personalized path to JEE success</p>
+                <p className="text-xs opacity-90">Focus Areas</p>
+                <p className="text-2xl font-bold">{weaknesses.length}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => loadStudyData()}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border-white/30 text-white"
-              >
-                🔄 Refresh
-              </Button>
-              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
-                {studyHours}h daily
-              </Badge>
-            </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Target className="h-4 w-4" />
-                <span className="text-xs font-medium text-white/80">Focus Areas</span>
+        <Card className="bg-gradient-to-br from-green-500 to-emerald-700 text-white border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Trophy className="h-5 w-5" />
               </div>
-              <p className="text-2xl font-bold">{weaknesses.length}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="h-4 w-4" />
-                <span className="text-xs font-medium text-white/80">Strengths</span>
+              <div>
+                <p className="text-xs opacity-90">Strengths</p>
+                <p className="text-2xl font-bold">{strengths.length}</p>
               </div>
-              <p className="text-2xl font-bold">{strengths.length}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4" />
-                <span className="text-xs font-medium text-white/80">This Week</span>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-500 to-indigo-700 text-white border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Calendar className="h-5 w-5" />
               </div>
-              <p className="text-2xl font-bold">{weeklyPlan.length}</p>
+              <div>
+                <p className="text-xs opacity-90">Days to {targetExam}</p>
+                <p className="text-2xl font-bold">{daysRemaining > 0 ? daysRemaining : 'Set Date'}</p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500 to-red-700 text-white border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Award className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs opacity-90">Predicted Rank</p>
+                <p className="text-2xl font-bold">{predictedRank > 0 ? predictedRank.toLocaleString() : 'N/A'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Settings Card */}
+      <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-indigo-900">
+              <Timer className="h-5 w-5" />
+              Study Settings
+            </CardTitle>
+            <Button
+              onClick={() => setShowSettings(!showSettings)}
+              variant="ghost"
+              size="sm"
+            >
+              {showSettings ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {showSettings && (
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <Label>Daily Study Hours</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={studyHours}
+                  onChange={(e) => setStudyHours(Number(e.target.value))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Target Exam</Label>
+                <select
+                  value={targetExam}
+                  onChange={(e) => setTargetExam(e.target.value as 'JEE' | 'NEET')}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                >
+                  <option value="JEE">JEE</option>
+                  <option value="NEET">NEET</option>
+                </select>
+              </div>
+              <div>
+                <Label>Exam Date</Label>
+                <Input
+                  type="date"
+                  value={targetExamDate}
+                  onChange={(e) => {
+                    setTargetExamDate(e.target.value);
+                    const days = Math.ceil((new Date(e.target.value).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    setDaysRemaining(days);
+                  }}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <Button onClick={updateSettings} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600">
+              Save Settings
+            </Button>
+          </CardContent>
+        )}
+      </Card>
+
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Focus Areas (Weaknesses) */}
+        {/* Focus Areas */}
         <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-orange-900">
@@ -316,7 +424,7 @@ export default function AIStudyPlanner() {
           <CardContent className="space-y-3">
             {weaknesses.length > 0 ? (
               weaknesses.map((topic, idx) => (
-                <div key={idx} className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-orange-100">
+                <div key={idx} className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-orange-100">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{topic.topic}</p>
@@ -354,7 +462,7 @@ export default function AIStudyPlanner() {
           <CardContent className="space-y-3">
             {strengths.length > 0 ? (
               strengths.map((topic, idx) => (
-                <div key={idx} className="group bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-green-100">
+                <div key={idx} className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all border border-green-100">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{topic.topic}</p>
@@ -388,12 +496,12 @@ export default function AIStudyPlanner() {
               <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 text-white rounded-lg">
                 <Calendar className="h-5 w-5" />
               </div>
-              <span>Weekly Study Plan</span>
+              <span>Weekly Study Plan ({studyHours}h/day)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {weeklyPlan.map((dayPlan, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-blue-100 overflow-hidden shadow-sm hover:shadow-md transition-all">
+              <div key={idx} className="bg-white rounded-xl border border-blue-100 overflow-hidden shadow-sm">
                 <button
                   onClick={() => setExpandedDay(expandedDay === dayPlan.day ? null : dayPlan.day)}
                   className="w-full flex items-center justify-between p-4 hover:bg-blue-50 transition-colors"
@@ -413,25 +521,40 @@ export default function AIStudyPlanner() {
                     <ChevronDown className="h-5 w-5 text-slate-400" />
                   )}
                 </button>
-                
+
                 {expandedDay === dayPlan.day && (
-                  <div className="border-t border-blue-100 p-4 space-y-3 bg-gradient-to-br from-slate-50 to-blue-50">
+                  <div className="px-4 pb-4 space-y-2">
                     {dayPlan.tasks.map((task, taskIdx) => (
-                      <div key={taskIdx} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            task.priority === 'high' ? 'bg-orange-500' :
-                            task.priority === 'medium' ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 truncate">{task.topic}</p>
-                            <p className="text-xs text-slate-500">{task.subject}</p>
-                          </div>
+                      <div
+                        key={taskIdx}
+                        className={`p-3 rounded-lg border ${
+                          task.priority === 'high'
+                            ? 'bg-orange-50 border-orange-200'
+                            : task.priority === 'medium'
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-green-50 border-green-200'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="font-medium text-sm text-slate-900">{task.topic}</p>
+                          <Badge
+                            className={`text-xs ${
+                              task.priority === 'high'
+                                ? 'bg-orange-500'
+                                : task.priority === 'medium'
+                                ? 'bg-blue-500'
+                                : 'bg-green-500'
+                            }`}
+                          >
+                            {task.priority}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Clock className="h-3 w-3 text-slate-400" />
-                          <span className="text-xs font-medium text-slate-600">{task.timeMinutes}m</span>
+                        <p className="text-xs text-slate-500 mb-2">
+                          {task.subject} • {task.chapter}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-slate-600">
+                          <Clock className="h-3 w-3" />
+                          <span>{task.timeMinutes} minutes</span>
                         </div>
                       </div>
                     ))}

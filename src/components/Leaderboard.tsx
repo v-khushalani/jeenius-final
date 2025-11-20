@@ -87,10 +87,12 @@ const Leaderboard: React.FC = () => {
       
       profiles.forEach(profile => {
         const attempts = attemptsByUser.get(profile.id) || [];
-        if (attempts.length === 0 && timeFilter !== 'alltime') return; // Skip users with no attempts for time-filtered views
-
-        // Allow users with 0 attempts in alltime view
-        if (attempts.length === 0 && timeFilter === 'alltime') {
+        
+        // Show all users (at least with points or attempts)
+        if (attempts.length === 0) {
+          // Only skip completely inactive users in time-filtered views
+          if (timeFilter !== 'alltime' && (!profile.total_points || profile.total_points === 0)) return;
+          
           userStats.push({
             id: profile.id,
             full_name: profile.full_name || 'Anonymous',
