@@ -359,9 +359,6 @@ const StudyNowPage = () => {
       const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
       const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || 'Easy';
 
-      // Show level info
-      toast.info(`Starting at ${targetDifficulty} level`, { duration: 2000 });
-
       const { data: attemptedQuestions } = await supabase
         .from('question_attempts')
         .select('question_id')
@@ -369,12 +366,13 @@ const StudyNowPage = () => {
 
       const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
 
+      // Try to get questions at user's level
       let query = supabase
         .from('questions')
         .select('*')
         .eq('subject', selectedSubject)
         .eq('chapter', selectedChapter)
-        .eq('difficulty', targetDifficulty); // Filter by user's level
+        .eq('difficulty', targetDifficulty);
 
       if (attemptedIds.length > 0) {
         query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
@@ -384,53 +382,41 @@ const StudyNowPage = () => {
         query = query.eq('topic', topic);
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
       if (error) throw error;
 
-      // If no questions at current level, try next level
+      // If no questions at current level, get ANY difficulty
       if (!data || data.length === 0) {
-        const nextLevel = Math.min(userLevel + 1, 3);
-        if (nextLevel > userLevel) {
-          const nextDifficulty = difficultyMap[nextLevel as keyof typeof difficultyMap];
-          toast.info(`Moving to ${nextDifficulty} level!`, { duration: 2000 });
-          
-          let nextQuery = supabase
-            .from('questions')
-            .select('*')
-            .eq('subject', selectedSubject)
-            .eq('chapter', selectedChapter)
-            .eq('difficulty', nextDifficulty);
-          
-          if (attemptedIds.length > 0) {
-            nextQuery = nextQuery.not('id', 'in', `(${attemptedIds.join(',')})`);
-          }
-          if (topic) {
-            nextQuery = nextQuery.eq('topic', topic);
-          }
-          
-          const { data: nextData } = await nextQuery;
-          if (nextData && nextData.length > 0) {
-            setCurrentLevel(nextLevel);
-            const shuffled = nextData.sort(() => Math.random() - 0.5);
-            setPracticeQuestions(shuffled);
-            setCurrentQuestionIndex(0);
-            setSessionStats({ correct: 0, total: 0, streak: 0 });
-            setSelectedAnswer(null);
-            setShowResult(false);
-            setView('practice');
-            setLoading(false);
-            return;
-          }
+        let fallbackQuery = supabase
+          .from('questions')
+          .select('*')
+          .eq('subject', selectedSubject)
+          .eq('chapter', selectedChapter);
+        
+        if (attemptedIds.length > 0) {
+          fallbackQuery = fallbackQuery.not('id', 'in', `(${attemptedIds.join(',')})`);
+        }
+        if (topic) {
+          fallbackQuery = fallbackQuery.eq('topic', topic);
         }
         
-        toast.info('🎉 You\'ve completed all available questions!');
-        setLoading(false);
-        return;
+        const fallbackResult = await fallbackQuery;
+        data = fallbackResult.data;
+        
+        if (!data || data.length === 0) {
+          toast.info('🎉 You\'ve completed all available questions!');
+          setLoading(false);
+          return;
+        }
+        
+        toast.info(`No ${targetDifficulty} questions available, showing mixed difficulties`);
+      } else {
+        toast.info(`Starting at ${targetDifficulty} level`, { duration: 2000 });
       }
 
       const shuffled = data.sort(() => Math.random() - 0.5);
 
-      setPracticeQuestions(shuffled); // All questions, no 25 limit
+      setPracticeQuestions(shuffled);
       setCurrentQuestionIndex(0);
       setSessionStats({ correct: 0, total: 0, streak: 0 });
       setSelectedAnswer(null);
