@@ -87,7 +87,6 @@ const StudyNowPage = () => {
         UserLimitsService.getDailyLimit(user.id)
       ]);
 
-      setDailyTarget(streakStatus.todayTarget);
       setDailyQuestionsUsed(streakStatus.todayCompleted);
       setDailyLimit(limit);
       setIsPro(isPremium);
@@ -569,15 +568,10 @@ const handleAnswer = async (answer: string) => {
                 <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 justify-between">
-                        <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-orange-600" />
-                          <div className="text-sm font-bold text-orange-900">
-                            Daily: {dailyQuestionsUsed}/{dailyLimit}
-                          </div>
-                        </div>
-                        <div className="text-xs text-orange-700">
-                          Target: {dailyTarget} 🎯
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-orange-600" />
+                        <div className="text-sm font-bold text-orange-900">
+                          Daily: {dailyQuestionsUsed}/{dailyLimit}
                         </div>
                       </div>
                       <div className="mt-2 w-full rounded-full bg-orange-200 h-2">
@@ -587,12 +581,7 @@ const handleAnswer = async (answer: string) => {
                         />
                       </div>
                       <div className="text-xs text-orange-700 mt-2">
-                        {dailyTarget > dailyLimit ? (
-                          <span className="font-semibold flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
-                            Your target ({dailyTarget}) exceeds FREE limit ({dailyLimit})! Upgrade to continue streak.
-                          </span>
-                        ) : dailyQuestionsUsed >= dailyLimit - 5 ? (
+                        {dailyQuestionsUsed >= dailyLimit - 5 ? (
                           <span className="font-semibold">⚠️ Almost at your limit! Upgrade for unlimited.</span>
                         ) : (
                           <span>Upgrade to Pro for unlimited questions + AI features!</span>
@@ -760,40 +749,6 @@ const handleAnswer = async (answer: string) => {
         <Header />
         <div className="pt-20 sm:pt-24 pb-10">
           <div className="container mx-auto px-4 max-w-7xl">
-            {streak > 0 && (
-              <Card className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-xl">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Flame className="w-6 h-6 text-orange-500" fill="currentColor" />
-                        <div>
-                          <div className="text-2xl font-bold text-orange-900">{streak} Day Streak!</div>
-                          <div className="text-sm text-orange-700">Keep it going! 🔥</div>
-                        </div>
-                      </div>
-                      
-                      <div className="h-12 w-px bg-orange-300 hidden sm:block"></div>
-                      
-                      <div className="hidden sm:flex items-center gap-2">
-                        <Target className="w-5 h-5 text-orange-600" />
-                        <div>
-                          <div className="text-lg font-bold text-orange-900">Today: {dailyQuestionsUsed}/{dailyTarget}</div>
-                          <div className="text-xs text-orange-700">Daily target</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {dailyQuestionsUsed < dailyTarget && (
-                      <Badge className="bg-orange-600 text-white px-3 py-1">
-                        {dailyTarget - dailyQuestionsUsed} more to go!
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {subjects.map((subject) => (
                 <Card
