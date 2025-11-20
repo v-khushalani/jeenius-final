@@ -142,9 +142,9 @@ const StudyNowPage = () => {
         const totalQuestions = subjectQuestions.length;
 
         const difficulties = {
-          easy: subjectQuestions.filter(q => q.difficulty === 'Easy').length,
-          medium: subjectQuestions.filter(q => q.difficulty === 'Medium').length,
-          hard: subjectQuestions.filter(q => q.difficulty === 'Hard').length
+          easy: subjectQuestions.filter(q => q.difficulty === '1').length,
+          medium: subjectQuestions.filter(q => q.difficulty === '2').length,
+          hard: subjectQuestions.filter(q => q.difficulty === '3').length
         };
 
         const subjectAttempts = userAttempts?.filter(
@@ -232,9 +232,9 @@ const StudyNowPage = () => {
         const totalQuestions = chapterQuestions.length;
 
         const difficulties = {
-          easy: chapterQuestions.filter(q => q.difficulty === 'Easy').length,
-          medium: chapterQuestions.filter(q => q.difficulty === 'Medium').length,
-          hard: chapterQuestions.filter(q => q.difficulty === 'Hard').length
+          easy: chapterQuestions.filter(q => q.difficulty === '1').length,
+          medium: chapterQuestions.filter(q => q.difficulty === '2').length,
+          hard: chapterQuestions.filter(q => q.difficulty === '3').length
         };
 
         const chapterAttempts = userAttempts?.filter(
@@ -305,9 +305,9 @@ const StudyNowPage = () => {
         const totalQuestions = topicQuestions.length;
 
         const difficulties = {
-          easy: topicQuestions.filter(q => q.difficulty === 'Easy').length,
-          medium: topicQuestions.filter(q => q.difficulty === 'Medium').length,
-          hard: topicQuestions.filter(q => q.difficulty === 'Hard').length
+          easy: topicQuestions.filter(q => q.difficulty === '1').length,
+          medium: topicQuestions.filter(q => q.difficulty === '2').length,
+          hard: topicQuestions.filter(q => q.difficulty === '3').length
         };
 
         const topicAttempts = userAttempts?.filter(

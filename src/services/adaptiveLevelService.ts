@@ -134,12 +134,12 @@ class AdaptiveLevelService {
   ): Promise<any[]> {
     try {
       const difficultyMap = {
-        1: 'easy',
-        2: 'medium',
-        3: 'hard'
+        1: '1',
+        2: '2',
+        3: '3'
       };
 
-      const difficulty = difficultyMap[level as keyof typeof difficultyMap] || 'easy';
+      const difficulty = difficultyMap[level as keyof typeof difficultyMap] || '1';
 
       const { data, error } = await supabase
         .from('questions')

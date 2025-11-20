@@ -56,7 +56,7 @@ export const useQuestions = (filters?: {
       }
 
       if (filters?.difficulty) {
-        const difficultyMap = { 1: 'easy', 2: 'medium', 3: 'hard' };
+        const difficultyMap = { 1: '1', 2: '2', 3: '3' };
         query = query.eq('difficulty', difficultyMap[filters.difficulty as keyof typeof difficultyMap]);
       }
 
@@ -83,7 +83,7 @@ export const useQuestions = (filters?: {
         explanation: '', // Hidden by RLS
         subject: q.subject,
         topic: q.topic,
-        difficulty_level: q.difficulty === 'easy' ? 1 : q.difficulty === 'medium' ? 2 : 3,
+        difficulty_level: q.difficulty === '1' ? 1 : q.difficulty === '2' ? 2 : 3,
         chapter: q.chapter
       }));
 
@@ -132,7 +132,7 @@ const getRandomQuestions = async (
       }
 
       if (difficulty) {
-        const difficultyMap = { 1: 'easy', 2: 'medium', 3: 'hard' };
+        const difficultyMap = { 1: '1', 2: '2', 3: '3' };
         query = query.eq('difficulty', difficultyMap[difficulty as keyof typeof difficultyMap]);
       }
 
@@ -167,7 +167,7 @@ const getRandomQuestions = async (
         explanation: '', // Hidden by RLS
         subject: q.subject,
         topic: q.topic,
-        difficulty_level: q.difficulty === 'easy' ? 1 : q.difficulty === 'medium' ? 2 : 3,
+        difficulty_level: q.difficulty === '1' ? 1 : q.difficulty === '2' ? 2 : 3,
         chapter: q.chapter
       }));
 
