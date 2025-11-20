@@ -157,10 +157,9 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Right Side: Points Display + Auth Buttons */}
+          {/* Right Side: Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* ✅ JEEnius Points Display - Show when authenticated */}
-            {isAuthenticated && <PointsDisplay />}
+            {/* Points display removed - already shown on dashboard */}
             
             {isAuthenticated ? (
               <DropdownMenu>

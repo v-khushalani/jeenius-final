@@ -25,6 +25,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import Leaderboard from "@/components/Leaderboard";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useStreakData } from "@/hooks/useStreakData";
+import PointsService from "@/services/pointsService";
 
 const EnhancedDashboard = () => {
   const { user } = useAuth();
@@ -40,6 +41,7 @@ const EnhancedDashboard = () => {
   const [currentTime, setCurrentTime] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
+  const [pointsLevel, setPointsLevel] = useState({ name: 'BEGINNER', pointsToNext: 0, nextLevel: 'LEARNER' });
 
   useEffect(() => {
     setIsClient(true);
@@ -49,6 +51,18 @@ const EnhancedDashboard = () => {
   useEffect(() => {
     if (stats) setLeaderboardKey((prev) => prev + 1);
   }, [stats]);
+
+  useEffect(() => {
+    if (user?.id) {
+      PointsService.getUserPoints(user.id).then((data) => {
+        setPointsLevel({
+          name: data.level,
+          pointsToNext: data.levelInfo.pointsToNext,
+          nextLevel: data.levelInfo.nextLevel
+        });
+      });
+    }
+  }, [user?.id, stats?.totalPoints]);
 
   const displayName =
     profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Student";
@@ -314,27 +328,26 @@ const EnhancedDashboard = () => {
               {/* ✅ NEW: 4 Dynamic Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 
-                {/* Questions Card */}
-                <Card className="rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-blue-500 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 backdrop-blur-sm"> 
+                {/* 1st Card: Day Streak */}
+                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 
                   <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-start gap-2">
-                        <div className="p-1.5 sm:p-2 bg-blue-600 rounded-lg flex-shrink-0">
-                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                        </div>
-                        <p className="text-xs font-medium text-blue-900">Questions</p>
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className={`p-1.5 sm:p-2 ${streakColors.iconBg} rounded-lg flex-shrink-0 animate-pulse`}>
+                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
+                      <p className="text-xs font-medium text-slate-700">Day Streak</p>
                     </div>
-                    <h3 className="text-2xl sm:text-3xl font-bold text-blue-900">
-                      {stats?.questionsToday ?? 0}
+                    <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>
+                      {streak ?? 0}
                     </h3>
-                    <p className="text-xs text-blue-700/70 mt-1">
-                      <span className="text-green-600 font-semibold">+{stats?.questionsToday ?? 0} today</span> • {stats?.questionsWeek ?? 0}/week
+                    <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                      <Flame className="h-3 w-3 text-orange-500" />
+                      {streak > 0 ? 'Keep going!' : 'Start your streak today!'}
                     </p>
                   </CardContent>
                 </Card>
 
-                {/* Today's Accuracy Card */}
+                {/* 2nd Card: Today's Accuracy */}
                 <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${accuracyColors.border} ${accuracyColors.bg} backdrop-blur-sm`}> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -372,7 +385,7 @@ const EnhancedDashboard = () => {
                   </CardContent>
                 </Card>
 
-                {/* Today's Goal Card */}
+                {/* 3rd Card: Today's Goal */}
                 <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${goalColors.border} ${goalColors.bg} backdrop-blur-sm`}> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -416,22 +429,24 @@ const EnhancedDashboard = () => {
                   </CardContent>
                 </Card>
 
-                {/* Day Streak Card */}
-                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 
+                {/* 4th Card: JEEnius Points */}
+                <Card className="rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-purple-500 bg-gradient-to-br from-purple-50/80 via-pink-50/80 to-indigo-50/80 backdrop-blur-sm"> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start gap-2 mb-2">
-                      <div className={`p-1.5 sm:p-2 ${streakColors.iconBg} rounded-lg flex-shrink-0 animate-pulse`}>
-                        <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                      <div className="p-1.5 sm:p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex-shrink-0">
+                        <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
-                      <p className="text-xs font-medium text-slate-700">Day Streak</p>
+                      <p className="text-xs font-medium text-purple-900">JEEnius Points</p>
                     </div>
-                    <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>
-                      {streak ?? 0}
+                    <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      {stats?.totalPoints ?? 0}
                     </h3>
-                    <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
-                      <Flame className="h-3 w-3 text-orange-500" />
-                      {streak > 0 ? 'Keep going!' : 'Start your streak today!'}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge className="text-xs font-bold px-2 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                        {pointsLevel.name}
+                      </Badge>
+                      <Sparkles className="h-3 w-3 text-pink-500" />
+                    </div>
                   </CardContent>
                 </Card>
               </div>
