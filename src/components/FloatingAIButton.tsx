@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { Bot, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import AIDoubtSolver from './AIDoubtSolver';
 import { useAuth } from '@/contexts/AuthContext';
 
 const FloatingAIButton = () => {
   const [showAI, setShowAI] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const { isAuthenticated, isPremium, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
+  // Hide on test pages
+  const isTestPage = location.pathname.includes('/test') || 
+                     location.pathname.includes('/tests');
+  
+  // Don't show if not authenticated or on test pages
+  if (!isAuthenticated || isTestPage) {
+    return null;
+  }
   
   // Dummy question for general doubts (outside practice mode)
   const generalQuestion = {
@@ -19,9 +29,6 @@ const FloatingAIButton = () => {
     correct_option: "",
     explanation: ""
   };
-
-  // Completely disabled - never show
-  return null;
 
   return (
     <>
