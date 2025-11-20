@@ -314,76 +314,123 @@ const EnhancedDashboard = () => {
               {/* ✅ NEW: 4 Dynamic Stats Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
                 
-                {/* Streak Card with Day Counter */}
+                {/* Questions Card */}
+                <Card className="rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-blue-500 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 backdrop-blur-sm"> 
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-2">
+                        <div className="p-1.5 sm:p-2 bg-blue-600 rounded-lg flex-shrink-0">
+                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                        </div>
+                        <p className="text-xs font-medium text-blue-900">Questions</p>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-bold text-blue-900">
+                      {stats?.questionsToday ?? 0}
+                    </h3>
+                    <p className="text-xs text-blue-700/70 mt-1">
+                      <span className="text-green-600 font-semibold">+{stats?.questionsToday ?? 0} today</span> • {stats?.questionsWeek ?? 0}/week
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Today's Accuracy Card */}
+                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${accuracyColors.border} ${accuracyColors.bg} backdrop-blur-sm`}> 
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-2">
+                        <div className={`p-1.5 sm:p-2 ${accuracyColors.iconBg} rounded-lg flex-shrink-0`}>
+                          <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                        </div>
+                        <p className="text-xs font-medium text-slate-700">Today's Accuracy</p>
+                      </div>
+                    </div>
+                    <div className="flex items-end justify-between mb-2">
+                      <h3 className={`text-2xl sm:text-3xl font-bold ${accuracyColors.text}`}>
+                        {stats?.todayAccuracy ?? 0}%
+                      </h3>
+                      <div className="flex items-center gap-1">
+                        {stats?.accuracyChange && stats.accuracyChange > 0 ? (
+                          <span className="text-xs text-green-600 font-semibold">↑ {Math.abs(stats.accuracyChange)}% week</span>
+                        ) : stats?.accuracyChange && stats.accuracyChange < 0 ? (
+                          <span className="text-xs text-red-600 font-semibold">↓ {Math.abs(stats.accuracyChange)}% week</span>
+                        ) : (
+                          <span className="text-xs text-gray-600 font-semibold">→ 0% week</span>
+                        )}
+                        <Badge className={`text-xs font-semibold px-2 py-0.5 ${
+                          (stats?.todayAccuracy ?? 0) >= 80 ? 'bg-emerald-500 text-white' :
+                          (stats?.todayAccuracy ?? 0) >= 60 ? 'bg-orange-500 text-white' :
+                          'bg-red-500 text-white'
+                        }`}>
+                          {(stats?.todayAccuracy ?? 0) >= 80 ? 'Great!' : (stats?.todayAccuracy ?? 0) >= 60 ? 'Focus!' : 'Practice!'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Overall: {stats?.accuracy ?? 0}%
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Today's Goal Card */}
+                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${goalColors.border} ${goalColors.bg} backdrop-blur-sm`}> 
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-2">
+                        <div className={`p-1.5 sm:p-2 ${goalColors.iconBg} rounded-lg flex-shrink-0`}>
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                        </div>
+                        <p className="text-xs font-medium text-slate-700">Today's Goal</p>
+                      </div>
+                    </div>
+                    <div className="flex items-end justify-between mb-2">
+                      <h3 className={`text-2xl sm:text-3xl font-bold ${goalColors.text}`}>
+                        {stats?.todayProgress ?? 0}/{stats?.todayGoal ?? 30}
+                      </h3>
+                      <Badge className={`text-xs font-semibold px-2 py-0.5 ${
+                        (stats?.todayProgress ?? 0) >= (stats?.todayGoal ?? 30) ? 'bg-emerald-500 text-white' :
+                        (stats?.todayProgress ?? 0) >= ((stats?.todayGoal ?? 30) * 0.5) ? 'bg-yellow-500 text-white' :
+                        'bg-orange-500 text-white'
+                      }`}>
+                        {(stats?.todayProgress ?? 0) >= (stats?.todayGoal ?? 30) ? '🔥 Done!' : 
+                         (stats?.todayProgress ?? 0) >= ((stats?.todayGoal ?? 30) * 0.5) ? '💪 Let\'s push!' : 
+                         '🎯 Let\'s go!'}
+                      </Badge>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all ${
+                          (stats?.todayProgress ?? 0) >= (stats?.todayGoal ?? 30) ? 'bg-emerald-500' :
+                          (stats?.todayProgress ?? 0) >= ((stats?.todayGoal ?? 30) * 0.5) ? 'bg-yellow-500' :
+                          'bg-orange-500'
+                        }`}
+                        style={{ width: `${Math.min(100, ((stats?.todayProgress ?? 0) / (stats?.todayGoal ?? 30)) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      {(stats?.todayGoal ?? 30) - (stats?.todayProgress ?? 0) > 0 
+                        ? `${(stats?.todayGoal ?? 30) - (stats?.todayProgress ?? 0)} questions left - Let's go! 🚀`
+                        : `Goal achieved! 🎉`
+                      }
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Day Streak Card */}
                 <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-start gap-2 mb-2">
                       <div className={`p-1.5 sm:p-2 ${streakColors.iconBg} rounded-lg flex-shrink-0 animate-pulse`}>
                         <Flame className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </div>
-                      <p className="text-xs font-medium text-slate-700">Streak</p>
+                      <p className="text-xs font-medium text-slate-700">Day Streak</p>
                     </div>
                     <h3 className={`text-2xl sm:text-3xl font-bold ${streakColors.text}`}>
-                      Day {streak}
+                      {streak ?? 0}
                     </h3>
-                    <p className="text-xs text-slate-600 mt-1">
-                      {streak > 0 ? `${streak} day${streak > 1 ? 's' : ''} strong 🔥` : 'Start today!'}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Accuracy Card */}
-                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${accuracyColors.border} ${accuracyColors.bg} backdrop-blur-sm`}> 
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className={`p-1.5 sm:p-2 ${accuracyColors.iconBg} rounded-lg flex-shrink-0`}>
-                        <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                      </div>
-                      <p className="text-xs font-medium text-slate-700">Accuracy</p>
-                    </div>
-                    <h3 className={`text-2xl sm:text-3xl font-bold ${accuracyColors.text}`}>
-                      {stats?.todayAccuracy ?? 0}%
-                    </h3>
-                    <Progress 
-                      className={`h-1.5 sm:h-2 mt-1.5 sm:mt-2 ${accuracyColors.progressBg}`}
-                      value={stats?.todayAccuracy ?? 0}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Goal Card */}
-                <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${goalColors.border} ${goalColors.bg} backdrop-blur-sm`}> 
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className={`p-1.5 sm:p-2 ${goalColors.iconBg} rounded-lg flex-shrink-0`}>
-                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                      </div>
-                      <p className="text-xs font-medium text-slate-700">Daily Goal</p>
-                    </div>
-                    <h3 className={`text-2xl sm:text-3xl font-bold ${goalColors.text}`}>
-                      {stats?.todayProgress}/{stats?.todayGoal ?? 30}
-                    </h3>
-                    <Progress 
-                      className={`h-1.5 sm:h-2 mt-1.5 sm:mt-2 ${goalColors.progressBg}`}
-                      value={(stats?.todayProgress / (stats?.todayGoal ?? 30)) * 100}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* JEEnius Points Card (moved from Streak position) */}
-                <Card className="rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 border-purple-500 bg-gradient-to-br from-purple-50/80 to-pink-50/80 backdrop-blur-sm"> 
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex items-start gap-2 mb-2">
-                      <div className="p-1.5 sm:p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex-shrink-0">
-                        <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                      </div>
-                      <p className="text-xs font-medium text-purple-900/70">Points</p>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      {stats?.totalPoints ?? 0}
-                    </h3>
-                    <p className="text-xs text-purple-700/60 mt-1">
-                      <span className="font-semibold">Level {stats?.currentLevel ?? 1}</span> · {stats?.pointsToNext ?? 0} to go
+                    <p className="text-xs text-slate-600 mt-1 flex items-center gap-1">
+                      <Flame className="h-3 w-3 text-orange-500" />
+                      {streak > 0 ? 'Keep going!' : 'Start your streak today!'}
                     </p>
                   </CardContent>
                 </Card>

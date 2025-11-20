@@ -159,8 +159,8 @@ const Header = () => {
 
           {/* Right Side: Points Display + Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* 🚀 NEW: Points Display - Only show when authenticated */}
-            {/* {isAuthenticated && <PointsDisplay />} */}
+            {/* ✅ JEEnius Points Display - Show when authenticated */}
+            {isAuthenticated && <PointsDisplay />}
             
             {isAuthenticated ? (
               <DropdownMenu>

@@ -1,11 +1,12 @@
 // src/components/PointsDisplay.tsx
-// ✅ FIXED VERSION - Real-time points from profiles.total_points
+// ✅ ENHANCED VERSION - JEEnius Points with Level Display
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Flame, Target } from 'lucide-react';
+import { Trophy, Flame, Target, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStreakData } from '@/hooks/useStreakData';
+import PointsService from '@/services/pointsService';
 
 const PointsDisplay = () => {
   const { user } = useAuth();
@@ -13,7 +14,9 @@ const PointsDisplay = () => {
   const [stats, setStats] = useState({
     totalPoints: 0,
     todayProgress: 0,
-    todayGoal: 15
+    todayGoal: 15,
+    level: 'BEGINNER',
+    pointsToNext: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -56,13 +59,9 @@ const PointsDisplay = () => {
     if (!user?.id) return;
 
     try {
-      // Get total points from profiles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('total_points')
-        .eq('id', user.id)
-        .single();
-
+      // Get total points and level info
+      const levelInfo = await PointsService.getUserPoints(user.id);
+      
       // Get today's progress
       const today = new Date().toISOString().split('T')[0];
       const { count } = await supabase
@@ -73,9 +72,11 @@ const PointsDisplay = () => {
         .lte('created_at', `${today}T23:59:59.999Z`);
 
       setStats({
-        totalPoints: profile?.total_points || 0,
+        totalPoints: levelInfo.totalPoints,
         todayProgress: count || 0,
-        todayGoal: 15
+        todayGoal: 15,
+        level: levelInfo.level,
+        pointsToNext: levelInfo.levelInfo.pointsToNext
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -95,13 +96,25 @@ const PointsDisplay = () => {
 
   return (
     <div className="flex items-center gap-3">
-      {/* Points */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100 hover:shadow-md transition-shadow">
-        <Trophy className="h-4 w-4 text-indigo-600" />
-        <span className="text-sm font-bold text-indigo-900">
-          {stats.totalPoints}
-        </span>
-        <span className="text-xs text-slate-500">pts</span>
+      {/* JEEnius Points with Level */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-100 via-pink-100 to-indigo-100 rounded-lg border-2 border-purple-300 hover:shadow-lg transition-all">
+        <div className="flex items-center gap-1.5">
+          <Trophy className="h-4 w-4 text-purple-700" />
+          <Sparkles className="h-3 w-3 text-pink-600 animate-pulse" />
+        </div>
+        <div className="flex flex-col">
+          <span className="text-xs font-bold bg-gradient-to-r from-purple-700 to-pink-600 bg-clip-text text-transparent">
+            JEEnius Points
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-purple-900">
+              {stats.totalPoints}
+            </span>
+            <span className="text-xs font-semibold px-1.5 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded">
+              {stats.level}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Streak */}
