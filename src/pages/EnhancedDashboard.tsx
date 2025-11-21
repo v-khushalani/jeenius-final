@@ -30,7 +30,7 @@ import PointsService from "@/services/pointsService";
 const EnhancedDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { stats, profile, loading: isLoading } = useUserStats();
+  const { stats, profile, loading: isLoading, refresh: refreshStats } = useUserStats();
   const { streak } = useStreakData();
   const [showBanner, setShowBanner] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
@@ -46,7 +46,9 @@ const EnhancedDashboard = () => {
   useEffect(() => {
     setIsClient(true);
     setCurrentTime(new Date().getHours());
-  }, []);
+    // Refresh stats when component mounts to get latest data
+    refreshStats();
+  }, [refreshStats]);
 
   useEffect(() => {
     if (stats) setLeaderboardKey((prev) => prev + 1);

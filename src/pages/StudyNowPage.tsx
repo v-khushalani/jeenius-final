@@ -131,8 +131,7 @@ const StudyNowPage = () => {
 
       const { data: allQuestions, error } = await supabase
         .from('questions')
-        .select('subject, difficulty')
-        .limit(10000);
+        .select('subject, difficulty');
 
       if (error) throw error;
 

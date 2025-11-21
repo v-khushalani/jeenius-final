@@ -37,22 +37,8 @@ const AuthCallback = () => {
 
        if (sessionData.session?.user) {
         console.log('✅ User authenticated successfully');
-        
-        // Check if user has completed profile (grade + exam selection)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, target_exam, grade, goals_set')
-          .eq('id', sessionData.session.user.id)
-          .maybeSingle();
-        
-        // Always redirect to dashboard after login
-        if (profile?.goals_set && profile?.target_exam && profile?.grade) {
-          console.log('✅ Profile complete, redirecting to dashboard');
-          navigate('/dashboard');
-        } else {
-          console.log('🎯 Incomplete profile, but redirecting to dashboard');
-          navigate('/dashboard');
-        }
+        console.log('🎯 Redirecting to dashboard');
+        navigate('/dashboard');
         } else {
           console.log('⚠️ No session found, trying to establish session...');
           // Wait a bit for the session to be established by Supabase
