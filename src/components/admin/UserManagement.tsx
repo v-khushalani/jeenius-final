@@ -40,13 +40,23 @@ const fetchUsers = async () => {
   try {
     setLoading(true);
     
-    // Fetch real users from Supabase
-    const { data: profilesData, error } = await supabase
+    // Fetch users with their roles from user_roles table
+    const { data: profilesData, error: profileError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, created_at, grade, target_exam, role')
+      .select('id, email, full_name, created_at, grade, target_exam')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (profileError) throw profileError;
+
+    // Fetch all user roles
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('user_id, role');
+
+    if (rolesError) throw rolesError;
+
+    // Create a map of user roles
+    const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
 
     const formattedUsers: UserProfile[] = (profilesData || []).map(profile => ({
       id: profile.id,
@@ -56,7 +66,7 @@ const fetchUsers = async () => {
       joined_at: profile.created_at,
       grade: profile.grade,
       target_exam: profile.target_exam,
-      role: profile.role as 'student' | 'admin' | 'super_admin' || 'student'
+      role: (rolesMap.get(profile.id) || 'user') as 'student' | 'admin' | 'super_admin'
     }));
     
     setUsers(formattedUsers);
@@ -93,11 +103,24 @@ const fetchUsers = async () => {
 
   const updateUserRole = async (userId: string, newRole: 'student' | 'admin' | 'super_admin') => {
   try {
-    // Update in Supabase
+    // Map UI role names to app_role enum values
+    const roleMapping: Record<string, string> = {
+      'student': 'user',
+      'admin': 'admin',
+      'super_admin': 'admin' // treat super_admin as admin for now
+    };
+    const dbRole = roleMapping[newRole] || 'user';
+
+    // Delete existing roles for this user
+    await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+
+    // Insert new role
     const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
+      .from('user_roles')
+      .insert({ user_id: userId, role: dbRole });
 
     if (error) throw error;
 
