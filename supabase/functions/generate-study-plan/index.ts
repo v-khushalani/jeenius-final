@@ -121,14 +121,18 @@ Make it feel personal, data-driven, and motivating. Use their actual numbers and
       throw new Error('No content in Gemini response');
     }
 
-    let aiResponse = data.candidates[0].content.parts[0].text;
+    let aiResponse = data.candidates[0].content.parts[0].text.trim();
     
-    // Extract JSON from response (handle markdown code blocks)
-    const jsonMatch = aiResponse.match(/```json\s*(\{[\s\S]*?\})\s*```/) || 
-                      aiResponse.match(/(\{[\s\S]*\})/);
+    // Extract JSON from response - handle multiple formats
+    // Remove markdown code blocks if present
+    aiResponse = aiResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     
-    if (jsonMatch) {
-      aiResponse = jsonMatch[1];
+    // Find the first { and last }
+    const firstBrace = aiResponse.indexOf('{');
+    const lastBrace = aiResponse.lastIndexOf('}');
+    
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      aiResponse = aiResponse.substring(firstBrace, lastBrace + 1);
     }
 
     const aiInsights = JSON.parse(aiResponse);
