@@ -38,9 +38,29 @@ interface WeeklyPlan {
   totalMinutes: number;
 }
 
+interface AIInsights {
+  personalizedGreeting: string;
+  strengthAnalysis: string;
+  weaknessStrategy: string;
+  timeAllocation: {
+    weakTopics: string;
+    mediumTopics: string;
+    revision: string;
+    mockTests: string;
+  };
+  keyRecommendations: string[];
+  motivationalMessage: string;
+  rankPrediction: {
+    currentProjection: string;
+    targetProjection: string;
+    improvementPath: string;
+  };
+}
+
 export default function AIStudyPlanner() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
   const [studyHours, setStudyHours] = useState(6);
   const [strengths, setStrengths] = useState<TopicMastery[]>([]);
   const [weaknesses, setWeaknesses] = useState<TopicMastery[]>([]);
@@ -53,6 +73,8 @@ export default function AIStudyPlanner() {
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
   const [predictedRank, setPredictedRank] = useState<number>(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [aiInsights, setAiInsights] = useState<AIInsights | null>(null);
+  const [avgAccuracy, setAvgAccuracy] = useState(0);
 
   useEffect(() => {
     loadStudyData();
@@ -104,13 +126,25 @@ export default function AIStudyPlanner() {
           setWeaknesses(weakTopics.slice(0, 10));
 
           // Calculate predicted rank based on performance
-          const avgAccuracy = masteryData.reduce((sum, t) => sum + t.accuracy, 0) / masteryData.length;
-          const estimatedRank = Math.round(500000 * (1 - avgAccuracy / 100));
+          const calculatedAvgAccuracy = masteryData.reduce((sum, t) => sum + t.accuracy, 0) / masteryData.length;
+          setAvgAccuracy(calculatedAvgAccuracy);
+          const estimatedRank = Math.round(500000 * (1 - calculatedAvgAccuracy / 100));
           setPredictedRank(estimatedRank);
 
           if (profile?.daily_study_hours) {
             generateWeeklyPlan(profile.daily_study_hours, masteryData);
           }
+
+          // Generate AI insights
+          await generateAIInsights(
+            user.id,
+            profile?.daily_study_hours || 6,
+            profile?.target_exam || 'JEE',
+            daysRemaining,
+            goodTopics,
+            weakTopics,
+            calculatedAvgAccuracy
+          );
         } else {
           setHasData(false);
         }
@@ -176,6 +210,44 @@ export default function AIStudyPlanner() {
     setWeeklyPlan(plan);
   };
 
+  const generateAIInsights = async (
+    userId: string,
+    hours: number,
+    exam: string,
+    days: number,
+    strengthsList: TopicMastery[],
+    weaknessList: TopicMastery[],
+    accuracy: number
+  ) => {
+    try {
+      setGeneratingPlan(true);
+      
+      const { data, error } = await supabase.functions.invoke('generate-study-plan', {
+        body: {
+          userId,
+          studyHours: hours,
+          targetExam: exam,
+          daysRemaining: days,
+          strengths: strengthsList,
+          weaknesses: weaknessList,
+          avgAccuracy: accuracy
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.insights) {
+        setAiInsights(data.insights);
+        toast.success('AI Study Plan Generated! 🎯');
+      }
+    } catch (error) {
+      console.error('Error generating AI insights:', error);
+      toast.error('Could not generate AI insights. Using standard plan.');
+    } finally {
+      setGeneratingPlan(false);
+    }
+  };
+
   const updateSettings = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -204,9 +276,45 @@ export default function AIStudyPlanner() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center space-y-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
-          <p className="text-sm text-slate-600 font-medium">Loading your personalized study plan...</p>
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full opacity-30 blur-2xl animate-pulse"></div>
+            </div>
+            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-slate-900">Analyzing your performance...</p>
+            <p className="text-sm text-slate-600">JEEnius AI is creating your personalized plan</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (generatingPlan) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-32 h-32 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full opacity-20 blur-3xl animate-pulse"></div>
+            </div>
+            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl shadow-lg animate-bounce">
+              <Sparkles className="h-10 w-10 text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xl font-bold text-slate-900">✨ AI Magic in Progress...</p>
+            <p className="text-sm text-slate-600">
+              JEEnius is analyzing your strengths, weaknesses, and creating a personalized strategy just for you
+            </p>
+          </div>
+          <div className="flex justify-center gap-1 pt-4">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
         </div>
       </div>
     );
@@ -288,6 +396,26 @@ export default function AIStudyPlanner() {
 
   return (
     <div className="space-y-6 pb-6">
+      {/* AI Personalized Greeting */}
+      {aiInsights && (
+        <Card className="border-2 border-purple-300 bg-gradient-to-br from-purple-50 via-white to-blue-50 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl shadow-lg flex-shrink-0">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-900">Your Personalized AI Insights</h3>
+                  <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white">AI Generated</Badge>
+                </div>
+                <p className="text-slate-700 leading-relaxed">{aiInsights.personalizedGreeting}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Hero Stats - No overlap */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-purple-500 to-purple-700 text-white border-0">
@@ -409,6 +537,172 @@ export default function AIStudyPlanner() {
           </CardContent>
         )}
       </Card>
+
+      {/* AI Insights Section */}
+      {aiInsights && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Strength Analysis */}
+          <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-emerald-900">
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-green-500 text-white rounded-lg">
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <span>Your Strengths</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 leading-relaxed mb-4">{aiInsights.strengthAnalysis}</p>
+              <div className="space-y-2">
+                {strengths.slice(0, 3).map((topic, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border border-emerald-100">
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm truncate">{topic.topic}</p>
+                        <p className="text-xs text-slate-500">{topic.subject}</p>
+                      </div>
+                      <Badge className="bg-gradient-to-r from-emerald-500 to-green-500 text-white">
+                        {topic.accuracy}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Weakness Strategy */}
+          <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-red-50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-orange-900">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-lg">
+                  <Target className="h-5 w-5" />
+                </div>
+                <span>Focus Strategy</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 leading-relaxed mb-4">{aiInsights.weaknessStrategy}</p>
+              <div className="space-y-2">
+                {weaknesses.slice(0, 3).map((topic, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 shadow-sm border border-orange-100">
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm truncate">{topic.topic}</p>
+                        <p className="text-xs text-slate-500">{topic.subject}</p>
+                      </div>
+                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
+                        {topic.accuracy}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Time Allocation */}
+      {aiInsights && (
+        <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-indigo-900">
+              <Clock className="h-5 w-5" />
+              AI-Recommended Time Allocation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
+                <p className="text-xs text-slate-600 mb-1">Focus Topics</p>
+                <p className="text-xl font-bold text-slate-900">{aiInsights.timeAllocation.weakTopics}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border-l-4 border-blue-500">
+                <p className="text-xs text-slate-600 mb-1">Medium Topics</p>
+                <p className="text-xl font-bold text-slate-900">{aiInsights.timeAllocation.mediumTopics}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border-l-4 border-emerald-500">
+                <p className="text-xs text-slate-600 mb-1">Revision</p>
+                <p className="text-xl font-bold text-slate-900">{aiInsights.timeAllocation.revision}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border-l-4 border-purple-500">
+                <p className="text-xs text-slate-600 mb-1">Mock Tests</p>
+                <p className="text-xl font-bold text-slate-900">{aiInsights.timeAllocation.mockTests}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Key Recommendations */}
+      {aiInsights && (
+        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-900">
+              <Zap className="h-5 w-5" />
+              Personalized Recommendations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {aiInsights.keyRecommendations.map((rec, idx) => (
+                <div key={idx} className="bg-white rounded-lg p-4 shadow-sm border border-blue-100 flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                    {idx + 1}
+                  </div>
+                  <p className="text-slate-700 flex-1">{rec}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rank Prediction */}
+      {aiInsights && (
+        <Card className="border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-900">
+              <Award className="h-5 w-5" />
+              Your Rank Prediction
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
+                <p className="text-xs text-slate-600 mb-1">Current Projection</p>
+                <p className="text-sm font-semibold text-slate-900">{aiInsights.rankPrediction.currentProjection}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border-l-4 border-emerald-500">
+                <p className="text-xs text-slate-600 mb-1">Target Potential</p>
+                <p className="text-sm font-semibold text-slate-900">{aiInsights.rankPrediction.targetProjection}</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border-l-4 border-purple-500">
+                <p className="text-xs text-slate-600 mb-1">Improvement Path</p>
+                <p className="text-sm font-semibold text-slate-900">{aiInsights.rankPrediction.improvementPath}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Motivational Message */}
+      {aiInsights && (
+        <Card className="border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl shadow-lg flex-shrink-0">
+                <Star className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Keep Going! 🚀</h3>
+                <p className="text-slate-700 leading-relaxed">{aiInsights.motivationalMessage}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Focus Areas */}
