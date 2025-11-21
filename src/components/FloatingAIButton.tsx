@@ -7,15 +7,15 @@ import { useAuth } from '@/contexts/AuthContext';
 const FloatingAIButton = () => {
   const [showAI, setShowAI] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isPremium } = useAuth();
   const location = useLocation();
 
   // Hide on test pages
   const isTestPage = location.pathname.includes('/test') || 
                      location.pathname.includes('/tests');
   
-  // Don't show if not authenticated or on test pages
-  if (!isAuthenticated || isTestPage) {
+  // Don't show if not authenticated, not premium, or on test pages
+  if (!isAuthenticated || !isPremium || isTestPage) {
     return null;
   }
   
