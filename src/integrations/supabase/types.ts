@@ -485,48 +485,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payment_orders: {
-        Row: {
-          amount: number
-          completed_at: string | null
-          created_at: string | null
-          currency: string | null
-          id: string
-          order_id: string
-          payment_id: string | null
-          plan_id: string
-          signature: string | null
-          status: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount: number
-          completed_at?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string
-          order_id: string
-          payment_id?: string | null
-          plan_id: string
-          signature?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount?: number
-          completed_at?: string | null
-          created_at?: string | null
-          currency?: string | null
-          id?: string
-          order_id?: string
-          payment_id?: string | null
-          plan_id?: string
-          signature?: string | null
-          status?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       payments: {
         Row: {
           amount: number
@@ -614,33 +572,6 @@ export type Database = {
           subject?: string | null
           topic?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      plans: {
-        Row: {
-          discount_percent: number | null
-          features: string[]
-          id: string
-          monthly_price: number
-          name: string
-          yearly_price: number
-        }
-        Insert: {
-          discount_percent?: number | null
-          features?: string[]
-          id?: string
-          monthly_price: number
-          name: string
-          yearly_price: number
-        }
-        Update: {
-          discount_percent?: number | null
-          features?: string[]
-          id?: string
-          monthly_price?: number
-          name?: string
-          yearly_price?: number
         }
         Relationships: []
       }
@@ -738,15 +669,11 @@ export type Database = {
           onboarding_completed: boolean | null
           phone: string | null
           premium_until: string | null
-          questions_capacity: number | null
-          razorpay_subscription_id: string | null
           role: string | null
           state: string | null
-          student_level: string | null
           study_planner_enabled: boolean | null
           subjects: string[] | null
           subscription_end_date: string | null
-          subscription_plan: string | null
           target_exam: string | null
           target_exam_date: string | null
           total_points: number | null
@@ -770,15 +697,11 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone?: string | null
           premium_until?: string | null
-          questions_capacity?: number | null
-          razorpay_subscription_id?: string | null
           role?: string | null
           state?: string | null
-          student_level?: string | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null
           subscription_end_date?: string | null
-          subscription_plan?: string | null
           target_exam?: string | null
           target_exam_date?: string | null
           total_points?: number | null
@@ -802,15 +725,11 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone?: string | null
           premium_until?: string | null
-          questions_capacity?: number | null
-          razorpay_subscription_id?: string | null
           role?: string | null
           state?: string | null
-          student_level?: string | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null
           subscription_end_date?: string | null
-          subscription_plan?: string | null
           target_exam?: string | null
           target_exam_date?: string | null
           total_points?: number | null
@@ -1255,51 +1174,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
-        Row: {
-          amount_paid: number | null
-          created_at: string | null
-          end_date: string | null
-          id: string
-          plan_type: string
-          razorpay_order_id: string | null
-          razorpay_payment_id: string | null
-          razorpay_subscription_id: string | null
-          start_date: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          amount_paid?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          plan_type: string
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_subscription_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          amount_paid?: number | null
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          plan_type?: string
-          razorpay_order_id?: string | null
-          razorpay_payment_id?: string | null
-          razorpay_subscription_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       syllabus_master: {
         Row: {
           average_time_hours: number | null
@@ -1333,27 +1207,6 @@ export type Database = {
           subject?: string
           topic?: string
           weightage?: number | null
-        }
-        Relationships: []
-      }
-      test_attempts: {
-        Row: {
-          created_at: string | null
-          id: string
-          test_type: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          test_type?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          test_type?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
