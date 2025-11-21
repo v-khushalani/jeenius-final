@@ -1,6 +1,4 @@
 // src/services/pointsService.ts
-// ✅ FIXED VERSION - Points now save to BOTH tables
-
 import { supabase } from '@/integrations/supabase/client';
 
 export class PointsService {
@@ -19,10 +17,8 @@ export class PointsService {
     let points = 0;
     const breakdown: Array<{ type: string; points: number; label: string }> = [];
 
-    await this.ensureUserPointsExist(userId);
-
     if (isCorrect) {
-      // Base points - Consistent with display
+      // Base points
       const basePoints = this.getBasePoints(difficulty);
       points += basePoints;
       breakdown.push({
@@ -63,31 +59,9 @@ export class PointsService {
     }
 
     console.log('💰 Total points to add:', points);
-
-    // ✅ CRITICAL FIX: Update BOTH tables
     await this.updateUserPoints(userId, points);
 
     return { points, breakdown };
-  }
-
-  private static async ensureUserPointsExist(userId: string) {
-    const { data: existing } = await supabase
-      .from('jeenius_points')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!existing) {
-      await supabase.from('jeenius_points').insert({
-        user_id: userId,
-        total_points: 0,
-        level: 'BEGINNER',
-        level_progress: 0,
-        answer_streak: 0,
-        longest_answer_streak: 0,
-        badges: []
-      });
-    }
   }
 
   private static getBasePoints(difficulty: string): number {
@@ -105,26 +79,26 @@ export class PointsService {
     badgeEarned: boolean;
     badgeName?: string;
   }> {
-    const { data: pointsData } = await supabase
-      .from('jeenius_points')
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('answer_streak, badges, longest_answer_streak')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
-    if (!pointsData) {
+    if (!profile) {
       return { points: 0, streak: 0, badgeEarned: false };
     }
 
-    const currentStreak = (pointsData.answer_streak as number) || 0;
+    const currentStreak = profile.answer_streak || 0;
     const newStreak = currentStreak + 1;
 
     await supabase
-      .from('jeenius_points')
+      .from('profiles')
       .update({
         answer_streak: newStreak,
-        longest_answer_streak: Math.max(newStreak, (pointsData.longest_answer_streak as number) || 0)
+        longest_answer_streak: Math.max(newStreak, profile.longest_answer_streak || 0)
       })
-      .eq('user_id', userId);
+      .eq('id', userId);
 
     const milestones = [
       { streak: 5, points: 20, badge: 'Hot Streak' },
@@ -135,15 +109,15 @@ export class PointsService {
 
     for (const milestone of milestones) {
       if (newStreak === milestone.streak) {
-        const badges = (pointsData.badges as string[]) || [];
+        const badges = (profile.badges as any[]) || [];
         const badgeEarned = !badges.includes(milestone.badge);
         
         if (badgeEarned) {
           badges.push(milestone.badge);
           await supabase
-            .from('jeenius_points')
-            .update({ badges: badges as any })
-            .eq('user_id', userId);
+            .from('profiles')
+            .update({ badges })
+            .eq('id', userId);
         }
 
         return {
@@ -160,42 +134,34 @@ export class PointsService {
 
   private static async resetAnswerStreak(userId: string) {
     await supabase
-      .from('jeenius_points')
+      .from('profiles')
       .update({ answer_streak: 0 })
-      .eq('user_id', userId);
+      .eq('id', userId);
   }
 
-  // ✅ CRITICAL FIX: Update BOTH jeenius_points AND profiles.total_points
   private static async updateUserPoints(userId: string, pointsToAdd: number): Promise<boolean> {
     console.log('💾 Updating points in database...');
 
     try {
-      // 1️⃣ Update jeenius_points table
-      const { data: pointsData } = await supabase
-        .from('jeenius_points')
+      const { data: profile } = await supabase
+        .from('profiles')
         .select('total_points')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
-      if (!pointsData) return false;
+      if (!profile) return false;
 
-      const currentPoints = (pointsData.total_points as number) || 0;
+      const currentPoints = profile.total_points || 0;
       const newTotal = Math.max(0, currentPoints + pointsToAdd);
       const level = this.calculateLevel(newTotal);
 
       await supabase
-        .from('jeenius_points')
+        .from('profiles')
         .update({
           total_points: newTotal,
           level: level.name,
           level_progress: level.progress
         })
-        .eq('user_id', userId);
-
-      // 2️⃣ ✅ ALSO UPDATE profiles.total_points
-      await supabase
-        .from('profiles')
-        .update({ total_points: newTotal })
         .eq('id', userId);
 
       console.log('✅ Points updated successfully:', newTotal);
@@ -252,13 +218,13 @@ export class PointsService {
   }
 
   static async getUserPoints(userId: string) {
-    const { data: pointsData } = await supabase
-      .from('jeenius_points')
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle();
 
-    if (!pointsData) {
+    if (!profile) {
       return {
         totalPoints: 0,
         level: 'BEGINNER',
@@ -271,42 +237,42 @@ export class PointsService {
     }
 
     return {
-      totalPoints: (pointsData.total_points as number) || 0,
-      level: (pointsData.level as string) || 'BEGINNER',
-      levelProgress: (pointsData.level_progress as number) || 0,
-      answerStreak: (pointsData.answer_streak as number) || 0,
-      longestAnswerStreak: (pointsData.longest_answer_streak as number) || 0,
-      badges: (pointsData.badges as string[]) || [],
-      levelInfo: this.calculateLevel((pointsData.total_points as number) || 0)
+      totalPoints: profile.total_points || 0,
+      level: profile.level || 'BEGINNER',
+      levelProgress: profile.level_progress || 0,
+      answerStreak: profile.answer_streak || 0,
+      longestAnswerStreak: profile.longest_answer_streak || 0,
+      badges: profile.badges || [],
+      levelInfo: this.calculateLevel(profile.total_points || 0)
     };
   }
 
   static async getLeaderboard(limit: number = 100) {
     const { data } = await supabase
-      .from('jeenius_points')
-      .select('*, profiles(email)')
+      .from('profiles')
+      .select('id, email, full_name, total_points, level, badges')
       .order('total_points', { ascending: false })
       .limit(limit);
 
     return (data || []).map((entry: any, index: number) => ({
       rank: index + 1,
-      userId: entry.user_id,
-      email: entry.profiles?.email || 'Anonymous',
-      points: entry.total_points,
-      level: entry.level,
+      userId: entry.id,
+      email: entry.email || 'Anonymous',
+      points: entry.total_points || 0,
+      level: entry.level || 'BEGINNER',
       badges: entry.badges || []
     }));
   }
 
   static async getUserRank(userId: string): Promise<number> {
     const { data: allUsers } = await supabase
-      .from('jeenius_points')
-      .select('user_id, total_points')
+      .from('profiles')
+      .select('id, total_points')
       .order('total_points', { ascending: false });
 
     if (!allUsers) return 0;
 
-    const rank = allUsers.findIndex(u => u.user_id === userId) + 1;
+    const rank = allUsers.findIndex(u => u.id === userId) + 1;
     return rank;
   }
 }

@@ -4,31 +4,19 @@ import StreakService from './streakService';
 
 export class UserLimitsService {
   
-  /**
-   * Get user's daily question limit
-   */
-  /**
- * Get user's daily question limit
- * ✅ 15 for free, unlimited for premium
- */
-static async getDailyLimit(userId: string): Promise<number> {
-  // Check if user is premium
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_premium, subscription_end_date')
-    .eq('id', userId)
-    .single();
+  static async getDailyLimit(userId: string): Promise<number> {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_premium, subscription_end_date')
+      .eq('id', userId)
+      .single();
 
-  // ✅ FIX: Check is_premium flag OR valid subscription_end_date (same as AuthContext)
-  const isPremiumActive = profile?.is_premium || 
-    (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
+    const isPremiumActive = profile?.is_premium || 
+      (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
-  // ✅ 15 questions for free, unlimited for premium
-  return isPremiumActive ? Infinity : 15;
-}
-  /**
-   * Check if user is PRO (checks profiles table for consistency)
-   */
+    return isPremiumActive ? Infinity : 15;
+  }
+
   static async isPro(userId: string): Promise<boolean> {
     const { data: profile } = await supabase
       .from('profiles')
@@ -38,16 +26,12 @@ static async getDailyLimit(userId: string): Promise<number> {
 
     if (!profile) return false;
 
-    // ✅ FIX: Check is_premium flag OR valid subscription_end_date (same as AuthContext)
     const isPremiumActive = profile.is_premium || 
       (profile.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
     return isPremiumActive;
   }
 
-  /**
-   * Get today's usage (questions solved today)
-   */
   static async getTodayUsage(userId: string): Promise<number> {
     const today = new Date().toISOString().split('T')[0];
 
@@ -61,9 +45,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     return count || 0;
   }
 
-  /**
-   * Check if user can solve more questions today
-   */
   static async canSolveMore(userId: string): Promise<{
     canSolve: boolean;
     reason?: string;
@@ -104,9 +85,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     };
   }
 
-  /**
-   * Check if user should see upgrade prompt
-   */
   static async shouldShowUpgradePrompt(userId: string): Promise<{
     show: boolean;
     promptType: string;
@@ -115,7 +93,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     const isPro = await this.isPro(userId);
     if (isPro) return { show: false, promptType: 'none' };
 
-    // Check if daily limit reached
     const { canSolve, remaining } = await this.canSolveMore(userId);
     if (!canSolve) {
       return {
@@ -125,7 +102,6 @@ static async getDailyLimit(userId: string): Promise<number> {
       };
     }
 
-    // Check if approaching limit
     if (remaining <= 5) {
       return {
         show: true,
@@ -134,7 +110,6 @@ static async getDailyLimit(userId: string): Promise<number> {
       };
     }
 
-    // Check if target exceeds limit
     const streakStatus = await StreakService.getStreakStatus(userId);
     const limit = await this.getDailyLimit(userId);
 
@@ -150,7 +125,6 @@ static async getDailyLimit(userId: string): Promise<number> {
       };
     }
 
-    // Check if next target will exceed limit
     const nextTarget = await this.predictNextTarget(userId);
     if (nextTarget > limit) {
       return {
@@ -167,9 +141,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     return { show: false, promptType: 'none' };
   }
 
-  /**
-   * Predict next week's target based on current accuracy
-   */
   private static async predictNextTarget(userId: string): Promise<number> {
     const streakStatus = await StreakService.getStreakStatus(userId);
     const accuracy = streakStatus.accuracy7Day;
@@ -183,9 +154,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     return Math.min(streakStatus.todayTarget + weeklyIncrease, 75);
   }
 
-  /**
-   * Log conversion prompt shown to user
-   */
   static async logConversionPrompt(
     userId: string,
     promptType: string,
@@ -198,9 +166,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     });
   }
 
-  /**
-   * Upgrade user to PRO
-   */
   static async upgradeToPRO(
     userId: string,
     durationMonths: number = 12
@@ -211,15 +176,15 @@ static async getDailyLimit(userId: string): Promise<number> {
       subscriptionEnd.setMonth(subscriptionEnd.getMonth() + durationMonths);
 
       await supabase
-        .from('user_limits')
+        .from('profiles')
         .update({
           is_pro: true,
+          daily_question_limit: Infinity,
           subscription_start_date: subscriptionStart.toISOString(),
           subscription_end_date: subscriptionEnd.toISOString()
         })
-        .eq('user_id', userId);
+        .eq('id', userId);
 
-      // Log conversion
       await this.logConversionPrompt(userId, 'upgrade_completed', 'upgraded');
 
       return true;
@@ -229,35 +194,16 @@ static async getDailyLimit(userId: string): Promise<number> {
     }
   }
 
-  /**
-   * Downgrade user to FREE (when subscription expires)
-   */
-  private static async downgradeToPRO(userId: string) {
-    await supabase
-      .from('user_limits')
-      .update({
-        is_pro: false,
-        daily_question_limit: 20
-      })
-      .eq('user_id', userId);
-  }
-
-  /**
-   * Get conversion statistics for admin
-   */
   static async getConversionStats() {
-    // Total users
     const { count: totalUsers } = await supabase
-      .from('user_limits')
+      .from('profiles')
       .select('*', { count: 'exact', head: true });
 
-    // PRO users
     const { count: proUsers } = await supabase
-      .from('user_limits')
+      .from('profiles')
       .select('*', { count: 'exact', head: true })
       .eq('is_pro', true);
 
-    // Prompts shown this week
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -266,7 +212,6 @@ static async getDailyLimit(userId: string): Promise<number> {
       .select('*', { count: 'exact', head: true })
       .gte('shown_at', weekAgo.toISOString());
 
-    // Conversions this week
     const { count: conversions } = await supabase
       .from('conversion_prompts')
       .select('*', { count: 'exact', head: true })
@@ -288,9 +233,6 @@ static async getDailyLimit(userId: string): Promise<number> {
     };
   }
 
-  /**
-   * Get upgrade prompt message based on type
-   */
   static getUpgradeMessage(promptType: string, data?: any): {
     title: string;
     message: string;
@@ -300,36 +242,36 @@ static async getDailyLimit(userId: string): Promise<number> {
       case 'daily_limit_reached':
         return {
           title: '🎯 Daily Limit Reached!',
-          message: `You've solved 20 questions today (FREE limit). Upgrade to PRO for unlimited questions and keep learning!`,
-          cta: 'Upgrade to PRO - ₹999/year'
+          message: `You've solved 15 questions today (FREE limit). Upgrade to PRO for unlimited questions!`,
+          cta: 'Upgrade to PRO - ₹499/year'
         };
 
       case 'approaching_limit':
         return {
           title: '⚠️ Approaching Daily Limit',
           message: `Only ${data.remaining} questions left today! Upgrade to PRO for unlimited access.`,
-          cta: 'Go Unlimited - ₹999/year'
+          cta: 'Go Unlimited - ₹499/year'
         };
 
       case 'target_exceeds_limit':
         return {
           title: '🔥 Your Growth is Amazing!',
-          message: `Your daily target is now ${data.target} questions, but FREE limit is only 20. Your ${data.currentStreak}-day streak will break tomorrow! Upgrade to continue.`,
-          cta: 'Save My Streak - ₹999/year'
+          message: `Your daily target is now ${data.target} questions, but FREE limit is only 15. Upgrade to continue.`,
+          cta: 'Save My Streak - ₹499/year'
         };
 
       case 'next_target_warning':
         return {
           title: '📈 Target Increasing Soon',
-          message: `Great progress! Next week's target: ${data.nextTarget} questions. FREE limit: ${data.limit}. Upgrade now to stay ahead!`,
-          cta: 'Upgrade to PRO - ₹999/year'
+          message: `Great progress! Next week's target: ${data.nextTarget} questions. FREE limit: ${data.limit}. Upgrade now!`,
+          cta: 'Upgrade to PRO - ₹499/year'
         };
 
       default:
         return {
           title: '🚀 Upgrade to PRO',
-          message: 'Unlock unlimited questions, AI features, and be eligible for iPad/Bike prize!',
-          cta: 'Upgrade Now - ₹999/year'
+          message: 'Unlock unlimited questions, AI features, and more!',
+          cta: 'Upgrade Now - ₹499/year'
         };
     }
   }

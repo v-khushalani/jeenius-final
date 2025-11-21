@@ -23,8 +23,8 @@ export const useStreakData = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'user_streaks',
-          filter: `user_id=eq.${user.id}`
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
         },
         () => {
           loadStreak();
@@ -41,10 +41,10 @@ export const useStreakData = () => {
     if (!user?.id) return;
 
     try {
-      const { data } = await supabase
-        .from('user_streaks')
+    const { data } = await supabase
+        .from('profiles')
         .select('current_streak')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       setStreak(data?.current_streak || 0);

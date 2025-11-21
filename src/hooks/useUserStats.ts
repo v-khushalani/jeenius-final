@@ -27,8 +27,6 @@ export interface UserStats {
   totalPoints: number;
 }
 
-// ✅ REMOVED: Use StreakService.getTodayProgress() for consistent goal calculation
-
 export const useUserStats = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -46,7 +44,7 @@ export const useUserStats = () => {
       setLoading(true);
       setError(null);
 
-      // 1) Fetch Profile
+      // Fetch Profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -59,7 +57,7 @@ export const useUserStats = () => {
       }
       setProfile(profileData);
 
-      // 2) Fetch Attempts (exclude test/battle)
+      // Fetch Attempts
       const { data: allAttempts, error: attemptsError } = await supabase
         .from("question_attempts")
         .select("*, questions(subject, chapter, topic)")
@@ -74,7 +72,7 @@ export const useUserStats = () => {
 
       const attempts = allAttempts || [];
 
-      // Date normalization
+      // Date calculations
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const weekAgo = new Date();
@@ -114,7 +112,7 @@ export const useUserStats = () => {
       const weekCorrect = weekAttempts.filter((a: any) => a.is_correct).length;
       const weekAccuracy = weekAttempts.length > 0 ? Math.round((weekCorrect / weekAttempts.length) * 100) : 0;
 
-      // Previous week (for accuracy delta)
+      // Previous week
       const prevWeekAttempts = attemptsWithDate.filter(
         (a: any) => a.parsedDate >= twoWeeksAgo && a.parsedDate < weekAgo
       );
@@ -124,28 +122,8 @@ export const useUserStats = () => {
       const accuracyChange =
         prevWeekAccuracy === null ? 0 : Math.round((weekAccuracy - prevWeekAccuracy) * 10) / 10;
 
-      // Streak calculation (30 questions/day target)
-      const DAILY_TARGET = 30;
-      let streak = 0;
-      let currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i < 365; i++) {
-        const questionsOnThisDay = attemptsWithDate.filter((a: any) => {
-          const attemptDate = new Date(a.parsedDate);
-          attemptDate.setHours(0, 0, 0, 0);
-          return attemptDate.getTime() === currentDate.getTime();
-        }).length;
-
-        if (questionsOnThisDay >= DAILY_TARGET) {
-          streak++;
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else if (i === 0 && questionsOnThisDay > 0) {
-          currentDate.setDate(currentDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
+      // Get streak from profile
+      const streak = profileData.current_streak || 0;
 
       // Topic/Subject breakdown
       const topicStats: any = {};
@@ -190,7 +168,7 @@ export const useUserStats = () => {
         }
       });
 
-      // ✅ Get today's goal from daily_progress (uses StreakService dynamic calculation: 15-75)
+      // Get today's goal from daily_progress
       const { data: todayProgress } = await supabase
         .from("daily_progress")
         .select("daily_target")
@@ -198,7 +176,7 @@ export const useUserStats = () => {
         .eq("date", new Date().toISOString().split('T')[0])
         .single();
       
-      const dynamicGoal = todayProgress?.daily_target || 15; // Default to 15 if not set
+      const dynamicGoal = todayProgress?.daily_target || 15;
 
       // Days active calculation
       const earliestAttempt = attemptsWithDate.length > 0 
@@ -246,7 +224,7 @@ export const useUserStats = () => {
         console.error("Error computing leaderboard metrics:", err);
       }
 
-      // Points and level using PointsService
+      // Points and level
       const totalPoints = profileData?.total_points || 0;
       const levelInfo = await PointsService.getUserPoints(user.id);
       const pointsToNext = levelInfo.levelInfo.pointsToNext;
