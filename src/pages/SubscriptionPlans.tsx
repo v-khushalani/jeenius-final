@@ -42,14 +42,14 @@ const SubscriptionPlans = () => {
   const currentPlan = billingCycle === 'monthly' ? SUBSCRIPTION_PLANS.monthly : SUBSCRIPTION_PLANS.yearly;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50 overflow-hidden">
       <Header />
-      <div className="pt-24 pb-16">
+      <div className="pt-20 pb-12 px-4 max-h-screen overflow-y-auto">
         {/* Hero Section */}
-        <section className="py-6">
+        <section className="py-3">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Unlock Your Full Potential</h1>
-            <p className="text-lg text-gray-600 mb-8">Choose the plan that works best for you</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">Unlock Your Full Potential</h1>
+            <p className="text-base text-gray-600 mb-6">Choose the plan that works best for you</p>
             
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-4">
@@ -83,7 +83,7 @@ const SubscriptionPlans = () => {
         </section>
 
         {/* Pricing Card */}
-        <section className="py-4">
+        <section className="py-3">
           <div className="container mx-auto px-4">
             <div className="max-w-md mx-auto">
               {/* Pro Plan */}
@@ -157,12 +157,12 @@ const SubscriptionPlans = () => {
         </section>
 
         {/* Free tier info */}
-        <section className="py-8">
+        <section className="py-6">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-md mx-auto bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Free Tier Available</h3>
               <p className="text-gray-600 mb-4">
-                Start with 20 questions per day and upgrade anytime
+                Start with 15 questions per day and upgrade anytime
               </p>
               <Button 
                 variant="outline" 
