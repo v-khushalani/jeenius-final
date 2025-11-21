@@ -669,7 +669,6 @@ export type Database = {
           onboarding_completed: boolean | null
           phone: string | null
           premium_until: string | null
-          role: string | null
           state: string | null
           study_planner_enabled: boolean | null
           subjects: string[] | null
@@ -697,7 +696,6 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone?: string | null
           premium_until?: string | null
-          role?: string | null
           state?: string | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null
@@ -725,7 +723,6 @@ export type Database = {
           onboarding_completed?: boolean | null
           phone?: string | null
           premium_until?: string | null
-          role?: string | null
           state?: string | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null

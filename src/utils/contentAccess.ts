@@ -68,16 +68,17 @@ export const canAccessChapter = async (
  */
 export const canAttemptQuestion = async (userId: string): Promise<AccessResult> => {
   try {
-    // 1. Check if user has active subscription (unlimited questions)
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString())
+    // 1. Check if user is premium via profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_premium, subscription_end_date')
+      .eq('id', userId)
       .single();
 
-    if (subscription) {
+    const isPremium = profile?.is_premium && 
+      (!profile.subscription_end_date || new Date(profile.subscription_end_date) > new Date());
+
+    if (isPremium) {
       return { allowed: true, reason: 'premium_subscriber' };
     }
 
@@ -152,16 +153,17 @@ export const trackQuestionAttempt = async (
  */
 export const canUseAI = async (userId: string): Promise<AccessResult> => {
   try {
-    // 1. Check subscription
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString())
+    // 1. Check subscription via profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_premium, subscription_end_date')
+      .eq('id', userId)
       .single();
 
-    if (subscription) {
+    const isPremium = profile?.is_premium && 
+      (!profile.subscription_end_date || new Date(profile.subscription_end_date) > new Date());
+
+    if (isPremium) {
       return { allowed: true, reason: 'premium_subscriber' };
     }
 
@@ -233,17 +235,23 @@ export const trackAIQuery = async (userId: string): Promise<void> => {
  */
 export const getUserSubscription = async (userId: string) => {
   try {
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .gte('end_date', new Date().toISOString())
-      .order('end_date', { ascending: false })
-      .limit(1)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_premium, subscription_end_date')
+      .eq('id', userId)
       .single();
 
-    return subscription;
+    if (!profile) return null;
+
+    const isPremium = profile.is_premium && 
+      (!profile.subscription_end_date || new Date(profile.subscription_end_date) > new Date());
+
+    if (!isPremium) return null;
+
+    return {
+      status: 'active',
+      end_date: profile.subscription_end_date
+    };
   } catch (error) {
     console.error('Error fetching subscription:', error);
     return null;

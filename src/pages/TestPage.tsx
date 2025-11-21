@@ -74,16 +74,7 @@ const TestPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      
-      const { data: tests } = await supabase
-        .from('test_attempts')
-        .select('id')
-        .eq('user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString());
-      
-      setMonthlyTestsUsed(tests?.length || 0);
+      // Test attempts tracking removed - no longer needed
     } catch (error) {
       console.error('Error:', error);
     }
@@ -176,15 +167,7 @@ const TestPage = () => {
 
         localStorage.setItem('currentTest', JSON.stringify(testSession));
 
-        if (!isPremium) {
-          await supabase.from('test_attempts').insert({
-            user_id: user?.id,
-            test_type: 'full',
-            created_at: new Date().toISOString()
-          });
-          
-          setMonthlyTestsUsed(prev => prev + 1);
-        }
+        // Test tracking removed - test_attempts table deleted
             
         toast.dismiss();
         toast.success(`Full mock test started with ${selected.length} questions!`);
@@ -267,15 +250,7 @@ const TestPage = () => {
 
       localStorage.setItem('currentTest', JSON.stringify(testSession));
 
-      if (!isPremium) {
-        await supabase.from('test_attempts').insert({
-          user_id: user?.id,
-          test_type: mode,
-          created_at: new Date().toISOString()
-        });
-        
-        setMonthlyTestsUsed(prev => prev + 1);
-      }
+      // Test tracking removed - test_attempts table deleted
           
       toast.dismiss();
       toast.success(`Test started with ${selected.length} fresh questions!`);
