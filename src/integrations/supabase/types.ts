@@ -170,13 +170,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "conversion_prompts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       daily_challenges: {
@@ -296,13 +289,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "daily_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       daily_progress_log: {
@@ -394,60 +380,6 @@ export type Database = {
           limit_value?: number
         }
         Relationships: []
-      }
-      jeenius_points: {
-        Row: {
-          answer_streak: number | null
-          badges: Json | null
-          created_at: string | null
-          id: string
-          level: string | null
-          level_progress: number | null
-          longest_answer_streak: number | null
-          total_points: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          answer_streak?: number | null
-          badges?: Json | null
-          created_at?: string | null
-          id?: string
-          level?: string | null
-          level_progress?: number | null
-          longest_answer_streak?: number | null
-          total_points?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          answer_streak?: number | null
-          badges?: Json | null
-          created_at?: string | null
-          id?: string
-          level?: string | null
-          level_progress?: number | null
-          longest_answer_streak?: number | null
-          total_points?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "jeenius_points_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "jeenius_points_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
-        ]
       }
       mock_test_schedule: {
         Row: {
@@ -602,134 +534,146 @@ export type Database = {
         }
         Relationships: []
       }
-      prize_eligibility: {
-        Row: {
-          created_at: string | null
-          days_completed: number | null
-          id: string
-          is_eligible: boolean | null
-          last_updated: string | null
-          overall_accuracy: number | null
-          total_questions_solved: number | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          days_completed?: number | null
-          id?: string
-          is_eligible?: boolean | null
-          last_updated?: string | null
-          overall_accuracy?: number | null
-          total_questions_solved?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          days_completed?: number | null
-          id?: string
-          is_eligible?: boolean | null
-          last_updated?: string | null
-          overall_accuracy?: number | null
-          total_questions_solved?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prize_eligibility_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prize_eligibility_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
+          answer_streak: number | null
           avatar_url: string | null
+          badges: Json | null
           city: string | null
+          correct_answers: number | null
           created_at: string | null
+          current_streak: number | null
           daily_goal: number | null
+          daily_question_limit: number | null
+          daily_streak: number | null
           daily_study_hours: number | null
+          days_completed: number | null
           email: string
           exam_mode: boolean | null
           full_name: string | null
           goals_set: boolean | null
           grade: number | null
           id: string
+          is_eligible: boolean | null
           is_premium: boolean | null
-          mobile_verified: boolean | null
-          mobile_verified_at: string | null
+          is_pro: boolean | null
+          last_activity_date: string | null
+          level: string | null
+          level_progress: number | null
+          longest_answer_streak: number | null
+          longest_streak: number | null
           onboarding_completed: boolean | null
+          overall_accuracy: number | null
           phone: string | null
           premium_until: string | null
+          rank_position: number | null
           state: string | null
+          streak_freeze_available: boolean | null
           study_planner_enabled: boolean | null
           subjects: string[] | null
           subscription_end_date: string | null
+          subscription_start_date: string | null
           target_exam: string | null
           target_exam_date: string | null
           total_points: number | null
+          total_questions_answered: number | null
+          total_questions_solved: number | null
+          total_streak_days: number | null
+          total_study_time: number | null
           updated_at: string | null
         }
         Insert: {
+          answer_streak?: number | null
           avatar_url?: string | null
+          badges?: Json | null
           city?: string | null
+          correct_answers?: number | null
           created_at?: string | null
+          current_streak?: number | null
           daily_goal?: number | null
+          daily_question_limit?: number | null
+          daily_streak?: number | null
           daily_study_hours?: number | null
+          days_completed?: number | null
           email: string
           exam_mode?: boolean | null
           full_name?: string | null
           goals_set?: boolean | null
           grade?: number | null
           id: string
+          is_eligible?: boolean | null
           is_premium?: boolean | null
-          mobile_verified?: boolean | null
-          mobile_verified_at?: string | null
+          is_pro?: boolean | null
+          last_activity_date?: string | null
+          level?: string | null
+          level_progress?: number | null
+          longest_answer_streak?: number | null
+          longest_streak?: number | null
           onboarding_completed?: boolean | null
+          overall_accuracy?: number | null
           phone?: string | null
           premium_until?: string | null
+          rank_position?: number | null
           state?: string | null
+          streak_freeze_available?: boolean | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null
           subscription_end_date?: string | null
+          subscription_start_date?: string | null
           target_exam?: string | null
           target_exam_date?: string | null
           total_points?: number | null
+          total_questions_answered?: number | null
+          total_questions_solved?: number | null
+          total_streak_days?: number | null
+          total_study_time?: number | null
           updated_at?: string | null
         }
         Update: {
+          answer_streak?: number | null
           avatar_url?: string | null
+          badges?: Json | null
           city?: string | null
+          correct_answers?: number | null
           created_at?: string | null
+          current_streak?: number | null
           daily_goal?: number | null
+          daily_question_limit?: number | null
+          daily_streak?: number | null
           daily_study_hours?: number | null
+          days_completed?: number | null
           email?: string
           exam_mode?: boolean | null
           full_name?: string | null
           goals_set?: boolean | null
           grade?: number | null
           id?: string
+          is_eligible?: boolean | null
           is_premium?: boolean | null
-          mobile_verified?: boolean | null
-          mobile_verified_at?: string | null
+          is_pro?: boolean | null
+          last_activity_date?: string | null
+          level?: string | null
+          level_progress?: number | null
+          longest_answer_streak?: number | null
+          longest_streak?: number | null
           onboarding_completed?: boolean | null
+          overall_accuracy?: number | null
           phone?: string | null
           premium_until?: string | null
+          rank_position?: number | null
           state?: string | null
+          streak_freeze_available?: boolean | null
           study_planner_enabled?: boolean | null
           subjects?: string[] | null
           subscription_end_date?: string | null
+          subscription_start_date?: string | null
           target_exam?: string | null
           target_exam_date?: string | null
           total_points?: number | null
+          total_questions_answered?: number | null
+          total_questions_solved?: number | null
+          total_streak_days?: number | null
+          total_study_time?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -801,13 +745,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "question_attempts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1252,13 +1189,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "test_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       topic_dependencies: {
@@ -1598,54 +1528,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_limits: {
-        Row: {
-          created_at: string | null
-          daily_question_limit: number | null
-          id: string
-          is_pro: boolean | null
-          subscription_end_date: string | null
-          subscription_start_date: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          daily_question_limit?: number | null
-          id?: string
-          is_pro?: boolean | null
-          subscription_end_date?: string | null
-          subscription_start_date?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          daily_question_limit?: number | null
-          id?: string
-          is_pro?: boolean | null
-          subscription_end_date?: string | null
-          subscription_start_date?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_limits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_limits_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       user_rankings: {
         Row: {
           accuracy: number | null
@@ -1741,114 +1623,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      user_stats: {
-        Row: {
-          correct_answers: number | null
-          created_at: string | null
-          daily_streak: number | null
-          id: string
-          last_activity_date: string | null
-          rank_position: number | null
-          total_points: number | null
-          total_questions_answered: number | null
-          total_study_time: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          correct_answers?: number | null
-          created_at?: string | null
-          daily_streak?: number | null
-          id?: string
-          last_activity_date?: string | null
-          rank_position?: number | null
-          total_points?: number | null
-          total_questions_answered?: number | null
-          total_study_time?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          correct_answers?: number | null
-          created_at?: string | null
-          daily_streak?: number | null
-          id?: string
-          last_activity_date?: string | null
-          rank_position?: number | null
-          total_points?: number | null
-          total_questions_answered?: number | null
-          total_study_time?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_stats_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_stats_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      user_streaks: {
-        Row: {
-          created_at: string | null
-          current_streak: number | null
-          id: string
-          last_activity_date: string | null
-          longest_streak: number | null
-          streak_freeze_available: boolean | null
-          total_streak_days: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_streak?: number | null
-          id?: string
-          last_activity_date?: string | null
-          longest_streak?: number | null
-          streak_freeze_available?: boolean | null
-          total_streak_days?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_streak?: number | null
-          id?: string
-          last_activity_date?: string | null
-          longest_streak?: number | null
-          streak_freeze_available?: boolean | null
-          total_streak_days?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_streaks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_streaks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "user_complete_stats"
-            referencedColumns: ["user_id"]
-          },
-        ]
       }
       user_subscriptions: {
         Row: {
@@ -1977,23 +1751,6 @@ export type Database = {
           subject?: string | null
           topic?: string | null
           year?: number | null
-        }
-        Relationships: []
-      }
-      user_complete_stats: {
-        Row: {
-          answer_streak: number | null
-          current_streak: number | null
-          daily_question_limit: number | null
-          days_completed: number | null
-          email: string | null
-          is_pro: boolean | null
-          level: string | null
-          longest_streak: number | null
-          overall_accuracy: number | null
-          prize_eligible: boolean | null
-          total_points: number | null
-          user_id: string | null
         }
         Relationships: []
       }

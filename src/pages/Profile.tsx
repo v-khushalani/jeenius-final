@@ -65,16 +65,13 @@ const Profile = () => {
 
       setProfile(profileData);
 
-      // Load user stats
-      const { data: statsData, error: statsError } = await supabase
-        .from('user_stats')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (statsData) {
-        setStats(statsData);
-      }
+      // Stats now come from profiles table
+      setStats({
+        total_questions: profileData.total_questions_answered || 0,
+        correct_answers: profileData.correct_answers || 0,
+        accuracy: profileData.overall_accuracy || 0,
+        streak: profileData.current_streak || 0
+      });
 
     } catch (error) {
       console.error('Error loading profile:', error);
