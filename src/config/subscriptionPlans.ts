@@ -65,7 +65,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
 // ✅ Freemium Limits (All chapters free now)
 export const FREE_LIMITS = {
   chapters: 999, // All chapters free
-  dailyQuestions: 20,
+  dailyQuestions: 15,
   aiQueries: 3
 };
 

@@ -229,13 +229,24 @@ export class StreakService {
       .single();
 
     const todayProgress = await this.getTodayProgress(userId);
+    
+    // Get actual count of questions attempted today from question_attempts
+    const today = new Date().toISOString().split('T')[0];
+    const { count } = await supabase
+      .from('question_attempts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lte('created_at', `${today}T23:59:59.999Z`);
+
+    const questionsCompletedToday = count || 0;
 
     return {
       currentStreak: profile?.current_streak || 0,
       longestStreak: profile?.longest_streak || 0,
       todayTarget: todayProgress?.daily_target || 15,
-      todayCompleted: todayProgress?.questions_completed || 0,
-      targetMet: todayProgress?.target_met || false,
+      todayCompleted: questionsCompletedToday,
+      targetMet: questionsCompletedToday >= (todayProgress?.daily_target || 15),
       streakFreezeAvailable: profile?.streak_freeze_available || false,
       accuracy7Day: todayProgress?.accuracy_7day || 0
     };
