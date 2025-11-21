@@ -95,14 +95,14 @@ const QuickStatsOverview = () => {
         premiumResult,
         lastWeekResult
       ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
         supabase.from('question_attempts')
           .select('user_id')
           .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
-        supabase.from('question_attempts').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_premium', true),
+        supabase.from('question_attempts').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_premium', true),
         supabase.from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       ]);
 
