@@ -81,9 +81,17 @@ const AIStudyPlanner = () => {
       // Fetch user profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('daily_study_hours, target_exam, target_exam_date, current_streak, overall_accuracy, total_questions_solved')
+        .select('daily_study_hours, target_exam, target_exam_date, current_streak, overall_accuracy')
         .eq('id', user?.id)
         .single();
+
+      // Fetch actual question count from question_attempts (source of truth)
+      const { count } = await supabase
+        .from('question_attempts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id);
+
+      const actualQuestionCount = count || 0;
 
       if (profile) {
         setDailyStudyHours(profile.daily_study_hours || 4);
@@ -91,7 +99,7 @@ const AIStudyPlanner = () => {
         setExamDate(profile.target_exam_date || '2026-05-24');
         setStreak(profile.current_streak || 0);
         setAvgAccuracy(profile.overall_accuracy || 0);
-        setTotalQuestions(profile.total_questions_solved || 0);
+        setTotalQuestions(actualQuestionCount);
       }
 
       // Calculate days to exam
@@ -116,7 +124,7 @@ const AIStudyPlanner = () => {
       const phaseAlloc = calculatePhaseAllocation(days);
       const allocated = allocateDailyTime(profile?.daily_study_hours || 4, phaseAlloc, categorized);
       const weekly = generateWeeklyPlan(profile?.daily_study_hours || 4, allocated, phaseAlloc);
-      const rank = predictRank(profile?.overall_accuracy || 0, profile?.total_questions_solved || 0, profile?.target_exam || 'JEE');
+      const rank = predictRank(profile?.overall_accuracy || 0, actualQuestionCount, profile?.target_exam || 'JEE');
       const swot = generateSWOTAnalysis(categorized);
 
       // Psychology engine
