@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import FloatingAIButton from '@/components/FloatingAIButton';
 import SubscriptionPlans from '@/pages/SubscriptionPlans';
 import PricingPage from '@/components/Pricing';
+import { AppDownloadBanner } from './components/AppDownloadBanner';
 
 // Main pages
 import Index from "./pages/Index";
@@ -129,6 +130,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <AppDownloadBanner />
           <TooltipProvider>
             <ErrorBoundary>
               <Toaster />

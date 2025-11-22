@@ -11,43 +11,12 @@ const Hero = () => {
   };
 
   const handleDownloadApp = () => {
-    // Redirect to Play Store - replace with actual Play Store URL
     window.open('https://play.google.com/store/apps/details?id=com.jeenius.app', '_blank');
   };
 
-  const [showAppBanner, setShowAppBanner] = React.useState(true);
-
   return (
     <>
-      {showAppBanner && (
-        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-primary to-blue-600 text-white py-3 px-4 z-50 shadow-lg">
-          <div className="container mx-auto flex items-center justify-between">
-            <p className="text-sm sm:text-base font-medium">
-              📱 Get the JEEnius App - Study Anytime, Anywhere!
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleDownloadApp}
-                className="text-xs sm:text-sm"
-              >
-                Download
-              </Button>
-              <button
-                onClick={() => setShowAppBanner(false)}
-                className="text-white/80 hover:text-white text-xl font-bold"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <section 
-        className="relative pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-12 lg:pb-20 min-h-screen flex items-center overflow-hidden"
-        style={{ marginTop: showAppBanner ? '52px' : '0' }}
-      >
+      <section className="relative pt-16 sm:pt-20 lg:pt-24 pb-8 sm:pb-12 lg:pb-20 min-h-screen flex items-center overflow-hidden">
       {/* Video Background */}
       <div className="absolute inset-0 z-0">
         <div className="w-full h-full bg-gradient-to-br from-primary/20 via-blue-50 to-white"></div>

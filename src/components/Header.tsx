@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, Smartphone, Download, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award, Shield } from 'lucide-react';
+import { Menu, X, Globe, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,10 +17,6 @@ import { Calendar } from "lucide-react";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [language, setLanguage] = useState('EN');
-  const [showAppBanner, setShowAppBanner] = useState(() => {
-    const dismissed = localStorage.getItem('appBannerDismissed');
-    return dismissed !== 'true';
-  });
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signOut, isPremium } = useAuth();
@@ -70,54 +66,9 @@ const Header = () => {
     }
   };
 
-  const handleDownloadApp = () => {
-    window.open('https://play.google.com/store/apps/details?id=com.jeenius.app', '_blank');
-  };
-
-  const dismissAppBanner = () => {
-    setShowAppBanner(false);
-    localStorage.setItem('appBannerDismissed', 'true');
-  };
-
-  React.useEffect(() => {
-    if (showAppBanner) {
-      document.body.classList.add('has-app-banner');
-    } else {
-      document.body.classList.remove('has-app-banner');
-    }
-    
-    return () => {
-      document.body.classList.remove('has-app-banner');
-    };
-  }, [showAppBanner]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
-      {/* Mobile App Promotion Bar */}
-      {showAppBanner && (
-        <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white text-center py-2 text-sm relative">
-          <div className="flex items-center justify-center space-x-2">
-            <Smartphone className="w-4 h-4" />
-            <span>📱 Get the full JEEnius experience - Download our Android App now!</span>
-            <Button 
-              size="sm" 
-              variant="secondary" 
-              className="ml-2 bg-white text-green-600 text-xs py-1 px-2 h-6"
-              onClick={handleDownloadApp}
-            >
-              <Download className="w-3 h-3 mr-1" />
-              Download
-            </Button>
-          </div>
-          <button 
-            onClick={dismissAppBanner}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:text-gray-200 p-1"
-            aria-label="Dismiss banner"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
