@@ -8,7 +8,11 @@ import {
   TrendingUp, 
   Award, 
   Shield,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Bell,
+  Calendar,
+  HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
@@ -17,6 +21,8 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import ChapterManager from '@/components/admin/ChapterManager';
 import ExamDateManager from '@/components/admin/ExamDateManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
+import { NotificationManager } from '@/components/admin/NotificationManager';
+import { UserReports } from '@/components/admin/UserReports';
 
 interface QuickStat {
   title: string;
@@ -35,6 +41,10 @@ const AdminDashboard = () => {
       return <AdminAnalytics />;
     } else if (location.pathname === '/admin/users') {
       return <UserManagement />;
+    } else if (location.pathname === '/admin/reports') {
+      return <UserReports />;
+    } else if (location.pathname === '/admin/notifications') {
+      return <NotificationManager />;
     } else if (location.pathname === '/admin/content') {
       return <ChapterManager />;
     } else if (location.pathname === '/admin/exam-config') {
@@ -49,7 +59,9 @@ const AdminDashboard = () => {
   const getPageTitle = () => {
     if (location.pathname === '/admin/analytics') return 'Platform Analytics & Insights';
     if (location.pathname === '/admin/users') return 'User Management';
-    if (location.pathname === '/admin/content') return 'Content Management';
+    if (location.pathname === '/admin/reports') return 'User Reports & Export';
+    if (location.pathname === '/admin/notifications') return 'Notification Center';
+    if (location.pathname === '/admin/content') return 'Chapter Management';
     if (location.pathname === '/admin/exam-config') return 'Exam Date Configuration';
     if (location.pathname === '/admin/questions') return 'Question Bank Management';
     return 'Manage platform and monitor performance';
@@ -61,9 +73,11 @@ const AdminDashboard = () => {
     { path: '/admin', label: 'Overview', icon: TrendingUp },
     { path: '/admin/users', label: 'User Management', icon: Users },
     { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
-    { path: '/admin/content', label: 'Chapter Management', icon: BookOpen },
-    { path: '/admin/exam-config', label: 'Exam Dates', icon: Shield },
-    { path: '/admin/questions', label: 'Question Bank', icon: BookOpen },
+    { path: '/admin/reports', label: 'User Reports', icon: FileText },
+    { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+    { path: '/admin/content', label: 'Chapters', icon: BookOpen },
+    { path: '/admin/exam-config', label: 'Exam Dates', icon: Calendar },
+    { path: '/admin/questions', label: 'Questions', icon: HelpCircle },
   ];
 
   return (
@@ -266,7 +280,7 @@ const QuickStatsOverview = () => {
           <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button 
               onClick={() => navigate('/admin/users')}
               className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
@@ -277,30 +291,57 @@ const QuickStatsOverview = () => {
             </button>
             
             <button 
-              onClick={() => navigate('/admin/content')}
+              onClick={() => navigate('/admin/notifications')}
               className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
             >
-              <BookOpen className="h-6 w-6 text-blue-600 mb-2" />
+              <Bell className="h-6 w-6 text-blue-600 mb-2" />
+              <h3 className="font-semibold text-slate-900">Send Notifications</h3>
+              <p className="text-sm text-slate-600">Announcements & messages</p>
+            </button>
+            
+            <button 
+              onClick={() => navigate('/admin/reports')}
+              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+            >
+              <FileText className="h-6 w-6 text-green-600 mb-2" />
+              <h3 className="font-semibold text-slate-900">Export Reports</h3>
+              <p className="text-sm text-slate-600">Download user analytics</p>
+            </button>
+            
+            <button 
+              onClick={() => navigate('/admin/content')}
+              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
+            >
+              <BookOpen className="h-6 w-6 text-amber-600 mb-2" />
               <h3 className="font-semibold text-slate-900">Manage Chapters</h3>
               <p className="text-sm text-slate-600">Add/edit chapters & topics</p>
             </button>
             
             <button 
               onClick={() => navigate('/admin/questions')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
+              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left"
             >
-              <BookOpen className="h-6 w-6 text-amber-600 mb-2" />
+              <HelpCircle className="h-6 w-6 text-indigo-600 mb-2" />
               <h3 className="font-semibold text-slate-900">Question Bank</h3>
               <p className="text-sm text-slate-600">Add/edit questions</p>
             </button>
             
             <button 
               onClick={() => navigate('/admin/analytics')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
+              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left"
             >
-              <TrendingUp className="h-6 w-6 text-green-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">View Reports</h3>
-              <p className="text-sm text-slate-600">Detailed analytics</p>
+              <TrendingUp className="h-6 w-6 text-cyan-600 mb-2" />
+              <h3 className="font-semibold text-slate-900">Analytics</h3>
+              <p className="text-sm text-slate-600">Platform insights</p>
+            </button>
+            
+            <button 
+              onClick={() => navigate('/admin/exam-config')}
+              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-rose-500 hover:bg-rose-50 transition-all text-left"
+            >
+              <Calendar className="h-6 w-6 text-rose-600 mb-2" />
+              <h3 className="font-semibold text-slate-900">Exam Dates</h3>
+              <p className="text-sm text-slate-600">Configure exam dates</p>
             </button>
           </div>
         </CardContent>

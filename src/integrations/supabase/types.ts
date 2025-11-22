@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          scheduled_at: string | null
+          sent_by: string | null
+          status: string | null
+          target_audience: string
+          target_user_ids: string[] | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          scheduled_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          target_audience?: string
+          target_user_ids?: string[] | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          scheduled_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          target_audience?: string
+          target_user_ids?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
       ai_rate_limits: {
         Row: {
           created_at: string | null
@@ -1551,6 +1587,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          notification_id: string | null
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notification_id?: string | null
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notification_id?: string | null
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_rankings: {
         Row: {
