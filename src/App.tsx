@@ -262,6 +262,22 @@ function App() {
                     </AdminRoute>
                   }
                 />
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/notifications"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
                 
                 <Route path="/pricing" element={<PricingPage />} />
 

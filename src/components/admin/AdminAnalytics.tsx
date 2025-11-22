@@ -51,13 +51,30 @@ export const AdminAnalytics: React.FC = () => {
         const correctCount = accuracyData?.filter(a => a.is_correct).length || 0;
         const avgAccuracy = accuracyData?.length ? (correctCount / accuracyData.length) * 100 : 0;
 
+        // Get total study time from profiles
+        const { data: studyTimeData } = await supabase
+          .from('profiles')
+          .select('total_study_time');
+        
+        const totalStudyTime = studyTimeData?.reduce((sum, p) => sum + (p.total_study_time || 0), 0) || 0;
+
+        // Get active users today (users with attempts today)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const { data: todayAttempts } = await supabase
+          .from('question_attempts')
+          .select('user_id')
+          .gte('attempted_at', todayStart.toISOString());
+        
+        const activeToday = new Set(todayAttempts?.map(a => a.user_id) || []).size;
+
         const stats = {
           total_users: userCount || 0,
-          active_users_today: Math.floor((userCount || 0) * 0.3), // Approximate
+          active_users_today: activeToday,
           total_questions_attempted: totalAttempts || 0,
           total_assessments: totalSessions || 0,
           avg_accuracy: avgAccuracy,
-          total_study_time: 145680 // Mock for now
+          total_study_time: totalStudyTime
         };
 
         setPlatformStats(stats);
@@ -130,12 +147,38 @@ export const AdminAnalytics: React.FC = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  const subjectData = [
-    { name: 'Physics', questions: 1200, color: '#8B5CF6' },
-    { name: 'Chemistry', questions: 900, color: '#06B6D4' },
-    { name: 'Math', questions: 1500, color: '#10B981' },
-    { name: 'Biology', questions: 600, color: '#F59E0B' }
-  ];
+  // Get real subject distribution
+  const [subjectData, setSubjectData] = React.useState([
+    { name: 'Physics', questions: 0, color: '#8B5CF6' },
+    { name: 'Chemistry', questions: 0, color: '#06B6D4' },
+    { name: 'Maths', questions: 0, color: '#10B981' },
+    { name: 'Biology', questions: 0, color: '#F59E0B' }
+  ]);
+
+  React.useEffect(() => {
+    const loadSubjectData = async () => {
+      const { data } = await supabase
+        .from('question_attempts')
+        .select('question_id, questions(subject)');
+      
+      const subjectCounts = { Physics: 0, Chemistry: 0, Maths: 0, Biology: 0 };
+      data?.forEach(attempt => {
+        const subject = (attempt.questions as any)?.subject;
+        if (subject && subjectCounts.hasOwnProperty(subject)) {
+          subjectCounts[subject as keyof typeof subjectCounts]++;
+        }
+      });
+
+      setSubjectData([
+        { name: 'Physics', questions: subjectCounts.Physics, color: '#8B5CF6' },
+        { name: 'Chemistry', questions: subjectCounts.Chemistry, color: '#06B6D4' },
+        { name: 'Maths', questions: subjectCounts.Maths, color: '#10B981' },
+        { name: 'Biology', questions: subjectCounts.Biology, color: '#F59E0B' }
+      ]);
+    };
+    
+    loadSubjectData();
+  }, []);
 
   return (
     <div className="space-y-6 p-6">
