@@ -55,6 +55,17 @@ const AdminDashboard = () => {
     return 'Manage platform and monitor performance';
   };
 
+  const navigate = useNavigate();
+
+  const navigationItems = [
+    { path: '/admin', label: 'Overview', icon: TrendingUp },
+    { path: '/admin/users', label: 'User Management', icon: Users },
+    { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
+    { path: '/admin/content', label: 'Chapter Management', icon: BookOpen },
+    { path: '/admin/exam-config', label: 'Exam Dates', icon: Shield },
+    { path: '/admin/questions', label: 'Question Bank', icon: BookOpen },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
@@ -72,6 +83,29 @@ const AdminDashboard = () => {
             <Shield className="h-4 w-4 mr-2" />
             Admin Access
           </Badge>
+        </div>
+
+        {/* Navigation Menu */}
+        <div className="mb-6 flex gap-2 flex-wrap">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         {getActiveContent()}
