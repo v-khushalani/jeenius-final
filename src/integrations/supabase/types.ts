@@ -811,6 +811,7 @@ export type Database = {
       questions: {
         Row: {
           chapter: string
+          chapter_id: string | null
           correct_option: string
           created_at: string | null
           difficulty: string
@@ -825,10 +826,12 @@ export type Database = {
           subject: string
           subtopic: string | null
           topic: string
+          topic_id: string | null
           year: number | null
         }
         Insert: {
           chapter: string
+          chapter_id?: string | null
           correct_option: string
           created_at?: string | null
           difficulty: string
@@ -843,10 +846,12 @@ export type Database = {
           subject: string
           subtopic?: string | null
           topic: string
+          topic_id?: string | null
           year?: number | null
         }
         Update: {
           chapter?: string
+          chapter_id?: string | null
           correct_option?: string
           created_at?: string | null
           difficulty?: string
@@ -861,9 +866,25 @@ export type Database = {
           subject?: string
           subtopic?: string | null
           topic?: string
+          topic_id?: string | null
           year?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "questions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referrals: {
         Row: {
