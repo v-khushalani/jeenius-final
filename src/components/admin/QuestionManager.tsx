@@ -184,26 +184,24 @@ export const QuestionManager = () => {
   };
 
   const downloadSampleCSV = () => {
-    const sampleData = `subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,year
-Physics,Mechanics,Kinematics,Equations of Motion,"A car accelerates from rest at 2 m/s². What is its velocity after 5 seconds?",5 m/s,10 m/s,15 m/s,20 m/s,B,"Using v = u + at, where u=0, a=2, t=5: v = 0 + 2*5 = 10 m/s",easy,2023
-Chemistry,Physical Chemistry,Thermodynamics,First Law,"Which of the following is an intensive property?",Volume,Mass,Temperature,Energy,C,"Temperature is intensive as it doesn't depend on the amount of substance",medium,2022
-Mathematics,Algebra,Quadratic Equations,,"Solve: x² - 5x + 6 = 0",x=1 or x=6,x=2 or x=3,x=-2 or x=-3,x=1 or x=5,B,"Factoring: (x-2)(x-3) = 0, so x = 2 or x = 3",easy,2023`;
-
-    const blob = new Blob([sampleData], { type: 'text/csv' });
+    // Blank template with exact DB column structure for bulk upload
+    const headers = 'subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,question_type,year';
+    
+    const blob = new Blob([headers], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'sample_questions.csv';
+    a.download = 'questions_template.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    toast.success('Sample CSV downloaded');
+    toast.success('Blank template downloaded - Ready for bulk upload');
   };
 
   const parseCSV = (text: string): any[] => {
     const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length < 2) throw new Error('CSV must have headers and at least one row');
+    if (lines.length < 2) throw new Error('CSV must have headers and at least one data row');
     
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const questions = [];
@@ -213,16 +211,25 @@ Mathematics,Algebra,Quadratic Equations,,"Solve: x² - 5x + 6 = 0",x=1 or x=6,x=
       const question: any = {};
       
       headers.forEach((header, index) => {
-        if (values[index]) {
+        const value = values[index];
+        if (value) {
           if (header === 'year') {
-            question[header] = parseInt(values[index]) || null;
+            question[header] = parseInt(value) || null;
           } else {
-            question[header] = values[index];
+            question[header] = value;
           }
+        } else if (header === 'subtopic' || header === 'explanation' || header === 'year') {
+          question[header] = null; // Optional fields
         }
       });
       
-      if (question.question && question.subject) {
+      // Set default question_type if not provided
+      if (!question.question_type) {
+        question.question_type = 'single_correct';
+      }
+      
+      // Validate required fields
+      if (question.question && question.subject && question.chapter && question.topic) {
         questions.push(question);
       }
     }
