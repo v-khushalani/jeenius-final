@@ -1376,28 +1376,40 @@ export type Database = {
           chapter_id: string | null
           created_at: string | null
           description: string | null
+          difficulty_level: string | null
+          estimated_time: number | null
           id: string
           is_free: boolean | null
+          is_premium: boolean | null
+          order_index: number | null
           topic_name: string
-          topic_number: number
+          topic_number: number | null
         }
         Insert: {
           chapter_id?: string | null
           created_at?: string | null
           description?: string | null
+          difficulty_level?: string | null
+          estimated_time?: number | null
           id?: string
           is_free?: boolean | null
+          is_premium?: boolean | null
+          order_index?: number | null
           topic_name: string
-          topic_number: number
+          topic_number?: number | null
         }
         Update: {
           chapter_id?: string | null
           created_at?: string | null
           description?: string | null
+          difficulty_level?: string | null
+          estimated_time?: number | null
           id?: string
           is_free?: boolean | null
+          is_premium?: boolean | null
+          order_index?: number | null
           topic_name?: string
-          topic_number?: number
+          topic_number?: number | null
         }
         Relationships: []
       }
