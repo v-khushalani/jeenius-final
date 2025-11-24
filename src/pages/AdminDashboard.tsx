@@ -12,10 +12,12 @@ import {
   FileText,
   Bell,
   Calendar,
-  HelpCircle
+  HelpCircle,
+  LayoutDashboard,
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import Header from '@/components/Header';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
 import { UserManagement } from '@/components/admin/UserManagement';
 import ChapterManager from '@/components/admin/ChapterManager';
@@ -23,6 +25,7 @@ import ExamDateManager from '@/components/admin/ExamDateManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { NotificationManager } from '@/components/admin/NotificationManager';
 import { UserReports } from '@/components/admin/UserReports';
+import { cn } from '@/lib/utils';
 
 interface QuickStat {
   title: string;
@@ -35,6 +38,8 @@ interface QuickStat {
 
 const AdminDashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   const getActiveContent = () => {
     if (location.pathname === '/admin/analytics') {
@@ -56,51 +61,48 @@ const AdminDashboard = () => {
     }
   };
 
-  const getPageTitle = () => {
-    if (location.pathname === '/admin/analytics') return 'Platform Analytics & Insights';
-    if (location.pathname === '/admin/users') return 'User Management';
-    if (location.pathname === '/admin/reports') return 'User Reports & Export';
-    if (location.pathname === '/admin/notifications') return 'Notification Center';
-    if (location.pathname === '/admin/content') return 'Chapter Management';
-    if (location.pathname === '/admin/exam-config') return 'Exam Date Configuration';
-    if (location.pathname === '/admin/questions') return 'Question Bank Management';
-    return 'Manage platform and monitor performance';
+  const getPageInfo = () => {
+    const routes = {
+      '/admin': { title: 'Dashboard', subtitle: 'Overview & Quick Stats' },
+      '/admin/analytics': { title: 'Analytics', subtitle: 'Platform Insights & Metrics' },
+      '/admin/users': { title: 'Users', subtitle: 'Manage User Accounts' },
+      '/admin/reports': { title: 'Reports', subtitle: 'Export & Analysis' },
+      '/admin/notifications': { title: 'Notifications', subtitle: 'Send Announcements' },
+      '/admin/content': { title: 'Chapters', subtitle: 'Content Management' },
+      '/admin/exam-config': { title: 'Exam Dates', subtitle: 'Configure Exam Schedule' },
+      '/admin/questions': { title: 'Questions', subtitle: 'Question Bank Management' },
+    };
+    return routes[location.pathname as keyof typeof routes] || routes['/admin'];
   };
 
-  const navigate = useNavigate();
-
   const navigationItems = [
-    { path: '/admin', label: 'Overview', icon: TrendingUp },
-    { path: '/admin/users', label: 'User Management', icon: Users },
-    { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
-    { path: '/admin/reports', label: 'User Reports', icon: FileText },
-    { path: '/admin/notifications', label: 'Notifications', icon: Bell },
-    { path: '/admin/content', label: 'Chapters', icon: BookOpen },
-    { path: '/admin/exam-config', label: 'Exam Dates', icon: Calendar },
-    { path: '/admin/questions', label: 'Questions', icon: HelpCircle },
+    { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-600' },
+    { path: '/admin/users', label: 'Users', icon: Users, color: 'text-purple-600' },
+    { path: '/admin/questions', label: 'Questions', icon: HelpCircle, color: 'text-green-600' },
+    { path: '/admin/content', label: 'Chapters', icon: BookOpen, color: 'text-orange-600' },
+    { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp, color: 'text-cyan-600' },
+    { path: '/admin/reports', label: 'Reports', icon: FileText, color: 'text-indigo-600' },
+    { path: '/admin/notifications', label: 'Notifications', icon: Bell, color: 'text-pink-600' },
+    { path: '/admin/exam-config', label: 'Exam Dates', icon: Calendar, color: 'text-red-600' },
   ];
 
+  const pageInfo = getPageInfo();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Header />
-      
-      <div className="container mx-auto px-4 pt-20">
-        <div className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-40 flex flex-col">
+        {/* Logo Section */}
+        <div className="h-16 flex items-center px-6 border-b border-border">
+          <Shield className="h-6 w-6 text-primary mr-3" />
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="h-8 w-8 text-purple-600" />
-              <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
-            </div>
-            <p className="text-slate-600">{getPageTitle()}</p>
+            <h2 className="font-bold text-foreground text-lg">JEEnius Admin</h2>
+            <p className="text-xs text-muted-foreground">Control Center</p>
           </div>
-          <Badge className="bg-purple-600 text-white px-4 py-2">
-            <Shield className="h-4 w-4 mr-2" />
-            Admin Access
-          </Badge>
         </div>
 
-        {/* Navigation Menu */}
-        <div className="mb-6 flex gap-2 flex-wrap">
+        {/* Navigation */}
+        <nav className="flex-1 py-6 px-3 space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -109,21 +111,54 @@ const AdminDashboard = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200",
                   isActive
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                }`}
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
               >
-                <Icon className="w-4 h-4" />
-                {item.label}
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
+                {isActive && <ChevronRight className="ml-auto w-4 h-4" />}
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {getActiveContent()}
-      </div>
+        {/* Footer Badge */}
+        <div className="p-4 border-t border-border">
+          <div className="bg-accent rounded-lg p-3 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-foreground">Admin Mode</p>
+              <p className="text-xs text-muted-foreground">Full Access</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="ml-64 min-h-screen">
+        {/* Header */}
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 sticky top-0 z-30">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{pageInfo.title}</h1>
+            <p className="text-sm text-muted-foreground">{pageInfo.subtitle}</p>
+          </div>
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Exit Admin →
+          </button>
+        </header>
+
+        {/* Content Area */}
+        <div className="p-8">
+          {getActiveContent()}
+        </div>
+      </main>
     </div>
   );
 };
@@ -248,25 +283,34 @@ const QuickStatsOverview = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
-          <Card key={stat.title} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  {stat.title}
-                </CardTitle>
-                <div className={`p-2 rounded-lg bg-${stat.color}-100`}>
-                  <stat.icon className={`h-5 w-5 text-${stat.color}-600`} />
+          <Card key={stat.title} className="border-0 shadow-sm hover:shadow-md transition-all duration-200 bg-card">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className={cn(
+                  "p-3 rounded-xl",
+                  stat.color === 'blue' && "bg-blue-50",
+                  stat.color === 'green' && "bg-green-50",
+                  stat.color === 'purple' && "bg-purple-50",
+                  stat.color === 'amber' && "bg-amber-50"
+                )}>
+                  <stat.icon className={cn(
+                    "h-6 w-6",
+                    stat.color === 'blue' && "text-blue-600",
+                    stat.color === 'green' && "text-green-600",
+                    stat.color === 'purple' && "text-purple-600",
+                    stat.color === 'amber' && "text-amber-600"
+                  )} />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
               <div>
-                <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs font-semibold text-green-600">{stat.change}</span>
-                  <span className="text-xs text-slate-500">{stat.subtext}</span>
+                <p className="text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
+                <p className="text-3xl font-bold text-foreground mb-2">{stat.value}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-green-600">{stat.change}</span>
+                  <span className="text-sm text-muted-foreground">{stat.subtext}</span>
                 </div>
               </div>
             </CardContent>
@@ -275,74 +319,37 @@ const QuickStatsOverview = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle className="text-xl">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button 
-              onClick={() => navigate('/admin/users')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
-            >
-              <Users className="h-6 w-6 text-purple-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Manage Users</h3>
-              <p className="text-sm text-slate-600">View and edit user accounts</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/notifications')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
-            >
-              <Bell className="h-6 w-6 text-blue-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Send Notifications</h3>
-              <p className="text-sm text-slate-600">Announcements & messages</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/reports')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left"
-            >
-              <FileText className="h-6 w-6 text-green-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Export Reports</h3>
-              <p className="text-sm text-slate-600">Download user analytics</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/content')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-amber-500 hover:bg-amber-50 transition-all text-left"
-            >
-              <BookOpen className="h-6 w-6 text-amber-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Manage Chapters</h3>
-              <p className="text-sm text-slate-600">Add/edit chapters & topics</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/questions')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left"
-            >
-              <HelpCircle className="h-6 w-6 text-indigo-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Question Bank</h3>
-              <p className="text-sm text-slate-600">Add/edit questions</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/analytics')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left"
-            >
-              <TrendingUp className="h-6 w-6 text-cyan-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Analytics</h3>
-              <p className="text-sm text-slate-600">Platform insights</p>
-            </button>
-            
-            <button 
-              onClick={() => navigate('/admin/exam-config')}
-              className="p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-rose-500 hover:bg-rose-50 transition-all text-left"
-            >
-              <Calendar className="h-6 w-6 text-rose-600 mb-2" />
-              <h3 className="font-semibold text-slate-900">Exam Dates</h3>
-              <p className="text-sm text-slate-600">Configure exam dates</p>
-            </button>
+            {[
+              { path: '/admin/users', label: 'Manage Users', icon: Users, desc: 'View and edit accounts', color: 'purple' },
+              { path: '/admin/notifications', label: 'Notifications', icon: Bell, desc: 'Send announcements', color: 'blue' },
+              { path: '/admin/questions', label: 'Questions', icon: HelpCircle, desc: 'Manage question bank', color: 'green' },
+              { path: '/admin/reports', label: 'Export Data', icon: FileText, desc: 'Download reports', color: 'orange' },
+            ].map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.path}
+                  onClick={() => navigate(action.path)}
+                  className="p-5 border border-border rounded-xl hover:border-primary hover:shadow-sm transition-all text-left group bg-card"
+                >
+                  <Icon className={cn(
+                    "h-8 w-8 mb-3 transition-transform group-hover:scale-110",
+                    action.color === 'purple' && "text-purple-600",
+                    action.color === 'blue' && "text-blue-600",
+                    action.color === 'green' && "text-green-600",
+                    action.color === 'orange' && "text-orange-600"
+                  )} />
+                  <h3 className="font-semibold text-foreground mb-1">{action.label}</h3>
+                  <p className="text-sm text-muted-foreground">{action.desc}</p>
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

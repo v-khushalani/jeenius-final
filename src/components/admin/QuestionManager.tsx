@@ -7,8 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Upload, Plus, Edit, Trash2, Search, Download, Trash } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -37,6 +39,7 @@ export const QuestionManager = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState({
     question: '',
@@ -135,6 +138,67 @@ export const QuestionManager = () => {
       console.error('Error deleting question:', error);
       toast.error('Failed to delete question');
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedQuestions.size === 0) {
+      toast.error('No questions selected');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedQuestions.size} question(s)?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .in('id', Array.from(selectedQuestions));
+
+      if (error) throw error;
+      
+      toast.success(`Successfully deleted ${selectedQuestions.size} question(s)`);
+      setSelectedQuestions(new Set());
+      fetchQuestions();
+    } catch (error) {
+      console.error('Error bulk deleting questions:', error);
+      toast.error('Failed to delete questions');
+    }
+  };
+
+  const toggleQuestionSelection = (id: string) => {
+    const newSelected = new Set(selectedQuestions);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedQuestions(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedQuestions.size === filteredQuestions.length) {
+      setSelectedQuestions(new Set());
+    } else {
+      setSelectedQuestions(new Set(filteredQuestions.map(q => q.id)));
+    }
+  };
+
+  const downloadSampleCSV = () => {
+    const sampleData = `subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,year
+Physics,Mechanics,Kinematics,Equations of Motion,"A car accelerates from rest at 2 m/s². What is its velocity after 5 seconds?",5 m/s,10 m/s,15 m/s,20 m/s,B,"Using v = u + at, where u=0, a=2, t=5: v = 0 + 2*5 = 10 m/s",easy,2023
+Chemistry,Physical Chemistry,Thermodynamics,First Law,"Which of the following is an intensive property?",Volume,Mass,Temperature,Energy,C,"Temperature is intensive as it doesn't depend on the amount of substance",medium,2022
+Mathematics,Algebra,Quadratic Equations,,"Solve: x² - 5x + 6 = 0",x=1 or x=6,x=2 or x=3,x=-2 or x=-3,x=1 or x=5,B,"Factoring: (x-2)(x-3) = 0, so x = 2 or x = 3",easy,2023`;
+
+    const blob = new Blob([sampleData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_questions.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast.success('Sample CSV downloaded');
   };
 
   const parseCSV = (text: string): any[] => {
@@ -250,29 +314,47 @@ export const QuestionManager = () => {
 
   const QuestionForm = () => (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div>
-        <Label>Subject</Label>
-        <Select value={formData.subject} onValueChange={(v) => setFormData({...formData, subject: v})}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Physics">Physics</SelectItem>
-            <SelectItem value="Chemistry">Chemistry</SelectItem>
-            <SelectItem value="Mathematics">Mathematics</SelectItem>
-            <SelectItem value="Biology">Biology</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Subject</Label>
+          <Select value={formData.subject} onValueChange={(v) => setFormData({...formData, subject: v})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Physics">Physics</SelectItem>
+              <SelectItem value="Chemistry">Chemistry</SelectItem>
+              <SelectItem value="Mathematics">Mathematics</SelectItem>
+              <SelectItem value="Biology">Biology</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Difficulty</Label>
+          <Select value={formData.difficulty} onValueChange={(v) => setFormData({...formData, difficulty: v})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="easy">Easy</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div>
-        <Label>Chapter</Label>
-        <Input value={formData.chapter} onChange={(e) => setFormData({...formData, chapter: e.target.value})} />
-      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Chapter</Label>
+          <Input value={formData.chapter} onChange={(e) => setFormData({...formData, chapter: e.target.value})} />
+        </div>
 
-      <div>
-        <Label>Topic</Label>
-        <Input value={formData.topic} onChange={(e) => setFormData({...formData, topic: e.target.value})} />
+        <div>
+          <Label>Topic</Label>
+          <Input value={formData.topic} onChange={(e) => setFormData({...formData, topic: e.target.value})} />
+        </div>
       </div>
 
       <div>
@@ -308,19 +390,30 @@ export const QuestionManager = () => {
         </div>
       </div>
 
-      <div>
-        <Label>Correct Option</Label>
-        <Select value={formData.correct_option} onValueChange={(v) => setFormData({...formData, correct_option: v})}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="A">A</SelectItem>
-            <SelectItem value="B">B</SelectItem>
-            <SelectItem value="C">C</SelectItem>
-            <SelectItem value="D">D</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Correct Option</Label>
+          <Select value={formData.correct_option} onValueChange={(v) => setFormData({...formData, correct_option: v})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="A">A</SelectItem>
+              <SelectItem value="B">B</SelectItem>
+              <SelectItem value="C">C</SelectItem>
+              <SelectItem value="D">D</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Year (Optional)</Label>
+          <Input 
+            type="number" 
+            value={formData.year || ''} 
+            onChange={(e) => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} 
+          />
+        </div>
       </div>
 
       <div>
@@ -331,195 +424,217 @@ export const QuestionManager = () => {
           rows={2}
         />
       </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Difficulty</Label>
-          <Select value={formData.difficulty} onValueChange={(v) => setFormData({...formData, difficulty: v})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="easy">Easy</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="hard">Hard</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Year (Optional)</Label>
-          <Input 
-            type="number" 
-            value={formData.year || ''} 
-            onChange={(e) => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} 
-          />
-        </div>
-      </div>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-foreground">Question Bank Management</h2>
-        <div className="flex gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Question
+      {/* Header Actions */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Question Management</h3>
+              <p className="text-sm text-muted-foreground">Add, edit, or bulk upload questions</p>
+            </div>
+            <div className="flex gap-2">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Question
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>Add New Question</DialogTitle>
+                  </DialogHeader>
+                  <QuestionForm />
+                  <Button onClick={handleAddQuestion} className="w-full">
+                    Add Question
+                  </Button>
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="outline" onClick={downloadSampleCSV}>
+                <Download className="w-4 h-4 mr-2" />
+                Sample CSV
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add New Question</DialogTitle>
-              </DialogHeader>
-              <QuestionForm />
-              <Button onClick={handleAddQuestion} className="w-full">
-                Add Question
-              </Button>
-            </DialogContent>
-          </Dialog>
 
-          <label htmlFor="bulk-upload-json">
-            <Button variant="outline" asChild>
-              <span>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload JSON
-              </span>
-            </Button>
-            <input
-              id="bulk-upload-json"
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={(e) => handleBulkUpload(e, 'json')}
-            />
-          </label>
+              <label htmlFor="bulk-upload-csv">
+                <Button variant="outline" asChild>
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload CSV
+                  </span>
+                </Button>
+                <input
+                  id="bulk-upload-csv"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={(e) => handleBulkUpload(e, 'csv')}
+                />
+              </label>
 
-          <label htmlFor="bulk-upload-csv">
-            <Button variant="outline" asChild>
-              <span>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload CSV
-              </span>
-            </Button>
-            <input
-              id="bulk-upload-csv"
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => handleBulkUpload(e, 'csv')}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search questions, chapters, topics..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+              <label htmlFor="bulk-upload-json">
+                <Button variant="outline" asChild>
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload JSON
+                  </span>
+                </Button>
+                <input
+                  id="bulk-upload-json"
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => handleBulkUpload(e, 'json')}
+                />
+              </label>
+            </div>
           </div>
-        </div>
-        <Select value={filterSubject} onValueChange={setFilterSubject}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by subject" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
-            <SelectItem value="Physics">Physics</SelectItem>
-            <SelectItem value="Chemistry">Chemistry</SelectItem>
-            <SelectItem value="Mathematics">Mathematics</SelectItem>
-            <SelectItem value="Biology">Biology</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by difficulty" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Difficulties</SelectItem>
-            <SelectItem value="easy">Easy</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="hard">Hard</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Subject</TableHead>
-              <TableHead>Chapter</TableHead>
-              <TableHead>Topic</TableHead>
-              <TableHead>Subtopic</TableHead>
-              <TableHead>Question</TableHead>
-              <TableHead>Difficulty</TableHead>
-              <TableHead>Correct</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">Loading questions...</TableCell>
-              </TableRow>
-            ) : filteredQuestions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">No questions found</TableCell>
-              </TableRow>
-            ) : (
-              filteredQuestions.map((q) => (
-                <TableRow key={q.id}>
-                  <TableCell>{q.subject}</TableCell>
-                  <TableCell>{q.chapter}</TableCell>
-                  <TableCell>{q.topic}</TableCell>
-                  <TableCell>{q.subtopic || '-'}</TableCell>
-                  <TableCell className="max-w-[300px] truncate">{q.question}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      q.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                      q.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {q.difficulty}
-                    </span>
-                  </TableCell>
-                  <TableCell>{q.correct_option}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(q)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteQuestion(q.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+          {/* Filters */}
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[250px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search questions, chapters, topics..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={filterSubject} onValueChange={setFilterSubject}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Subject" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Subjects</SelectItem>
+                <SelectItem value="Physics">Physics</SelectItem>
+                <SelectItem value="Chemistry">Chemistry</SelectItem>
+                <SelectItem value="Mathematics">Mathematics</SelectItem>
+                <SelectItem value="Biology">Biology</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+            {selectedQuestions.size > 0 && (
+              <Button variant="destructive" onClick={handleBulkDelete}>
+                <Trash className="w-4 h-4 mr-2" />
+                Delete ({selectedQuestions.size})
+              </Button>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Questions Table */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-border bg-muted/50">
+                  <TableHead className="w-12">
+                    <Checkbox 
+                      checked={selectedQuestions.size === filteredQuestions.length && filteredQuestions.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Subject</TableHead>
+                  <TableHead>Chapter</TableHead>
+                  <TableHead>Topic</TableHead>
+                  <TableHead>Subtopic</TableHead>
+                  <TableHead>Question</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Correct</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-12">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredQuestions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                      No questions found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredQuestions.map((q) => (
+                    <TableRow key={q.id} className="border-b border-border hover:bg-muted/50">
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedQuestions.has(q.id)}
+                          onCheckedChange={() => toggleQuestionSelection(q.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{q.subject}</TableCell>
+                      <TableCell>{q.chapter}</TableCell>
+                      <TableCell>{q.topic}</TableCell>
+                      <TableCell className="text-muted-foreground">{q.subtopic || '-'}</TableCell>
+                      <TableCell className="max-w-[300px] truncate">{q.question}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          q.difficulty === 'easy' ? 'bg-green-50 text-green-700 border border-green-200' :
+                          q.difficulty === 'medium' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                          'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {q.difficulty}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-mono font-semibold text-primary">{q.correct_option}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(q)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteQuestion(q.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit Question</DialogTitle>
           </DialogHeader>
