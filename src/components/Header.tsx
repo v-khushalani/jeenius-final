@@ -1,22 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, LogOut, ChevronDown, BookOpen, Target, MessageCircle, Trophy, BarChart3, PlusCircle, Brain, Award, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Menu, X, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { supabase } from '@/integrations/supabase/client';
-import PointsDisplay from '@/components/PointsDisplay';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar } from "lucide-react";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [language, setLanguage] = useState('EN');
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, signOut, isPremium } = useAuth();
@@ -28,29 +25,23 @@ const Header = () => {
   };
 
   const publicNavItems = [
-    { name: 'Home', href: '/', path: '/', icon: null, highlight: false },
-    { name: 'Why Us', href: '/why-us', path: '/why-us', icon: null, highlight: false },
-  ];
-  
-  // Recommended Fix:
-  const featureDropdownItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: BarChart3, description: 'Your analytics hub' },
-    { name: 'Study Planner', path: '/ai-planner', icon: Calendar, description: 'AI-powered planning' },
+    { name: 'Home', path: '/' },
+    { name: 'Why Us', path: '/why-us' },
   ];
 
   const navItems = isAuthenticated ? (
-  isAdmin ? [
-    { name: 'Dashboard', href: '/admin', path: '/admin', icon: BarChart3 },
-    { name: 'Analytics', href: '/admin/analytics', path: '/admin/analytics', icon: Target },
-    { name: 'Users', href: '/admin/users', path: '/admin/users', icon: BookOpen },
-    { name: 'Content', href: '/admin/content', path: '/admin/content', icon: Brain },
-  ] : [
-    { name: 'Dashboard', href: '/dashboard', path: '/dashboard', icon: BarChart3 },
-    { name: 'Study Now', href: '/study-now', path: '/study-now', icon: BookOpen, highlight: false },
-    ...(isPremium ? [{ name: 'AI Study Planner', href: '/ai-planner', path: '/ai-planner', icon: Brain, highlight: false }] : []),
-    { name: 'Tests', href: '/tests', path: '/tests', icon: Target },
-  ]
-) : publicNavItems;
+    isAdmin ? [
+      { name: 'Dashboard', path: '/admin' },
+      { name: 'Analytics', path: '/admin/analytics' },
+      { name: 'Users', path: '/admin/users' },
+      { name: 'Content', path: '/admin/content' },
+    ] : [
+      { name: 'Dashboard', path: '/dashboard' },
+      { name: 'Study Now', path: '/study-now' },
+      ...(isPremium ? [{ name: 'AI Planner', path: '/ai-planner' }] : []),
+      { name: 'Tests', path: '/tests' },
+    ]
+  ) : publicNavItems;
 
   const handleLogout = async () => {
     try {
@@ -66,90 +57,80 @@ const Header = () => {
     }
   };
 
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
-
+    <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo - Enhanced for visibility */}
+          {/* Logo */}
           <div 
-            className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group"
+            className="flex items-center gap-3 cursor-pointer group"
             onClick={() => navigate(isAuthenticated ? '/dashboard' : '/')}
           >
             <img 
               src="/logo.png" 
-              alt="JEEnius Logo" 
-              className="w-8 h-8 sm:w-10 sm:h-10 object-contain transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+              alt="JEEnius" 
+              className="w-9 h-9 object-contain transition-transform duration-300 group-hover:scale-110"
             />
-            <span className="font-bold text-lg sm:text-xl drop-shadow-sm" style={{ color: '#013062' }}>
+            <span className="font-semibold text-xl text-primary">
               JEEnius
             </span>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
+          <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => {
-                  console.log('Navigating to:', item.href || item.path);
-                  handleNavigation(item.href || item.path);
-                }}
-                className={`transition-colors duration-200 font-medium px-3 py-2 rounded-lg flex items-center space-x-2 ${
-                  location.pathname === (item.href || item.path)
-                    ? 'text-white bg-primary'
-                    : item.highlight 
-                    ? 'text-primary bg-primary/10 hover:bg-primary hover:text-white'
-                    : 'text-gray-700 hover:text-primary hover:bg-gray-100'
+                onClick={() => handleNavigation(item.path)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  location.pathname === item.path
+                    ? 'bg-primary text-white'
+                    : 'text-foreground hover:bg-muted'
                 }`}
               >
-                {item.icon && <item.icon className="w-4 h-4" />}
-                <span>{item.name}</span>
+                {item.name}
               </button>
             ))}
           </nav>
 
-          {/* Right Side: Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Points display removed - already shown on dashboard */}
-            
+          {/* Right Side */}
+          <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs">
+                  <Button variant="ghost" size="sm" className="gap-2 h-9 rounded-lg">
+                    <div className="w-7 h-7 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-medium">
                       U
                     </div>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
-                  <DropdownMenuItem onClick={() => handleNavigation('/profile')}>
-                    <div className="flex items-center space-x-2 w-full">
-                      <div className="w-4 h-4 rounded-full bg-primary"></div>
+                <DropdownMenuContent align="end" className="w-48 glass-card border-border/50 shadow-apple-lg p-1">
+                  <DropdownMenuItem onClick={() => handleNavigation('/profile')} className="rounded-lg cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
                       <span>Profile</span>
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
-                    <div className="flex items-center space-x-2 w-full">
+                  <DropdownMenuItem onClick={() => handleNavigation('/settings')} className="rounded-lg cursor-pointer">
+                    <div className="flex items-center gap-2">
                       <span>⚙️</span>
                       <span>Settings</span>
                     </div>
                   </DropdownMenuItem>
                   {isAdmin && (
-                    <DropdownMenuItem onClick={() => handleNavigation('/admin')}>
-                      <div className="flex items-center space-x-2 w-full">
+                    <DropdownMenuItem onClick={() => handleNavigation('/admin')} className="rounded-lg cursor-pointer">
+                      <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-purple-600" />
-                        <span className="text-purple-600 font-semibold">Admin Panel</span>
+                        <span className="text-purple-600 font-medium">Admin</span>
                       </div>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem 
                     onClick={handleLogout}
-                    className="text-red-600 focus:text-red-600"
+                    className="text-red-600 rounded-lg cursor-pointer"
                   >
-                    <div className="flex items-center space-x-2 w-full">
+                    <div className="flex items-center gap-2">
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>
                     </div>
@@ -158,99 +139,97 @@ const Header = () => {
               </DropdownMenu>
             ) : (
               <Button 
-                className="bg-primary hover:bg-primary/90 text-white px-6"
+                className="bg-primary hover:bg-primary/90 text-white px-6 h-9 rounded-lg font-medium shadow-apple transition-all duration-200 hover:shadow-apple-lg"
                 onClick={() => navigate('/login')}
               >
-                Sign In / Get Started
+                Sign In
               </Button>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? (
-              <X className="w-6 h-6 text-gray-600" />
+              <X className="w-5 h-5" />
             ) : (
-              <Menu className="w-6 h-6 text-gray-600" />
+              <Menu className="w-5 h-5" />
             )}
           </button>
         </div>
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
-            {/* 🚀 NEW: Points Display for Mobile - Top of menu */}
-            {isAuthenticated && (
-              <div className="mb-4 flex justify-center">
-                {/* <PointsDisplay /> */}
-              </div>
-            )}
-
-            <nav className="flex flex-col space-y-2">
+          <div className="md:hidden py-4 border-t border-border/50">
+            <nav className="flex flex-col gap-1">
               {navItems.map((item) => (
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.path)}
-                  className={`text-left font-medium transition-colors flex items-center space-x-3 p-3 rounded-lg ${
+                  className={`text-left px-4 py-3 rounded-lg font-medium transition-colors ${
                     location.pathname === item.path
-                      ? 'text-white bg-primary'
-                      : item.highlight
-                      ? 'text-primary bg-primary/10'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary text-white'
+                      : 'text-foreground hover:bg-muted'
                   }`}
                 >
-                  {item.icon && <item.icon className="w-5 h-5" />}
-                  <span>{item.name}</span>
+                  {item.name}
                 </button>
               ))}
               
-              <div className="pt-3 space-y-2 border-t mt-3">
+              <div className="pt-3 mt-3 border-t border-border/50 space-y-1">
                 {isAuthenticated ? (
                   <>
                     <Button 
-                      variant="outline"
-                      className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3"
+                      variant="ghost"
+                      className="w-full justify-start h-12 rounded-lg"
                       onClick={() => handleNavigation('/profile')}
                     >
-                      <div className="w-5 h-5 rounded-full bg-primary"></div>
-                      <span>Profile</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                        <span>Profile</span>
+                      </div>
                     </Button>
                     <Button 
-                      variant="outline"
-                      className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3"
+                      variant="ghost"
+                      className="w-full justify-start h-12 rounded-lg"
                       onClick={() => handleNavigation('/settings')}
                     >
-                      <span className="text-lg">⚙️</span>
-                      <span>Settings</span>
+                      <div className="flex items-center gap-2">
+                        <span>⚙️</span>
+                        <span>Settings</span>
+                      </div>
                     </Button>
                     {isAdmin && (
                       <Button 
-                        variant="outline"
-                        className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300"
+                        variant="ghost"
+                        className="w-full justify-start h-12 rounded-lg"
                         onClick={() => handleNavigation('/admin')}
                       >
-                        <Shield className="w-5 h-5" />
-                        <span className="font-semibold">Admin Panel</span>
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-purple-600" />
+                          <span className="text-purple-600 font-medium">Admin</span>
+                        </div>
                       </Button>
                     )}
                     <Button 
-                      variant="outline"
+                      variant="ghost"
                       onClick={handleLogout}
-                      className="w-full justify-start text-left h-12 flex items-center space-x-3 px-3 hover:bg-red-50 hover:text-red-600 hover:border-red-300"
+                      className="w-full justify-start h-12 rounded-lg text-red-600 hover:text-red-600"
                     >
-                      <LogOut className="w-5 h-5" />
-                      <span>Logout</span>
+                      <div className="flex items-center gap-2">
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
+                      </div>
                     </Button>
                   </>
                 ) : (
                   <Button 
-                    className="w-full bg-primary hover:bg-primary/90 text-white h-12"
+                    className="w-full bg-primary hover:bg-primary/90 text-white h-12 rounded-lg"
                     onClick={() => handleNavigation('/login')}
                   >
-                    Sign In / Get Started
+                    Sign In
                   </Button>
                 )}
               </div>
