@@ -147,9 +147,9 @@ const StudyNowPage = () => {
         const totalQuestions = subjectQuestions.length;
 
         const difficulties = {
-          easy: subjectQuestions.filter(q => q.difficulty === '1').length,
-          medium: subjectQuestions.filter(q => q.difficulty === '2').length,
-          hard: subjectQuestions.filter(q => q.difficulty === '3').length
+          easy: subjectQuestions.filter(q => q.difficulty === 'Easy').length,
+          medium: subjectQuestions.filter(q => q.difficulty === 'Medium').length,
+          hard: subjectQuestions.filter(q => q.difficulty === 'Hard').length
         };
 
         const subjectAttempts = userAttempts?.filter(
@@ -237,9 +237,9 @@ const StudyNowPage = () => {
         const totalQuestions = chapterQuestions.length;
 
         const difficulties = {
-          easy: chapterQuestions.filter(q => q.difficulty === '1').length,
-          medium: chapterQuestions.filter(q => q.difficulty === '2').length,
-          hard: chapterQuestions.filter(q => q.difficulty === '3').length
+          easy: chapterQuestions.filter(q => q.difficulty === 'Easy').length,
+          medium: chapterQuestions.filter(q => q.difficulty === 'Medium').length,
+          hard: chapterQuestions.filter(q => q.difficulty === 'Hard').length
         };
 
         const chapterAttempts = userAttempts?.filter(
@@ -310,9 +310,9 @@ const StudyNowPage = () => {
         const totalQuestions = topicQuestions.length;
 
         const difficulties = {
-          easy: topicQuestions.filter(q => q.difficulty === '1').length,
-          medium: topicQuestions.filter(q => q.difficulty === '2').length,
-          hard: topicQuestions.filter(q => q.difficulty === '3').length
+          easy: topicQuestions.filter(q => q.difficulty === 'Easy').length,
+          medium: topicQuestions.filter(q => q.difficulty === 'Medium').length,
+          hard: topicQuestions.filter(q => q.difficulty === 'Hard').length
         };
 
         const topicAttempts = userAttempts?.filter(
@@ -381,10 +381,10 @@ const StudyNowPage = () => {
       
       setCurrentLevel(userLevel);
       
-      // Map level to difficulty (database uses '1', '2', '3')
-      const difficultyMap = { 1: '1', 2: '2', 3: '3' };
+      // Map level to difficulty (database uses 'Easy', 'Medium', 'Hard')
+      const difficultyMap = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
       const difficultyNames = { 1: 'Easy', 2: 'Medium', 3: 'Hard' };
-      const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || '1';
+      const targetDifficulty = difficultyMap[userLevel as keyof typeof difficultyMap] || 'Easy';
 
       // Show level info
       toast.info(`Starting at ${difficultyNames[userLevel as keyof typeof difficultyNames]} level`, { duration: 2000 });

@@ -53,7 +53,7 @@ export const QuestionManager = () => {
     chapter: '',
     topic: '',
     subtopic: '',
-    difficulty: '1',
+    difficulty: 'Easy',
     question_type: 'single_correct',
     year: null as number | null
   });
@@ -206,14 +206,14 @@ export const QuestionManager = () => {
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const questions = [];
     
-    // Difficulty mapping for CSV uploads
+    // Difficulty mapping for CSV uploads - normalize to capitalized format
     const difficultyMap: Record<string, string> = {
-      'easy': '1',
-      'medium': '2',
-      'hard': '3',
-      '1': '1',
-      '2': '2',
-      '3': '3'
+      'easy': 'Easy',
+      'medium': 'Medium',
+      'hard': 'Hard',
+      'Easy': 'Easy',
+      'Medium': 'Medium',
+      'Hard': 'Hard'
     };
     
     for (let i = 1; i < lines.length; i++) {
@@ -226,8 +226,8 @@ export const QuestionManager = () => {
           if (header === 'year') {
             question[header] = parseInt(value) || null;
           } else if (header === 'difficulty') {
-            // Map difficulty to numeric format
-            question[header] = difficultyMap[value.toLowerCase()] || '1';
+            // Map difficulty to capitalized format
+            question[header] = difficultyMap[value.toLowerCase()] || 'Easy';
           } else {
             question[header] = value;
           }
@@ -316,7 +316,7 @@ export const QuestionManager = () => {
       chapter: '',
       topic: '',
       subtopic: '',
-      difficulty: '1',
+      difficulty: 'Easy',
       question_type: 'single_correct',
       year: null
     });
@@ -357,9 +357,9 @@ export const QuestionManager = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">Easy</SelectItem>
-              <SelectItem value="2">Medium</SelectItem>
-              <SelectItem value="3">Hard</SelectItem>
+              <SelectItem value="Easy">Easy</SelectItem>
+              <SelectItem value="Medium">Medium</SelectItem>
+              <SelectItem value="Hard">Hard</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -546,9 +546,9 @@ export const QuestionManager = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="1">Easy</SelectItem>
-                <SelectItem value="2">Medium</SelectItem>
-                <SelectItem value="3">Hard</SelectItem>
+                <SelectItem value="Easy">Easy</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Hard">Hard</SelectItem>
               </SelectContent>
             </Select>
             {selectedQuestions.size > 0 && (
@@ -615,11 +615,11 @@ export const QuestionManager = () => {
                       <TableCell className="max-w-[300px] truncate">{q.question}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          q.difficulty === '1' ? 'bg-green-50 text-green-700 border border-green-200' :
-                          q.difficulty === '2' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
+                          q.difficulty === 'Easy' ? 'bg-green-50 text-green-700 border border-green-200' :
+                          q.difficulty === 'Medium' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' :
                           'bg-red-50 text-red-700 border border-red-200'
                         }`}>
-                          {q.difficulty === '1' ? 'Easy' : q.difficulty === '2' ? 'Medium' : 'Hard'}
+                          {q.difficulty}
                         </span>
                       </TableCell>
                       <TableCell>
