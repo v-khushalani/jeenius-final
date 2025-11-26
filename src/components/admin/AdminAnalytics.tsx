@@ -24,6 +24,14 @@ export const AdminAnalytics: React.FC = () => {
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const [userAnalytics, setUserAnalytics] = useState<UserAnalytics[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Move subjectData state to top level (before any returns)
+  const [subjectData, setSubjectData] = useState([
+    { name: 'Physics', questions: 0, color: '#8B5CF6' },
+    { name: 'Chemistry', questions: 0, color: '#06B6D4' },
+    { name: 'Maths', questions: 0, color: '#10B981' },
+    { name: 'Biology', questions: 0, color: '#F59E0B' }
+  ]);
 
   useEffect(() => {
     const fetchPlatformStats = async () => {
@@ -104,11 +112,11 @@ export const AdminAnalytics: React.FC = () => {
 
         const analyticsData = last7Days.map(date => {
           const newUsers = profilesData?.filter(p => 
-            p.created_at.startsWith(date)
+            p.created_at?.startsWith(date)
           ).length || 0;
 
           const dayAttempts = attemptsData?.filter(a => 
-            a.attempted_at.startsWith(date)
+            a.attempted_at?.startsWith(date)
           ) || [];
 
           const activeUsers = new Set(dayAttempts.map(a => a.user_id)).size;
@@ -133,13 +141,35 @@ export const AdminAnalytics: React.FC = () => {
     fetchUserAnalytics();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Subject data effect - must be at top level
+  useEffect(() => {
+    const loadSubjectData = async () => {
+      try {
+        const { data } = await supabase
+          .from('question_attempts')
+          .select('question_id, questions(subject)');
+        
+        const subjectCounts: Record<string, number> = { Physics: 0, Chemistry: 0, Maths: 0, Biology: 0 };
+        data?.forEach(attempt => {
+          const subject = (attempt.questions as any)?.subject;
+          if (subject && subject in subjectCounts) {
+            subjectCounts[subject]++;
+          }
+        });
+
+        setSubjectData([
+          { name: 'Physics', questions: subjectCounts.Physics, color: '#8B5CF6' },
+          { name: 'Chemistry', questions: subjectCounts.Chemistry, color: '#06B6D4' },
+          { name: 'Maths', questions: subjectCounts.Maths, color: '#10B981' },
+          { name: 'Biology', questions: subjectCounts.Biology, color: '#F59E0B' }
+        ]);
+      } catch (error) {
+        console.error('Error loading subject data:', error);
+      }
+    };
+    
+    loadSubjectData();
+  }, []);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -147,38 +177,13 @@ export const AdminAnalytics: React.FC = () => {
     return `${hours}h ${minutes}m`;
   };
 
-  // Get real subject distribution
-  const [subjectData, setSubjectData] = React.useState([
-    { name: 'Physics', questions: 0, color: '#8B5CF6' },
-    { name: 'Chemistry', questions: 0, color: '#06B6D4' },
-    { name: 'Maths', questions: 0, color: '#10B981' },
-    { name: 'Biology', questions: 0, color: '#F59E0B' }
-  ]);
-
-  React.useEffect(() => {
-    const loadSubjectData = async () => {
-      const { data } = await supabase
-        .from('question_attempts')
-        .select('question_id, questions(subject)');
-      
-      const subjectCounts = { Physics: 0, Chemistry: 0, Maths: 0, Biology: 0 };
-      data?.forEach(attempt => {
-        const subject = (attempt.questions as any)?.subject;
-        if (subject && subjectCounts.hasOwnProperty(subject)) {
-          subjectCounts[subject as keyof typeof subjectCounts]++;
-        }
-      });
-
-      setSubjectData([
-        { name: 'Physics', questions: subjectCounts.Physics, color: '#8B5CF6' },
-        { name: 'Chemistry', questions: subjectCounts.Chemistry, color: '#06B6D4' },
-        { name: 'Maths', questions: subjectCounts.Maths, color: '#10B981' },
-        { name: 'Biology', questions: subjectCounts.Biology, color: '#F59E0B' }
-      ]);
-    };
-    
-    loadSubjectData();
-  }, []);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
