@@ -35,6 +35,10 @@
     --card: 0 0% 100%;
     --card-foreground: 216 15% 12%;
     
+    /* Popover - SOLID background for dropdowns */
+    --popover: 0 0% 100%;
+    --popover-foreground: 216 15% 12%;
+    
     /* Border */
     --border: 216 15% 92%;
     --input: 216 15% 92%;
@@ -72,6 +76,9 @@
     --accent-foreground: 0 0% 98%;
     --card: 213 50% 5%;
     --card-foreground: 0 0% 98%;
+    /* Popover - SOLID dark background for dropdowns */
+    --popover: 213 50% 8%;
+    --popover-foreground: 0 0% 98%;
     --border: 213 30% 18%;
     --input: 213 30% 18%;
     --ring: 213 100% 60%;
