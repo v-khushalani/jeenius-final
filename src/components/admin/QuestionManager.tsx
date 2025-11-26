@@ -24,7 +24,9 @@ interface Question {
   explanation: string | null;
   subject: string;
   chapter: string;
+  chapter_id: string | null;
   topic: string;
+  topic_id: string | null;
   subtopic: string | null;
   difficulty: string;
   question_type: string;
@@ -150,8 +152,15 @@ export const QuestionManager = () => {
 
     setFormSubmitting(true);
     try {
+      // Get chapter_id from selected chapter
+      const selectedChapter = chapters.find(c => c.chapter_name === formData.chapter && c.subject === formData.subject);
+      // Get topic_id from selected topic
+      const selectedTopic = selectedChapter ? topics.find(t => t.chapter_id === selectedChapter.id && t.topic_name === formData.topic) : null;
+
       const { error } = await supabase.from('questions').insert([{
         ...formData,
+        chapter_id: selectedChapter?.id || null,
+        topic_id: selectedTopic?.id || null,
         subtopic: formData.subtopic || null,
         explanation: formData.explanation || null
       }]);
@@ -177,10 +186,17 @@ export const QuestionManager = () => {
 
     setFormSubmitting(true);
     try {
+      // Get chapter_id from selected chapter
+      const selectedChapter = chapters.find(c => c.chapter_name === formData.chapter && c.subject === formData.subject);
+      // Get topic_id from selected topic
+      const selectedTopic = selectedChapter ? topics.find(t => t.chapter_id === selectedChapter.id && t.topic_name === formData.topic) : null;
+
       const { error } = await supabase
         .from('questions')
         .update({
           ...formData,
+          chapter_id: selectedChapter?.id || null,
+          topic_id: selectedTopic?.id || null,
           subtopic: formData.subtopic || null,
           explanation: formData.explanation || null
         })
@@ -327,10 +343,26 @@ export const QuestionManager = () => {
         data = parseCSV(text);
       }
 
-      const { error } = await supabase.from('questions').insert(data);
+      // Enrich data with chapter_id and topic_id
+      const enrichedData = data.map(question => {
+        const matchingChapter = chapters.find(c => 
+          c.chapter_name === question.chapter && c.subject === question.subject
+        );
+        const matchingTopic = matchingChapter 
+          ? topics.find(t => t.chapter_id === matchingChapter.id && t.topic_name === question.topic)
+          : null;
+
+        return {
+          ...question,
+          chapter_id: matchingChapter?.id || null,
+          topic_id: matchingTopic?.id || null
+        };
+      });
+
+      const { error } = await supabase.from('questions').insert(enrichedData);
       if (error) throw error;
       
-      toast.success(`Successfully uploaded ${data.length} questions`);
+      toast.success(`Successfully uploaded ${enrichedData.length} questions`);
       fetchData();
       event.target.value = '';
     } catch (error) {

@@ -138,16 +138,20 @@ const StudyNowPage = () => {
       
       const targetExam = profileData?.target_exam || 'JEE';
 
-      let questionsQuery = supabase
+      // Fetch unique subjects from chapters table
+      const { data: chaptersData, error: chaptersError } = await supabase
+        .from('chapters')
+        .select('subject');
+
+      if (chaptersError) throw chaptersError;
+
+      const uniqueSubjects = [...new Set(chaptersData?.map(c => c.subject) || [])];
+
+      // Get questions for counting
+      const { data: allQuestions } = await supabase
         .from('questions')
         .select('subject, difficulty')
         .eq('exam', targetExam);
-
-      const { data: allQuestions, error } = await questionsQuery;
-
-      if (error) throw error;
-
-      const uniqueSubjects = [...new Set(allQuestions?.map(q => q.subject) || [])];
 
       const { data: userAttempts } = await supabase
         .from('question_attempts')
@@ -175,7 +179,8 @@ const StudyNowPage = () => {
         const icons = {
           'Physics': '⚛️',
           'Chemistry': '🧪',
-          'Mathematics': '📐'
+          'Mathematics': '📐',
+          'Biology': '🧬'
         };
 
         const colors = {
@@ -193,6 +198,11 @@ const StudyNowPage = () => {
             color: 'from-purple-500 to-pink-600',
             bgColor: 'from-purple-50 to-pink-50',
             borderColor: 'border-purple-200'
+          },
+          'Biology': {
+            color: 'from-orange-500 to-red-600',
+            bgColor: 'from-orange-50 to-red-50',
+            borderColor: 'border-orange-200'
           }
         };
 
@@ -229,27 +239,32 @@ const StudyNowPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Get user's target exam from profile
-      const targetExam = profile?.target_exam || 'JEE';
+      // Fetch chapters from chapters table directly
+      const { data: chaptersData, error: chaptersError } = await supabase
+        .from('chapters')
+        .select('id, chapter_name, chapter_number, description, difficulty_level')
+        .eq('subject', subject)
+        .order('chapter_number', { ascending: true });
 
-      const { data, error } = await supabase
+      if (chaptersError) throw chaptersError;
+
+      // Get questions count per chapter
+      const targetExam = profile?.target_exam || 'JEE';
+      const { data: questionsData } = await supabase
         .from('questions')
-        .select('chapter, difficulty')
+        .select('chapter_id, difficulty')
         .eq('subject', subject)
         .eq('exam', targetExam);
 
-      if (error) throw error;
-
-      const uniqueChapters = [...new Set(data?.map(q => q.chapter) || [])];
-
+      // Get user attempts for this subject
       const { data: userAttempts } = await supabase
         .from('question_attempts')
-        .select('*, questions!inner(subject, chapter)')
+        .select('*, questions!inner(subject, chapter_id)')
         .eq('user_id', user?.id)
         .eq('questions.subject', subject);
 
-      const chapterStats = uniqueChapters.map((chapter, index) => {
-        const chapterQuestions = data?.filter(q => q.chapter === chapter) || [];
+      const chapterStats = (chaptersData || []).map((chapter) => {
+        const chapterQuestions = questionsData?.filter(q => q.chapter_id === chapter.id) || [];
         const totalQuestions = chapterQuestions.length;
 
         const difficulties = {
@@ -259,25 +274,25 @@ const StudyNowPage = () => {
         };
 
         const chapterAttempts = userAttempts?.filter(
-          a => a.questions?.chapter === chapter
+          a => a.questions?.chapter_id === chapter.id
         ) || [];
 
         const attempted = chapterAttempts.length;
         const correct = chapterAttempts.filter(a => a.is_correct).length;
         const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
-        const progress = attempted > 0 ? Math.min(100, Math.round((attempted / totalQuestions) * 100)) : 0;
-
-        const isLocked = false; // All chapters are now free
+        const progress = totalQuestions > 0 ? Math.min(100, Math.round((attempted / totalQuestions) * 100)) : 0;
 
         return {
-          name: chapter,
-          sequence: index + 1,
+          id: chapter.id,
+          name: chapter.chapter_name,
+          sequence: chapter.chapter_number,
+          description: chapter.description,
           totalQuestions,
           difficulties,
           attempted,
           accuracy,
           progress,
-          isLocked
+          isLocked: false
         };
       });
 
