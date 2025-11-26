@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, Plus, Edit, Trash2, Search, Download, Trash } from 'lucide-react';
+import { Upload, Plus, Edit, Trash2, Search, Download, Trash, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Question {
   id: string;
@@ -31,8 +32,42 @@ interface Question {
   exam: string;
 }
 
+interface Chapter {
+  id: string;
+  subject: string;
+  chapter_name: string;
+  chapter_number: number;
+}
+
+interface Topic {
+  id: string;
+  chapter_id: string;
+  topic_name: string;
+  order_index: number;
+}
+
+const initialFormData = {
+  question: '',
+  option_a: '',
+  option_b: '',
+  option_c: '',
+  option_d: '',
+  correct_option: 'A',
+  explanation: '',
+  subject: '',
+  chapter: '',
+  topic: '',
+  subtopic: '',
+  difficulty: 'Easy',
+  question_type: 'single_correct',
+  year: null as number | null,
+  exam: 'JEE'
+};
+
 export const QuestionManager = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('all');
@@ -42,73 +77,113 @@ export const QuestionManager = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
-  
-  const [formData, setFormData] = useState({
-    question: '',
-    option_a: '',
-    option_b: '',
-    option_c: '',
-    option_d: '',
-    correct_option: 'A',
-    explanation: '',
-    subject: 'Physics',
-    chapter: '',
-    topic: '',
-    subtopic: '',
-    difficulty: 'Easy',
-    question_type: 'single_correct',
-    year: null as number | null,
-    exam: 'JEE'
-  });
+  const [formData, setFormData] = useState(initialFormData);
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // Derived state for filtered chapters and topics
+  const filteredChapters = chapters.filter(c => c.subject === formData.subject);
+  const selectedChapter = chapters.find(c => c.chapter_name === formData.chapter && c.subject === formData.subject);
+  const filteredTopics = selectedChapter ? topics.filter(t => t.chapter_id === selectedChapter.id) : [];
+
+  // Get unique subjects from chapters
+  const availableSubjects = [...new Set(chapters.map(c => c.subject))];
 
   useEffect(() => {
-    fetchQuestions();
+    fetchData();
   }, []);
 
-  const fetchQuestions = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
+      const [questionsRes, chaptersRes, topicsRes] = await Promise.all([
+        supabase.from('questions').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('chapters').select('*').order('subject, chapter_number'),
+        supabase.from('topics').select('*').order('order_index')
+      ]);
 
-      if (error) throw error;
-      setQuestions(data || []);
+      if (questionsRes.error) throw questionsRes.error;
+      if (chaptersRes.error) throw chaptersRes.error;
+      if (topicsRes.error) throw topicsRes.error;
+
+      setQuestions(questionsRes.data || []);
+      setChapters(chaptersRes.data || []);
+      setTopics(topicsRes.data || []);
     } catch (error) {
-      console.error('Error fetching questions:', error);
-      toast.error('Failed to fetch questions');
+      console.error('Error fetching data:', error);
+      toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
     }
   };
 
+  const validateForm = (): boolean => {
+    if (!formData.exam) {
+      toast.error('Please select an exam type');
+      return false;
+    }
+    if (!formData.subject) {
+      toast.error('Please select a subject');
+      return false;
+    }
+    if (!formData.chapter) {
+      toast.error('Please select a chapter');
+      return false;
+    }
+    if (!formData.topic) {
+      toast.error('Please select a topic');
+      return false;
+    }
+    if (!formData.question.trim()) {
+      toast.error('Please enter the question');
+      return false;
+    }
+    if (!formData.option_a.trim() || !formData.option_b.trim() || !formData.option_c.trim() || !formData.option_d.trim()) {
+      toast.error('Please fill all four options');
+      return false;
+    }
+    return true;
+  };
+
   const handleAddQuestion = async () => {
+    if (!validateForm()) return;
+    if (formSubmitting) return;
+
+    setFormSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('questions')
-        .insert([formData]);
+      const { error } = await supabase.from('questions').insert([{
+        ...formData,
+        subtopic: formData.subtopic || null,
+        explanation: formData.explanation || null
+      }]);
 
       if (error) throw error;
       
       toast.success('Question added successfully');
       setIsAddDialogOpen(false);
       resetForm();
-      fetchQuestions();
+      fetchData();
     } catch (error) {
       console.error('Error adding question:', error);
       toast.error('Failed to add question');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
   const handleEditQuestion = async () => {
     if (!editingQuestion) return;
+    if (!validateForm()) return;
+    if (formSubmitting) return;
 
+    setFormSubmitting(true);
     try {
       const { error } = await supabase
         .from('questions')
-        .update(formData)
+        .update({
+          ...formData,
+          subtopic: formData.subtopic || null,
+          explanation: formData.explanation || null
+        })
         .eq('id', editingQuestion.id);
 
       if (error) throw error;
@@ -117,10 +192,12 @@ export const QuestionManager = () => {
       setIsEditDialogOpen(false);
       setEditingQuestion(null);
       resetForm();
-      fetchQuestions();
+      fetchData();
     } catch (error) {
       console.error('Error updating question:', error);
       toast.error('Failed to update question');
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -128,15 +205,10 @@ export const QuestionManager = () => {
     if (!confirm('Are you sure you want to delete this question?')) return;
 
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('questions').delete().eq('id', id);
       if (error) throw error;
-      
       toast.success('Question deleted successfully');
-      fetchQuestions();
+      fetchData();
     } catch (error) {
       console.error('Error deleting question:', error);
       toast.error('Failed to delete question');
@@ -152,16 +224,11 @@ export const QuestionManager = () => {
     if (!confirm(`Are you sure you want to delete ${selectedQuestions.size} question(s)?`)) return;
 
     try {
-      const { error } = await supabase
-        .from('questions')
-        .delete()
-        .in('id', Array.from(selectedQuestions));
-
+      const { error } = await supabase.from('questions').delete().in('id', Array.from(selectedQuestions));
       if (error) throw error;
-      
       toast.success(`Successfully deleted ${selectedQuestions.size} question(s)`);
       setSelectedQuestions(new Set());
-      fetchQuestions();
+      fetchData();
     } catch (error) {
       console.error('Error bulk deleting questions:', error);
       toast.error('Failed to delete questions');
@@ -187,7 +254,6 @@ export const QuestionManager = () => {
   };
 
   const downloadSampleCSV = () => {
-    // Blank template with exact DB column structure for bulk upload
     const headers = 'exam,subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,question_type,year';
     const sampleRow = 'JEE,Physics,Mechanics,Newton Laws,First Law,What is inertia?,Property of matter,Force,Mass,Energy,A,Inertia is the property of matter to resist change in motion,Easy,single_correct,2024';
     const content = `${headers}\n${sampleRow}`;
@@ -201,7 +267,7 @@ export const QuestionManager = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    toast.success('Template with sample row downloaded - exam values: JEE, NEET, MHT-CET');
+    toast.success('Template downloaded - exam values: JEE, NEET, MHT-CET | difficulty: Easy, Medium, Hard');
   };
 
   const parseCSV = (text: string): any[] => {
@@ -211,14 +277,9 @@ export const QuestionManager = () => {
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const questions = [];
     
-    // Difficulty mapping for CSV uploads - normalize to capitalized format
     const difficultyMap: Record<string, string> = {
-      'easy': 'Easy',
-      'medium': 'Medium',
-      'hard': 'Hard',
-      'Easy': 'Easy',
-      'Medium': 'Medium',
-      'Hard': 'Hard'
+      'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard',
+      'Easy': 'Easy', 'Medium': 'Medium', 'Hard': 'Hard'
     };
     
     for (let i = 1; i < lines.length; i++) {
@@ -231,25 +292,18 @@ export const QuestionManager = () => {
           if (header === 'year') {
             question[header] = parseInt(value) || null;
           } else if (header === 'difficulty') {
-            // Map difficulty to capitalized format
             question[header] = difficultyMap[value.toLowerCase()] || 'Easy';
           } else {
             question[header] = value;
           }
         } else if (header === 'subtopic' || header === 'explanation' || header === 'year') {
-          question[header] = null; // Optional fields
+          question[header] = null;
         }
       });
       
-      // Set defaults if not provided
-      if (!question.question_type) {
-        question.question_type = 'single_correct';
-      }
-      if (!question.exam) {
-        question.exam = 'JEE';
-      }
+      if (!question.question_type) question.question_type = 'single_correct';
+      if (!question.exam) question.exam = 'JEE';
       
-      // Validate required fields
       if (question.question && question.subject && question.chapter && question.topic && question.exam) {
         questions.push(question);
       }
@@ -268,21 +322,16 @@ export const QuestionManager = () => {
       
       if (fileType === 'json') {
         data = JSON.parse(text);
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid JSON format. Expected an array of questions.');
-        }
+        if (!Array.isArray(data)) throw new Error('Invalid JSON format. Expected an array of questions.');
       } else {
         data = parseCSV(text);
       }
 
-      const { error } = await supabase
-        .from('questions')
-        .insert(data);
-
+      const { error } = await supabase.from('questions').insert(data);
       if (error) throw error;
       
       toast.success(`Successfully uploaded ${data.length} questions`);
-      fetchQuestions();
+      fetchData();
       event.target.value = '';
     } catch (error) {
       console.error('Error uploading questions:', error);
@@ -312,24 +361,25 @@ export const QuestionManager = () => {
     setIsEditDialogOpen(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      question: '',
-      option_a: '',
-      option_b: '',
-      option_c: '',
-      option_d: '',
-      correct_option: 'A',
-      explanation: '',
-      subject: 'Physics',
+  const resetForm = useCallback(() => {
+    setFormData(initialFormData);
+  }, []);
+
+  const handleSubjectChange = (subject: string) => {
+    setFormData(prev => ({
+      ...prev,
+      subject,
       chapter: '',
-      topic: '',
-      subtopic: '',
-      difficulty: 'Easy',
-      question_type: 'single_correct',
-      year: null,
-      exam: 'JEE'
-    });
+      topic: ''
+    }));
+  };
+
+  const handleChapterChange = (chapter: string) => {
+    setFormData(prev => ({
+      ...prev,
+      chapter,
+      topic: ''
+    }));
   };
 
   const filteredQuestions = questions.filter(q => {
@@ -343,134 +393,212 @@ export const QuestionManager = () => {
     return matchesSearch && matchesSubject && matchesDifficulty && matchesExam;
   });
 
-  const QuestionForm = () => (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label>Exam Type</Label>
-          <Select value={formData.exam} onValueChange={(v) => setFormData({...formData, exam: v})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JEE">JEE</SelectItem>
-              <SelectItem value="NEET">NEET</SelectItem>
-              <SelectItem value="MHT-CET">MHT-CET</SelectItem>
-            </SelectContent>
-          </Select>
+  const QuestionForm = () => {
+    const hasChapters = chapters.length > 0;
+    
+    return (
+      <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        {!hasChapters && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No chapters found. Please create chapters first in the Chapter Manager before adding questions.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label>Exam Type *</Label>
+            <Select value={formData.exam} onValueChange={(v) => setFormData(prev => ({...prev, exam: v}))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select exam" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="JEE">JEE</SelectItem>
+                <SelectItem value="NEET">NEET</SelectItem>
+                <SelectItem value="MHT-CET">MHT-CET</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Subject *</Label>
+            <Select 
+              value={formData.subject} 
+              onValueChange={handleSubjectChange}
+              disabled={!hasChapters}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSubjects.length > 0 ? (
+                  availableSubjects.map(subject => (
+                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="Physics">Physics</SelectItem>
+                    <SelectItem value="Chemistry">Chemistry</SelectItem>
+                    <SelectItem value="Mathematics">Mathematics</SelectItem>
+                    <SelectItem value="Biology">Biology</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Difficulty *</Label>
+            <Select value={formData.difficulty} onValueChange={(v) => setFormData(prev => ({...prev, difficulty: v}))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Easy">Easy</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Chapter *</Label>
+            <Select 
+              value={formData.chapter} 
+              onValueChange={handleChapterChange}
+              disabled={!formData.subject || filteredChapters.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={filteredChapters.length === 0 ? "No chapters available" : "Select chapter"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredChapters.map(chapter => (
+                  <SelectItem key={chapter.id} value={chapter.chapter_name}>
+                    {chapter.chapter_number}. {chapter.chapter_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Topic *</Label>
+            <Select 
+              value={formData.topic} 
+              onValueChange={(v) => setFormData(prev => ({...prev, topic: v}))}
+              disabled={!formData.chapter || filteredTopics.length === 0}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={filteredTopics.length === 0 ? "No topics available" : "Select topic"} />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredTopics.map(topic => (
+                  <SelectItem key={topic.id} value={topic.topic_name}>
+                    {topic.topic_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div>
-          <Label>Subject</Label>
-          <Select value={formData.subject} onValueChange={(v) => setFormData({...formData, subject: v})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Physics">Physics</SelectItem>
-              <SelectItem value="Chemistry">Chemistry</SelectItem>
-              <SelectItem value="Mathematics">Mathematics</SelectItem>
-              <SelectItem value="Biology">Biology</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Difficulty</Label>
-          <Select value={formData.difficulty} onValueChange={(v) => setFormData({...formData, difficulty: v})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Easy">Easy</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Hard">Hard</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Chapter</Label>
-          <Input value={formData.chapter} onChange={(e) => setFormData({...formData, chapter: e.target.value})} />
-        </div>
-
-        <div>
-          <Label>Topic</Label>
-          <Input value={formData.topic} onChange={(e) => setFormData({...formData, topic: e.target.value})} />
-        </div>
-      </div>
-
-      <div>
-        <Label>Subtopic (Optional)</Label>
-        <Input value={formData.subtopic} onChange={(e) => setFormData({...formData, subtopic: e.target.value})} />
-      </div>
-
-      <div>
-        <Label>Question</Label>
-        <Textarea 
-          value={formData.question} 
-          onChange={(e) => setFormData({...formData, question: e.target.value})}
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Option A</Label>
-          <Input value={formData.option_a} onChange={(e) => setFormData({...formData, option_a: e.target.value})} />
-        </div>
-        <div>
-          <Label>Option B</Label>
-          <Input value={formData.option_b} onChange={(e) => setFormData({...formData, option_b: e.target.value})} />
-        </div>
-        <div>
-          <Label>Option C</Label>
-          <Input value={formData.option_c} onChange={(e) => setFormData({...formData, option_c: e.target.value})} />
-        </div>
-        <div>
-          <Label>Option D</Label>
-          <Input value={formData.option_d} onChange={(e) => setFormData({...formData, option_d: e.target.value})} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Correct Option</Label>
-          <Select value={formData.correct_option} onValueChange={(v) => setFormData({...formData, correct_option: v})}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="A">A</SelectItem>
-              <SelectItem value="B">B</SelectItem>
-              <SelectItem value="C">C</SelectItem>
-              <SelectItem value="D">D</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Year (Optional)</Label>
+          <Label>Subtopic (Optional)</Label>
           <Input 
-            type="number" 
-            value={formData.year || ''} 
-            onChange={(e) => setFormData({...formData, year: e.target.value ? parseInt(e.target.value) : null})} 
+            value={formData.subtopic} 
+            onChange={(e) => setFormData(prev => ({...prev, subtopic: e.target.value}))} 
+            placeholder="Enter subtopic if applicable"
+          />
+        </div>
+
+        <div>
+          <Label>Question *</Label>
+          <Textarea 
+            value={formData.question} 
+            onChange={(e) => setFormData(prev => ({...prev, question: e.target.value}))}
+            rows={3}
+            placeholder="Enter the question text"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Option A *</Label>
+            <Input 
+              value={formData.option_a} 
+              onChange={(e) => setFormData(prev => ({...prev, option_a: e.target.value}))} 
+              placeholder="Enter option A"
+            />
+          </div>
+          <div>
+            <Label>Option B *</Label>
+            <Input 
+              value={formData.option_b} 
+              onChange={(e) => setFormData(prev => ({...prev, option_b: e.target.value}))} 
+              placeholder="Enter option B"
+            />
+          </div>
+          <div>
+            <Label>Option C *</Label>
+            <Input 
+              value={formData.option_c} 
+              onChange={(e) => setFormData(prev => ({...prev, option_c: e.target.value}))} 
+              placeholder="Enter option C"
+            />
+          </div>
+          <div>
+            <Label>Option D *</Label>
+            <Input 
+              value={formData.option_d} 
+              onChange={(e) => setFormData(prev => ({...prev, option_d: e.target.value}))} 
+              placeholder="Enter option D"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Correct Option *</Label>
+            <Select value={formData.correct_option} onValueChange={(v) => setFormData(prev => ({...prev, correct_option: v}))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">A</SelectItem>
+                <SelectItem value="B">B</SelectItem>
+                <SelectItem value="C">C</SelectItem>
+                <SelectItem value="D">D</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Year (Optional)</Label>
+            <Input 
+              type="number" 
+              value={formData.year || ''} 
+              onChange={(e) => setFormData(prev => ({...prev, year: e.target.value ? parseInt(e.target.value) : null}))} 
+              placeholder="e.g., 2024"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Explanation (Optional)</Label>
+          <Textarea 
+            value={formData.explanation} 
+            onChange={(e) => setFormData(prev => ({...prev, explanation: e.target.value}))}
+            rows={2}
+            placeholder="Enter explanation for the answer"
           />
         </div>
       </div>
-
-      <div>
-        <Label>Explanation</Label>
-        <Textarea 
-          value={formData.explanation} 
-          onChange={(e) => setFormData({...formData, explanation: e.target.value})}
-          rows={2}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -482,8 +610,11 @@ export const QuestionManager = () => {
               <h3 className="text-lg font-semibold text-foreground">Question Management</h3>
               <p className="text-sm text-muted-foreground">Add, edit, or bulk upload questions</p>
             </div>
-            <div className="flex gap-2">
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <div className="flex gap-2 flex-wrap">
+              <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+                setIsAddDialogOpen(open);
+                if (!open) resetForm();
+              }}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
@@ -495,8 +626,12 @@ export const QuestionManager = () => {
                     <DialogTitle>Add New Question</DialogTitle>
                   </DialogHeader>
                   <QuestionForm />
-                  <Button onClick={handleAddQuestion} className="w-full">
-                    Add Question
+                  <Button 
+                    onClick={handleAddQuestion} 
+                    className="w-full"
+                    disabled={formSubmitting || chapters.length === 0}
+                  >
+                    {formSubmitting ? 'Adding...' : 'Add Question'}
                   </Button>
                 </DialogContent>
               </Dialog>
@@ -623,7 +758,7 @@ export const QuestionManager = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12">
+                    <TableCell colSpan={9} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
@@ -631,7 +766,7 @@ export const QuestionManager = () => {
                   </TableRow>
                 ) : filteredQuestions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No questions found
                     </TableCell>
                   </TableRow>
@@ -671,18 +806,10 @@ export const QuestionManager = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(q)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(q)}>
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteQuestion(q.id)}
-                          >
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)}>
                             <Trash2 className="w-4 h-4 text-red-600" />
                           </Button>
                         </div>
@@ -697,14 +824,24 @@ export const QuestionManager = () => {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setEditingQuestion(null);
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit Question</DialogTitle>
           </DialogHeader>
           <QuestionForm />
-          <Button onClick={handleEditQuestion} className="w-full">
-            Update Question
+          <Button 
+            onClick={handleEditQuestion} 
+            className="w-full"
+            disabled={formSubmitting}
+          >
+            {formSubmitting ? 'Updating...' : 'Update Question'}
           </Button>
         </DialogContent>
       </Dialog>
