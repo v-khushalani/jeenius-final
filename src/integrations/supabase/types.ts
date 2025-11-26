@@ -420,6 +420,48 @@ export type Database = {
         }
         Relationships: []
       }
+      extracted_questions_queue: {
+        Row: {
+          created_at: string | null
+          id: string
+          page_number: number | null
+          parsed_question: Json
+          raw_text: string | null
+          review_notes: string | null
+          reviewed_by: string | null
+          source_file: string
+          source_file_url: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          page_number?: number | null
+          parsed_question?: Json
+          raw_text?: string | null
+          review_notes?: string | null
+          reviewed_by?: string | null
+          source_file: string
+          source_file_url?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          page_number?: number | null
+          parsed_question?: Json
+          raw_text?: string | null
+          review_notes?: string | null
+          reviewed_by?: string | null
+          source_file?: string
+          source_file_url?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       free_content_limits: {
         Row: {
           description: string | null

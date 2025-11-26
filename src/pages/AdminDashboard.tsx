@@ -15,7 +15,9 @@ import {
   HelpCircle,
   LayoutDashboard,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Upload,
+  ClipboardCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
@@ -25,6 +27,8 @@ import ExamDateManager from '@/components/admin/ExamDateManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { NotificationManager } from '@/components/admin/NotificationManager';
 import { UserReports } from '@/components/admin/UserReports';
+import { PDFQuestionExtractor } from '@/components/admin/PDFQuestionExtractor';
+import { ExtractionReviewQueue } from '@/components/admin/ExtractionReviewQueue';
 import { cn } from '@/lib/utils';
 
 interface QuickStat {
@@ -56,6 +60,10 @@ const AdminDashboard = () => {
       return <ExamDateManager />;
     } else if (location.pathname === '/admin/questions') {
       return <QuestionManager />;
+    } else if (location.pathname === '/admin/pdf-extract') {
+      return <PDFQuestionExtractor />;
+    } else if (location.pathname === '/admin/review-queue') {
+      return <ExtractionReviewQueue />;
     } else {
       return <QuickStatsOverview />;
     }
@@ -71,6 +79,8 @@ const AdminDashboard = () => {
       '/admin/content': { title: 'Chapters', subtitle: 'Content Management' },
       '/admin/exam-config': { title: 'Exam Dates', subtitle: 'Configure Exam Schedule' },
       '/admin/questions': { title: 'Questions', subtitle: 'Question Bank Management' },
+      '/admin/pdf-extract': { title: 'PDF Extractor', subtitle: 'Extract Questions from PDFs' },
+      '/admin/review-queue': { title: 'Review Queue', subtitle: 'Review Extracted Questions' },
     };
     return routes[location.pathname as keyof typeof routes] || routes['/admin'];
   };
@@ -79,6 +89,8 @@ const AdminDashboard = () => {
     { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-600' },
     { path: '/admin/users', label: 'Users', icon: Users, color: 'text-purple-600' },
     { path: '/admin/questions', label: 'Questions', icon: HelpCircle, color: 'text-green-600' },
+    { path: '/admin/pdf-extract', label: 'PDF Extractor', icon: Upload, color: 'text-emerald-600' },
+    { path: '/admin/review-queue', label: 'Review Queue', icon: ClipboardCheck, color: 'text-teal-600' },
     { path: '/admin/content', label: 'Chapters', icon: BookOpen, color: 'text-orange-600' },
     { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp, color: 'text-cyan-600' },
     { path: '/admin/reports', label: 'Reports', icon: FileText, color: 'text-indigo-600' },
