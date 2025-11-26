@@ -239,7 +239,13 @@ export function ExtractionReviewQueue() {
   const currentQuestion = questions[currentIndex];
 
   const handleApprove = async (forceApprove: boolean = false, overwrite: boolean = false) => {
-    if (!currentQuestion) return;
+    if (!currentQuestion) {
+      console.log("No current question to approve");
+      toast.error("No question selected");
+      return;
+    }
+    
+    console.log("handleApprove called:", { forceApprove, overwrite, questionId: currentQuestion.id });
     
     // Block if duplicate detected (unless force approve)
     if (!forceApprove && duplicateCheck?.isDuplicate) {
@@ -251,6 +257,7 @@ export function ExtractionReviewQueue() {
     
     try {
       const q = editedQuestion?.parsed_question || currentQuestion.parsed_question;
+      console.log("Processing question:", q.question?.slice(0, 50));
       
       // Find matching chapter from existing chapters
       const matchingChapter = findMatchingChapter(q.subject, q.chapter);
@@ -261,13 +268,19 @@ export function ExtractionReviewQueue() {
         return;
       }
 
+      console.log("Matching chapter found:", matchingChapter.chapter_name);
+
       // If overwriting duplicate, delete the existing question first
       if (overwrite && duplicateCheck?.existingQuestion?.id) {
-        await supabase.from("questions").delete().eq("id", duplicateCheck.existingQuestion.id);
+        console.log("Deleting existing duplicate:", duplicateCheck.existingQuestion.id);
+        const { error: deleteError } = await supabase.from("questions").delete().eq("id", duplicateCheck.existingQuestion.id);
+        if (deleteError) {
+          console.error("Delete error:", deleteError);
+        }
       }
       
       // Insert into questions table
-      const { error: insertError } = await supabase.from("questions").insert({
+      const insertData = {
         question: q.question,
         option_a: q.option_a,
         option_b: q.option_b,
@@ -276,15 +289,23 @@ export function ExtractionReviewQueue() {
         correct_option: q.correct_option,
         explanation: q.explanation || "",
         subject: q.subject,
-        chapter: matchingChapter.chapter_name, // Use exact chapter name from DB
+        chapter: matchingChapter.chapter_name,
         topic: q.topic || matchingChapter.chapter_name,
         difficulty: q.difficulty || "Medium",
         exam: q.exam || "JEE",
         question_type: "single_correct",
         chapter_id: matchingChapter.id
-      });
+      };
+      
+      console.log("Inserting question with data:", insertData);
+      const { error: insertError } = await supabase.from("questions").insert(insertData);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error("Insert error:", insertError);
+        throw insertError;
+      }
+
+      console.log("Question inserted successfully");
 
       // Update status to approved
       const { error: updateError } = await supabase
@@ -292,8 +313,12 @@ export function ExtractionReviewQueue() {
         .update({ status: "approved" })
         .eq("id", currentQuestion.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Update status error:", updateError);
+        throw updateError;
+      }
 
+      console.log("Question status updated to approved");
       toast.success(overwrite ? "Question overwritten!" : "Question approved and added to database!");
       
       // Move to next question
@@ -303,9 +328,9 @@ export function ExtractionReviewQueue() {
       setDuplicateCheck(null);
       fetchStats();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving:", error);
-      toast.error("Failed to approve question");
+      toast.error(`Failed to approve: ${error?.message || "Unknown error"}`);
     } finally {
       setSaving(false);
     }
@@ -367,9 +392,14 @@ export function ExtractionReviewQueue() {
     }
   };
 
-  // Bulk approve with skip duplicates
-  const handleBulkApproveSkipDuplicates = async () => {
-    if (questions.length === 0) return;
+  // Bulk approve ALL (ignores duplicates, approves everything with valid chapters)
+  const handleBulkApproveAll = async () => {
+    if (questions.length === 0) {
+      toast.error("No questions to approve");
+      return;
+    }
+    
+    console.log("Starting bulk approve all for", questions.length, "questions");
     setBulkProcessing(true);
     setBulkProgress({ current: 0, total: questions.length, skipped: 0, approved: 0, overwritten: 0 });
     
@@ -385,6 +415,96 @@ export function ExtractionReviewQueue() {
         
         // Skip if missing required fields
         if (!q.question || !q.option_a || !q.correct_option || !q.subject) {
+          console.log("Skipping question - missing fields:", question.id);
+          skipped++;
+          await supabase
+            .from("extracted_questions_queue")
+            .update({ status: "rejected", review_notes: "Skipped - Missing required fields" })
+            .eq("id", question.id);
+          continue;
+        }
+
+        // Find matching chapter
+        const matchingChapter = findMatchingChapter(q.subject, q.chapter);
+        if (!matchingChapter) {
+          console.log("Skipping question - no matching chapter:", q.chapter);
+          skipped++;
+          await supabase
+            .from("extracted_questions_queue")
+            .update({ status: "rejected", review_notes: `Skipped - No matching chapter for ${q.chapter}` })
+            .eq("id", question.id);
+          continue;
+        }
+
+        // Insert question (no duplicate check)
+        const { error: insertError } = await supabase.from("questions").insert({
+          question: q.question,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          correct_option: q.correct_option,
+          explanation: q.explanation || "",
+          subject: q.subject,
+          chapter: matchingChapter.chapter_name,
+          topic: q.topic || matchingChapter.chapter_name,
+          difficulty: q.difficulty || "Medium",
+          exam: q.exam || "JEE",
+          question_type: "single_correct",
+          chapter_id: matchingChapter.id
+        });
+
+        if (!insertError) {
+          await supabase
+            .from("extracted_questions_queue")
+            .update({ status: "approved" })
+            .eq("id", question.id);
+          approved++;
+          console.log("Approved question:", question.id);
+        } else {
+          console.error("Insert error for question:", question.id, insertError);
+          skipped++;
+        }
+
+        setBulkProgress(prev => ({ ...prev, approved, skipped }));
+      }
+
+      toast.success(`Bulk complete: ${approved} approved, ${skipped} skipped`);
+      await fetchQuestions();
+      await fetchStats();
+      
+    } catch (error: any) {
+      console.error("Bulk approve all error:", error);
+      toast.error(`Bulk approval failed: ${error?.message || "Unknown error"}`);
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Bulk approve with skip duplicates
+  const handleBulkApproveSkipDuplicates = async () => {
+    if (questions.length === 0) {
+      toast.error("No questions to process");
+      return;
+    }
+    
+    console.log("Starting bulk approve (skip duplicates) for", questions.length, "questions");
+    setBulkProcessing(true);
+    setBulkProgress({ current: 0, total: questions.length, skipped: 0, approved: 0, overwritten: 0 });
+    
+    try {
+      let approved = 0;
+      let skipped = 0;
+      
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        const q = question.parsed_question;
+        
+        setBulkProgress(prev => ({ ...prev, current: i + 1 }));
+        
+        // Skip if missing required fields
+        if (!q.question || !q.option_a || !q.correct_option || !q.subject) {
+          console.log("Skipping question - missing fields:", question.id);
           skipped++;
           continue;
         }
@@ -392,6 +512,7 @@ export function ExtractionReviewQueue() {
         // Find matching chapter
         const matchingChapter = findMatchingChapter(q.subject, q.chapter);
         if (!matchingChapter) {
+          console.log("Skipping question - no matching chapter:", q.chapter);
           skipped++;
           continue;
         }
@@ -399,6 +520,7 @@ export function ExtractionReviewQueue() {
         // Check for duplicate - SKIP if found
         const duplicateResult = await checkDuplicateForQuestion(q.question);
         if (duplicateResult.isDuplicate) {
+          console.log("Skipping duplicate:", question.id);
           await supabase
             .from("extracted_questions_queue")
             .update({ status: "rejected", review_notes: "Skipped - Duplicate" })
@@ -431,20 +553,22 @@ export function ExtractionReviewQueue() {
             .update({ status: "approved" })
             .eq("id", question.id);
           approved++;
+          console.log("Approved question:", question.id);
         } else {
+          console.error("Insert error:", insertError);
           skipped++;
         }
 
         setBulkProgress(prev => ({ ...prev, approved, skipped }));
       }
 
-      toast.success(`Bulk complete: ${approved} approved, ${skipped} skipped`);
-      fetchQuestions();
-      fetchStats();
+      toast.success(`Bulk complete: ${approved} approved, ${skipped} skipped (duplicates)`);
+      await fetchQuestions();
+      await fetchStats();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Bulk approve error:", error);
-      toast.error("Bulk approval failed");
+      toast.error(`Bulk approval failed: ${error?.message || "Unknown error"}`);
     } finally {
       setBulkProcessing(false);
     }
@@ -452,7 +576,12 @@ export function ExtractionReviewQueue() {
 
   // Bulk approve with overwrite duplicates
   const handleBulkApproveOverwriteDuplicates = async () => {
-    if (questions.length === 0) return;
+    if (questions.length === 0) {
+      toast.error("No questions to process");
+      return;
+    }
+    
+    console.log("Starting bulk approve (overwrite duplicates) for", questions.length, "questions");
     setBulkProcessing(true);
     setBulkProgress({ current: 0, total: questions.length, skipped: 0, approved: 0, overwritten: 0 });
     
@@ -469,6 +598,7 @@ export function ExtractionReviewQueue() {
         
         // Skip if missing required fields
         if (!q.question || !q.option_a || !q.correct_option || !q.subject) {
+          console.log("Skipping question - missing fields:", question.id);
           skipped++;
           continue;
         }
@@ -476,6 +606,7 @@ export function ExtractionReviewQueue() {
         // Find matching chapter
         const matchingChapter = findMatchingChapter(q.subject, q.chapter);
         if (!matchingChapter) {
+          console.log("Skipping question - no matching chapter:", q.chapter);
           skipped++;
           continue;
         }
@@ -483,7 +614,7 @@ export function ExtractionReviewQueue() {
         // Check for duplicate - OVERWRITE if found
         const duplicateResult = await checkDuplicateForQuestion(q.question);
         if (duplicateResult.isDuplicate && duplicateResult.existingId) {
-          // Delete existing question
+          console.log("Overwriting duplicate:", duplicateResult.existingId);
           await supabase.from("questions").delete().eq("id", duplicateResult.existingId);
           overwritten++;
         }
@@ -512,7 +643,9 @@ export function ExtractionReviewQueue() {
             .update({ status: "approved" })
             .eq("id", question.id);
           approved++;
+          console.log("Approved question:", question.id);
         } else {
+          console.error("Insert error:", insertError);
           skipped++;
         }
 
@@ -520,12 +653,12 @@ export function ExtractionReviewQueue() {
       }
 
       toast.success(`Bulk complete: ${approved} approved, ${overwritten} overwritten, ${skipped} skipped`);
-      fetchQuestions();
-      fetchStats();
+      await fetchQuestions();
+      await fetchStats();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Bulk approve error:", error);
-      toast.error("Bulk approval failed");
+      toast.error(`Bulk approval failed: ${error?.message || "Unknown error"}`);
     } finally {
       setBulkProcessing(false);
     }
@@ -622,23 +755,41 @@ export function ExtractionReviewQueue() {
                 <>
                   <Button 
                     size="sm" 
-                    variant="outline"
-                    onClick={handleBulkApproveSkipDuplicates} 
+                    onClick={() => {
+                      console.log("Approve All clicked");
+                      handleBulkApproveAll();
+                    }} 
                     disabled={bulkProcessing}
-                    className="border-blue-500 text-blue-600 hover:bg-blue-500/10"
+                    className="bg-green-600 hover:bg-green-700 text-white"
                   >
-                    <SkipForward className="h-4 w-4 mr-2" />
-                    Skip All Duplicates
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Approve All ({questions.length})
                   </Button>
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={handleBulkApproveOverwriteDuplicates} 
+                    onClick={() => {
+                      console.log("Skip All Duplicates clicked");
+                      handleBulkApproveSkipDuplicates();
+                    }} 
+                    disabled={bulkProcessing}
+                    className="border-blue-500 text-blue-600 hover:bg-blue-500/10"
+                  >
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    Skip Duplicates
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      console.log("Overwrite All Duplicates clicked");
+                      handleBulkApproveOverwriteDuplicates();
+                    }} 
                     disabled={bulkProcessing}
                     className="border-orange-500 text-orange-600 hover:bg-orange-500/10"
                   >
                     <Replace className="h-4 w-4 mr-2" />
-                    Overwrite All Duplicates
+                    Overwrite Duplicates
                   </Button>
                 </>
               )}
@@ -987,7 +1138,10 @@ export function ExtractionReviewQueue() {
                         <>
                           <Button 
                             variant="outline" 
-                            onClick={() => handleApprove(true, false)} 
+                            onClick={() => {
+                              console.log("Add Anyway clicked");
+                              handleApprove(true, false);
+                            }} 
                             disabled={saving}
                             className="border-yellow-500 text-yellow-600 hover:bg-yellow-500/10"
                           >
@@ -1000,7 +1154,13 @@ export function ExtractionReviewQueue() {
                           </Button>
                         </>
                       ) : (
-                        <Button onClick={() => handleApprove(false)} disabled={saving}>
+                        <Button 
+                          onClick={() => {
+                            console.log("Approve clicked");
+                            handleApprove(false);
+                          }} 
+                          disabled={saving}
+                        >
                           {saving ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           ) : (
