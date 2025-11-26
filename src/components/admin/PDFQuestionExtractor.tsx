@@ -11,9 +11,11 @@ import { toast } from "sonner";
 import { Upload, FileText, Loader2, CheckCircle2, XCircle, Image as ImageIcon, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import * as pdfjsLib from "pdfjs-dist";
+// @ts-ignore - Vite handles this URL import
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// FIXED: Use the standard .js worker file instead of .mjs
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Use Vite's URL import for reliable worker loading
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface ExtractionLog {
   page: number;
