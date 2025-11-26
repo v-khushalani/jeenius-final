@@ -216,31 +216,69 @@ export function ExtractionReviewQueue() {
     setTopics(data || []);
   };
 
-  // Find best matching chapter from existing chapters
+  // Find best matching chapter from existing chapters - more lenient matching
   const findMatchingChapter = (subject: string, chapterName: string): Chapter | undefined => {
+    if (!subject || !chapterName || chapters.length === 0) {
+      console.log("findMatchingChapter: Missing data", { subject, chapterName, chaptersCount: chapters.length });
+      return undefined;
+    }
+
+    const normalizedSubject = subject.toLowerCase().trim();
+    const normalizedChapter = chapterName.toLowerCase().trim();
+
     // First try exact match
     let match = chapters.find(c => 
-      c.subject.toLowerCase() === subject.toLowerCase() && 
-      c.chapter_name.toLowerCase() === chapterName.toLowerCase()
+      c.subject.toLowerCase().trim() === normalizedSubject && 
+      c.chapter_name.toLowerCase().trim() === normalizedChapter
     );
     
-    if (match) return match;
+    if (match) {
+      console.log("findMatchingChapter: Exact match found", match.chapter_name);
+      return match;
+    }
 
-    // Try partial match
+    // Try partial match - chapter name contains or is contained
     match = chapters.find(c => 
-      c.subject.toLowerCase() === subject.toLowerCase() && 
-      (c.chapter_name.toLowerCase().includes(chapterName.toLowerCase()) || 
-       chapterName.toLowerCase().includes(c.chapter_name.toLowerCase()))
+      c.subject.toLowerCase().trim() === normalizedSubject && 
+      (c.chapter_name.toLowerCase().includes(normalizedChapter) || 
+       normalizedChapter.includes(c.chapter_name.toLowerCase()))
     );
     
-    return match;
+    if (match) {
+      console.log("findMatchingChapter: Partial match found", match.chapter_name);
+      return match;
+    }
+
+    // Try word-based matching - at least 2 words match
+    const chapterWords = normalizedChapter.split(/\s+/).filter(w => w.length > 2);
+    match = chapters.find(c => {
+      if (c.subject.toLowerCase().trim() !== normalizedSubject) return false;
+      const existingWords = c.chapter_name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const matchingWords = chapterWords.filter(w => existingWords.some(ew => ew.includes(w) || w.includes(ew)));
+      return matchingWords.length >= 2 || (matchingWords.length >= 1 && chapterWords.length <= 2);
+    });
+
+    if (match) {
+      console.log("findMatchingChapter: Word match found", match.chapter_name);
+      return match;
+    }
+
+    // Fallback: return first chapter of the subject
+    const subjectChapters = chapters.filter(c => c.subject.toLowerCase().trim() === normalizedSubject);
+    if (subjectChapters.length > 0) {
+      console.log("findMatchingChapter: Using fallback chapter", subjectChapters[0].chapter_name);
+      return subjectChapters[0];
+    }
+
+    console.log("findMatchingChapter: No match found for", { subject, chapterName });
+    return undefined;
   };
 
   const currentQuestion = questions[currentIndex];
 
   const handleApprove = async (forceApprove: boolean = false, overwrite: boolean = false) => {
     if (!currentQuestion) {
-      console.log("No current question to approve");
+      console.log("handleApprove: No current question");
       toast.error("No question selected");
       return;
     }
@@ -259,16 +297,21 @@ export function ExtractionReviewQueue() {
       const q = editedQuestion?.parsed_question || currentQuestion.parsed_question;
       console.log("Processing question:", q.question?.slice(0, 50));
       
-      // Find matching chapter from existing chapters
-      const matchingChapter = findMatchingChapter(q.subject, q.chapter);
-      
-      if (!matchingChapter) {
-        toast.error(`No matching chapter found for "${q.chapter}" in ${q.subject}. Please edit and select a valid chapter.`);
+      // Validate required fields
+      if (!q.question || !q.option_a || !q.correct_option || !q.subject) {
+        toast.error("Missing required fields (question, options, subject)");
         setSaving(false);
         return;
       }
-
-      console.log("Matching chapter found:", matchingChapter.chapter_name);
+      
+      // Find matching chapter from existing chapters
+      const matchingChapter = findMatchingChapter(q.subject, q.chapter || "General");
+      
+      // Prepare chapter data - use match or fallback to extracted values
+      const chapterName = matchingChapter?.chapter_name || q.chapter || "General";
+      const chapterId = matchingChapter?.id || null;
+      
+      console.log("Using chapter:", { chapterName, chapterId, hasMatch: !!matchingChapter });
 
       // If overwriting duplicate, delete the existing question first
       if (overwrite && duplicateCheck?.existingQuestion?.id) {
@@ -280,25 +323,23 @@ export function ExtractionReviewQueue() {
       }
       
       // Insert into questions table
-      const insertData = {
+      console.log("Inserting question with data:", { subject: q.subject, chapter: chapterName, topic: q.topic });
+      const { error: insertError } = await supabase.from("questions").insert({
         question: q.question,
         option_a: q.option_a,
-        option_b: q.option_b,
-        option_c: q.option_c,
-        option_d: q.option_d,
+        option_b: q.option_b || "",
+        option_c: q.option_c || "",
+        option_d: q.option_d || "",
         correct_option: q.correct_option,
         explanation: q.explanation || "",
         subject: q.subject,
-        chapter: matchingChapter.chapter_name,
-        topic: q.topic || matchingChapter.chapter_name,
+        chapter: chapterName,
+        topic: q.topic || chapterName,
         difficulty: q.difficulty || "Medium",
         exam: q.exam || "JEE",
         question_type: "single_correct",
-        chapter_id: matchingChapter.id
-      };
-      
-      console.log("Inserting question with data:", insertData);
-      const { error: insertError } = await supabase.from("questions").insert(insertData);
+        chapter_id: chapterId
+      });
 
       if (insertError) {
         console.error("Insert error:", insertError);
@@ -424,34 +465,27 @@ export function ExtractionReviewQueue() {
           continue;
         }
 
-        // Find matching chapter
-        const matchingChapter = findMatchingChapter(q.subject, q.chapter);
-        if (!matchingChapter) {
-          console.log("Skipping question - no matching chapter:", q.chapter);
-          skipped++;
-          await supabase
-            .from("extracted_questions_queue")
-            .update({ status: "rejected", review_notes: `Skipped - No matching chapter for ${q.chapter}` })
-            .eq("id", question.id);
-          continue;
-        }
+        // Find matching chapter - now with fallback
+        const matchingChapter = findMatchingChapter(q.subject, q.chapter || "General");
+        const chapterName = matchingChapter?.chapter_name || q.chapter || "General";
+        const chapterId = matchingChapter?.id || null;
 
         // Insert question (no duplicate check)
         const { error: insertError } = await supabase.from("questions").insert({
           question: q.question,
           option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d,
+          option_b: q.option_b || "",
+          option_c: q.option_c || "",
+          option_d: q.option_d || "",
           correct_option: q.correct_option,
           explanation: q.explanation || "",
           subject: q.subject,
-          chapter: matchingChapter.chapter_name,
-          topic: q.topic || matchingChapter.chapter_name,
+          chapter: chapterName,
+          topic: q.topic || chapterName,
           difficulty: q.difficulty || "Medium",
           exam: q.exam || "JEE",
           question_type: "single_correct",
-          chapter_id: matchingChapter.id
+          chapter_id: chapterId
         });
 
         if (!insertError) {
@@ -509,13 +543,10 @@ export function ExtractionReviewQueue() {
           continue;
         }
 
-        // Find matching chapter
-        const matchingChapter = findMatchingChapter(q.subject, q.chapter);
-        if (!matchingChapter) {
-          console.log("Skipping question - no matching chapter:", q.chapter);
-          skipped++;
-          continue;
-        }
+        // Find matching chapter - with fallback
+        const matchingChapter = findMatchingChapter(q.subject, q.chapter || "General");
+        const chapterName = matchingChapter?.chapter_name || q.chapter || "General";
+        const chapterId = matchingChapter?.id || null;
 
         // Check for duplicate - SKIP if found
         const duplicateResult = await checkDuplicateForQuestion(q.question);
@@ -533,18 +564,18 @@ export function ExtractionReviewQueue() {
         const { error: insertError } = await supabase.from("questions").insert({
           question: q.question,
           option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d,
+          option_b: q.option_b || "",
+          option_c: q.option_c || "",
+          option_d: q.option_d || "",
           correct_option: q.correct_option,
           explanation: q.explanation || "",
           subject: q.subject,
-          chapter: matchingChapter.chapter_name,
-          topic: q.topic || matchingChapter.chapter_name,
+          chapter: chapterName,
+          topic: q.topic || chapterName,
           difficulty: q.difficulty || "Medium",
           exam: q.exam || "JEE",
           question_type: "single_correct",
-          chapter_id: matchingChapter.id
+          chapter_id: chapterId
         });
 
         if (!insertError) {
@@ -603,13 +634,10 @@ export function ExtractionReviewQueue() {
           continue;
         }
 
-        // Find matching chapter
-        const matchingChapter = findMatchingChapter(q.subject, q.chapter);
-        if (!matchingChapter) {
-          console.log("Skipping question - no matching chapter:", q.chapter);
-          skipped++;
-          continue;
-        }
+        // Find matching chapter - with fallback
+        const matchingChapter = findMatchingChapter(q.subject, q.chapter || "General");
+        const chapterName = matchingChapter?.chapter_name || q.chapter || "General";
+        const chapterId = matchingChapter?.id || null;
 
         // Check for duplicate - OVERWRITE if found
         const duplicateResult = await checkDuplicateForQuestion(q.question);
@@ -623,18 +651,18 @@ export function ExtractionReviewQueue() {
         const { error: insertError } = await supabase.from("questions").insert({
           question: q.question,
           option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d,
+          option_b: q.option_b || "",
+          option_c: q.option_c || "",
+          option_d: q.option_d || "",
           correct_option: q.correct_option,
           explanation: q.explanation || "",
           subject: q.subject,
-          chapter: matchingChapter.chapter_name,
-          topic: q.topic || matchingChapter.chapter_name,
+          chapter: chapterName,
+          topic: q.topic || chapterName,
           difficulty: q.difficulty || "Medium",
           exam: q.exam || "JEE",
           question_type: "single_correct",
-          chapter_id: matchingChapter.id
+          chapter_id: chapterId
         });
 
         if (!insertError) {
