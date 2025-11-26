@@ -129,9 +129,21 @@ const StudyNowPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: allQuestions, error } = await supabase
+      // Get user's target exam from profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('target_exam')
+        .eq('id', user.id)
+        .single();
+      
+      const targetExam = profileData?.target_exam || 'JEE';
+
+      let questionsQuery = supabase
         .from('questions')
-        .select('subject, difficulty');
+        .select('subject, difficulty')
+        .eq('exam', targetExam);
+
+      const { data: allQuestions, error } = await questionsQuery;
 
       if (error) throw error;
 
@@ -217,10 +229,14 @@ const StudyNowPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Get user's target exam from profile
+      const targetExam = profile?.target_exam || 'JEE';
+
       const { data, error } = await supabase
         .from('questions')
         .select('chapter, difficulty')
-        .eq('subject', subject);
+        .eq('subject', subject)
+        .eq('exam', targetExam);
 
       if (error) throw error;
 
@@ -283,11 +299,15 @@ const StudyNowPage = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Get user's target exam from profile
+      const targetExam = profile?.target_exam || 'JEE';
+
       const { data, error } = await supabase
         .from('questions')
         .select('topic, difficulty')
         .eq('subject', selectedSubject)
-        .eq('chapter', chapter);
+        .eq('chapter', chapter)
+        .eq('exam', targetExam);
 
       if (error) throw error;
 
@@ -399,12 +419,16 @@ const StudyNowPage = () => {
 
       const attemptedIds = attemptedAtLevel?.map(a => a.question_id) || [];
 
+      // Get user's target exam from profile
+      const targetExam = profile?.target_exam || 'JEE';
+
       let query = supabase
         .from('questions')
         .select('*')
         .eq('subject', selectedSubject)
         .eq('chapter', selectedChapter)
-        .eq('difficulty', targetDifficulty);
+        .eq('difficulty', targetDifficulty)
+        .eq('exam', targetExam);
 
       if (attemptedIds.length > 0) {
         query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
@@ -438,7 +462,8 @@ const StudyNowPage = () => {
             .select('*')
             .eq('subject', selectedSubject)
             .eq('chapter', selectedChapter)
-            .eq('difficulty', nextDifficulty);
+            .eq('difficulty', nextDifficulty)
+            .eq('exam', targetExam);
           
           if (topic) {
             nextQuery = nextQuery.eq('topic', topic);

@@ -24,6 +24,7 @@ const TestPage = () => {
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [selectedChapters, setSelectedChapters] = useState([]);
   const [availableChapters, setAvailableChapters] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { isPremium } = useAuth();
@@ -31,15 +32,41 @@ const TestPage = () => {
   const MONTHLY_LIMIT_FREE = 2;
 
   useEffect(() => {
+    loadProfile();
     checkMonthlyUsage();
-    fetchSubjectsAndChapters();
   }, [isPremium]);
+
+  useEffect(() => {
+    if (profile) {
+      fetchSubjectsAndChapters();
+    }
+  }, [profile]);
+
+  const loadProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
 
   const fetchSubjectsAndChapters = async () => {
     try {
+      const targetExam = profile?.target_exam || 'JEE';
+
       const { data: questions, error } = await supabase
         .from('questions')
-        .select('subject, chapter');
+        .select('subject, chapter')
+        .eq('exam', targetExam);
       
       if (error) throw error;
 
@@ -124,6 +151,8 @@ const TestPage = () => {
           navigate('/login');
           return;
         }
+
+        const targetExam = profile?.target_exam || 'JEE';
         
         const { data: attemptedQuestions } = await supabase
           .from('question_attempts')
@@ -132,7 +161,7 @@ const TestPage = () => {
         
         const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
         
-        let query = supabase.from('questions').select('*');
+        let query = supabase.from('questions').select('*').eq('exam', targetExam);
         
         if (attemptedIds.length > 0) {
           query = query.not('id', 'in', `(${attemptedIds.join(',')})`);
@@ -157,13 +186,13 @@ const TestPage = () => {
         const shuffled = questions.sort(() => Math.random() - 0.5);
         const selected = shuffled.slice(0, Math.min(75, questions.length));
 
-        const testSession = {
-          id: Date.now().toString(),
-          title: "Full Syllabus Mock Test - JEE Pattern",
-          questions: selected,
-          duration: 180,
-          startTime: new Date().toISOString()
-        };
+      const testSession = {
+        id: Date.now().toString(),
+        title: `Full Syllabus Mock Test - ${profile?.target_exam || 'JEE'} Pattern`,
+        questions: selected,
+        duration: 180,
+        startTime: new Date().toISOString()
+      };
 
         localStorage.setItem('currentTest', JSON.stringify(testSession));
 
@@ -205,8 +234,10 @@ const TestPage = () => {
         .eq('user_id', user.id);
       
       const attemptedIds = attemptedQuestions?.map(a => a.question_id) || [];
+
+      const targetExam = profile?.target_exam || 'JEE';
       
-      let query = supabase.from('questions').select('*');
+      let query = supabase.from('questions').select('*').eq('exam', targetExam);
       
       if (mode === "chapter" && selectedChapters.length > 0) {
         const chapterNames = selectedChapters.map(ch => ch.chapter);

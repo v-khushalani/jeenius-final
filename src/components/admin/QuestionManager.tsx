@@ -28,6 +28,7 @@ interface Question {
   difficulty: string;
   question_type: string;
   year: number | null;
+  exam: string;
 }
 
 export const QuestionManager = () => {
@@ -36,6 +37,7 @@ export const QuestionManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [filterExam, setFilterExam] = useState('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -55,7 +57,8 @@ export const QuestionManager = () => {
     subtopic: '',
     difficulty: 'Easy',
     question_type: 'single_correct',
-    year: null as number | null
+    year: null as number | null,
+    exam: 'JEE'
   });
 
   useEffect(() => {
@@ -185,9 +188,11 @@ export const QuestionManager = () => {
 
   const downloadSampleCSV = () => {
     // Blank template with exact DB column structure for bulk upload
-    const headers = 'subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,question_type,year';
+    const headers = 'exam,subject,chapter,topic,subtopic,question,option_a,option_b,option_c,option_d,correct_option,explanation,difficulty,question_type,year';
+    const sampleRow = 'JEE,Physics,Mechanics,Newton Laws,First Law,What is inertia?,Property of matter,Force,Mass,Energy,A,Inertia is the property of matter to resist change in motion,Easy,single_correct,2024';
+    const content = `${headers}\n${sampleRow}`;
     
-    const blob = new Blob([headers], { type: 'text/csv' });
+    const blob = new Blob([content], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -196,7 +201,7 @@ export const QuestionManager = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    toast.success('Blank template downloaded - Ready for bulk upload');
+    toast.success('Template with sample row downloaded - exam values: JEE, NEET, MHT-CET');
   };
 
   const parseCSV = (text: string): any[] => {
@@ -236,13 +241,16 @@ export const QuestionManager = () => {
         }
       });
       
-      // Set default question_type if not provided
+      // Set defaults if not provided
       if (!question.question_type) {
         question.question_type = 'single_correct';
       }
+      if (!question.exam) {
+        question.exam = 'JEE';
+      }
       
       // Validate required fields
-      if (question.question && question.subject && question.chapter && question.topic) {
+      if (question.question && question.subject && question.chapter && question.topic && question.exam) {
         questions.push(question);
       }
     }
@@ -298,7 +306,8 @@ export const QuestionManager = () => {
       subtopic: question.subtopic || '',
       difficulty: question.difficulty,
       question_type: question.question_type,
-      year: question.year
+      year: question.year,
+      exam: question.exam || 'JEE'
     });
     setIsEditDialogOpen(true);
   };
@@ -318,7 +327,8 @@ export const QuestionManager = () => {
       subtopic: '',
       difficulty: 'Easy',
       question_type: 'single_correct',
-      year: null
+      year: null,
+      exam: 'JEE'
     });
   };
 
@@ -328,13 +338,28 @@ export const QuestionManager = () => {
                          q.topic.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject = filterSubject === 'all' || q.subject === filterSubject;
     const matchesDifficulty = filterDifficulty === 'all' || q.difficulty === filterDifficulty;
+    const matchesExam = filterExam === 'all' || q.exam === filterExam;
     
-    return matchesSearch && matchesSubject && matchesDifficulty;
+    return matchesSearch && matchesSubject && matchesDifficulty && matchesExam;
   });
 
   const QuestionForm = () => (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label>Exam Type</Label>
+          <Select value={formData.exam} onValueChange={(v) => setFormData({...formData, exam: v})}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="JEE">JEE</SelectItem>
+              <SelectItem value="NEET">NEET</SelectItem>
+              <SelectItem value="MHT-CET">MHT-CET</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div>
           <Label>Subject</Label>
           <Select value={formData.subject} onValueChange={(v) => setFormData({...formData, subject: v})}>
@@ -551,6 +576,17 @@ export const QuestionManager = () => {
                 <SelectItem value="Hard">Hard</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={filterExam} onValueChange={setFilterExam}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Exam" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Exams</SelectItem>
+                <SelectItem value="JEE">JEE</SelectItem>
+                <SelectItem value="NEET">NEET</SelectItem>
+                <SelectItem value="MHT-CET">MHT-CET</SelectItem>
+              </SelectContent>
+            </Select>
             {selectedQuestions.size > 0 && (
               <Button variant="destructive" onClick={handleBulkDelete}>
                 <Trash className="w-4 h-4 mr-2" />
@@ -574,10 +610,10 @@ export const QuestionManager = () => {
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
+                  <TableHead>Exam</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Chapter</TableHead>
                   <TableHead>Topic</TableHead>
-                  <TableHead>Subtopic</TableHead>
                   <TableHead>Question</TableHead>
                   <TableHead>Difficulty</TableHead>
                   <TableHead>Correct</TableHead>
@@ -587,7 +623,7 @@ export const QuestionManager = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
+                    <TableCell colSpan={10} className="text-center py-12">
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       </div>
@@ -595,7 +631,7 @@ export const QuestionManager = () => {
                   </TableRow>
                 ) : filteredQuestions.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                       No questions found
                     </TableCell>
                   </TableRow>
@@ -608,10 +644,18 @@ export const QuestionManager = () => {
                           onCheckedChange={() => toggleQuestionSelection(q.id)}
                         />
                       </TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          q.exam === 'JEE' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          q.exam === 'NEET' ? 'bg-green-50 text-green-700 border border-green-200' :
+                          'bg-orange-50 text-orange-700 border border-orange-200'
+                        }`}>
+                          {q.exam || 'JEE'}
+                        </span>
+                      </TableCell>
                       <TableCell className="font-medium">{q.subject}</TableCell>
                       <TableCell>{q.chapter}</TableCell>
                       <TableCell>{q.topic}</TableCell>
-                      <TableCell className="text-muted-foreground">{q.subtopic || '-'}</TableCell>
                       <TableCell className="max-w-[300px] truncate">{q.question}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
