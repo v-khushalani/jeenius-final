@@ -11,6 +11,7 @@ export interface Question {
   topic: string;
   difficulty_level: number;
   chapter: string;
+  exam?: string;
 }
 
 export interface QuestionAttempt {
@@ -29,6 +30,7 @@ export const useQuestions = (filters?: {
   topic?: string;
   difficulty?: number;
   limit?: number;
+  exam?: string;
 }) => {
   const { user, isAuthenticated } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -45,6 +47,11 @@ export const useQuestions = (filters?: {
       let query = supabase
         .from('questions')
         .select('*');
+
+      // Apply exam filter (required)
+      if (filters?.exam) {
+        query = query.eq('exam', filters.exam);
+      }
 
       // Apply filters
       if (filters?.subject) {

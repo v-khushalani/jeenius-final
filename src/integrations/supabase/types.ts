@@ -815,6 +815,7 @@ export type Database = {
           correct_option: string
           created_at: string | null
           difficulty: string
+          exam: string
           explanation: string | null
           id: string
           option_a: string
@@ -835,6 +836,7 @@ export type Database = {
           correct_option: string
           created_at?: string | null
           difficulty: string
+          exam?: string
           explanation?: string | null
           id?: string
           option_a: string
@@ -855,6 +857,7 @@ export type Database = {
           correct_option?: string
           created_at?: string | null
           difficulty?: string
+          exam?: string
           explanation?: string | null
           id?: string
           option_a?: string
@@ -1842,6 +1845,7 @@ export type Database = {
           chapter: string | null
           created_at: string | null
           difficulty: string | null
+          exam: string | null
           id: string | null
           option_a: string | null
           option_b: string | null
@@ -1856,6 +1860,7 @@ export type Database = {
           chapter?: string | null
           created_at?: string | null
           difficulty?: string | null
+          exam?: string | null
           id?: string | null
           option_a?: string | null
           option_b?: string | null
@@ -1870,6 +1875,7 @@ export type Database = {
           chapter?: string | null
           created_at?: string | null
           difficulty?: string | null
+          exam?: string | null
           id?: string | null
           option_a?: string | null
           option_b?: string | null
