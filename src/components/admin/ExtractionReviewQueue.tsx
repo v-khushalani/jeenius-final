@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { 
   CheckCircle2, XCircle, Edit2, Save, Loader2, 
   ChevronLeft, ChevronRight, Trash2, RefreshCw,
-  FileText, BookOpen
+  FileText, BookOpen, AlertTriangle, Copy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -53,6 +54,37 @@ interface Topic {
   chapter_id: string;
 }
 
+interface DuplicateResult {
+  isDuplicate: boolean;
+  similarity: number;
+  existingQuestion?: {
+    id: string;
+    question: string;
+    subject: string;
+    chapter: string;
+  };
+}
+
+// Normalize text for comparison (remove extra spaces, lowercase, remove special chars)
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\s]/g, '')
+    .trim();
+};
+
+// Calculate similarity between two strings (Jaccard similarity on words)
+const calculateSimilarity = (text1: string, text2: string): number => {
+  const words1 = new Set(normalizeText(text1).split(' '));
+  const words2 = new Set(normalizeText(text2).split(' '));
+  
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  
+  return intersection.size / union.size;
+};
+
 export function ExtractionReviewQueue() {
   const [questions, setQuestions] = useState<ExtractedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,12 +96,68 @@ export function ExtractionReviewQueue() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [duplicateCheck, setDuplicateCheck] = useState<DuplicateResult | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   useEffect(() => {
     fetchQuestions();
     fetchChapters();
     fetchStats();
   }, [statusFilter]);
+
+  // Check for duplicates when current question changes
+  useEffect(() => {
+    if (currentQuestion && statusFilter === "pending") {
+      checkForDuplicate(currentQuestion.parsed_question.question);
+    } else {
+      setDuplicateCheck(null);
+    }
+  }, [currentIndex, questions, statusFilter]);
+
+  const checkForDuplicate = async (questionText: string) => {
+    if (!questionText || questionText.length < 20) {
+      setDuplicateCheck(null);
+      return;
+    }
+
+    setCheckingDuplicate(true);
+    try {
+      // Get first 50 chars normalized for initial filter
+      const normalizedQuestion = normalizeText(questionText);
+      const searchWords = normalizedQuestion.split(' ').slice(0, 5).join(' ');
+      
+      // Search for similar questions in the database
+      const { data: existingQuestions, error } = await supabase
+        .from("questions")
+        .select("id, question, subject, chapter")
+        .ilike("question", `%${searchWords.slice(0, 30)}%`)
+        .limit(20);
+
+      if (error) throw error;
+
+      // Check similarity with each result
+      let bestMatch: DuplicateResult = { isDuplicate: false, similarity: 0 };
+      
+      for (const existing of existingQuestions || []) {
+        const similarity = calculateSimilarity(questionText, existing.question);
+        
+        if (similarity > bestMatch.similarity) {
+          bestMatch = {
+            isDuplicate: similarity >= 0.85, // 85% similarity threshold
+            similarity,
+            existingQuestion: similarity >= 0.6 ? existing : undefined
+          };
+        }
+      }
+
+      setDuplicateCheck(bestMatch);
+    } catch (error) {
+      console.error("Error checking duplicate:", error);
+      setDuplicateCheck(null);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
 
   const fetchQuestions = async () => {
     setLoading(true);
@@ -127,8 +215,15 @@ export function ExtractionReviewQueue() {
 
   const currentQuestion = questions[currentIndex];
 
-  const handleApprove = async () => {
+  const handleApprove = async (forceApprove: boolean = false) => {
     if (!currentQuestion) return;
+    
+    // Block if duplicate detected (unless force approve)
+    if (!forceApprove && duplicateCheck?.isDuplicate) {
+      toast.error("Duplicate question detected! Use 'Approve Anyway' to override.");
+      return;
+    }
+    
     setSaving(true);
     
     try {
@@ -174,6 +269,7 @@ export function ExtractionReviewQueue() {
       setQuestions(prev => prev.filter(q => q.id !== currentQuestion.id));
       setEditMode(false);
       setEditedQuestion(null);
+      setDuplicateCheck(null);
       fetchStats();
       
     } catch (error) {
@@ -387,7 +483,41 @@ export function ExtractionReviewQueue() {
                     <Badge variant="outline">Page {currentQuestion.page_number}</Badge>
                     <Badge>{currentQuestion.parsed_question.subject || "Unknown"}</Badge>
                     <Badge variant="secondary">{currentQuestion.parsed_question.difficulty || "Medium"}</Badge>
+                    {checkingDuplicate && (
+                      <Badge variant="outline">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Checking...
+                      </Badge>
+                    )}
+                    {duplicateCheck?.isDuplicate && (
+                      <Badge variant="destructive">
+                        <Copy className="h-3 w-3 mr-1" />
+                        Duplicate ({Math.round(duplicateCheck.similarity * 100)}% match)
+                      </Badge>
+                    )}
+                    {duplicateCheck && !duplicateCheck.isDuplicate && duplicateCheck.similarity >= 0.6 && (
+                      <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                        <AlertTriangle className="h-3 w-3 mr-1" />
+                        Similar ({Math.round(duplicateCheck.similarity * 100)}%)
+                      </Badge>
+                    )}
                   </div>
+
+                  {/* Duplicate Warning Alert */}
+                  {duplicateCheck?.existingQuestion && (
+                    <Alert variant={duplicateCheck.isDuplicate ? "destructive" : "default"} className="mt-3">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="ml-2">
+                        <strong>{duplicateCheck.isDuplicate ? "Duplicate Detected!" : "Similar Question Found"}</strong>
+                        <p className="text-sm mt-1 opacity-80">
+                          {duplicateCheck.existingQuestion.question.slice(0, 150)}...
+                        </p>
+                        <p className="text-xs mt-1 opacity-60">
+                          {duplicateCheck.existingQuestion.subject} → {duplicateCheck.existingQuestion.chapter}
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   {editMode && editedQuestion ? (
                     /* Edit Mode */
@@ -571,14 +701,30 @@ export function ExtractionReviewQueue() {
                         <XCircle className="h-4 w-4 mr-2" />
                         Reject
                       </Button>
-                      <Button onClick={handleApprove} disabled={saving}>
-                        {saving ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                        )}
-                        Approve
-                      </Button>
+                      {duplicateCheck?.isDuplicate ? (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => handleApprove(true)} 
+                          disabled={saving}
+                          className="border-yellow-500 text-yellow-600 hover:bg-yellow-500/10"
+                        >
+                          {saving ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                          )}
+                          Approve Anyway
+                        </Button>
+                      ) : (
+                        <Button onClick={() => handleApprove(false)} disabled={saving}>
+                          {saving ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                          )}
+                          Approve
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
