@@ -1,17 +1,28 @@
-// Replace your Settings.tsx with this code
-
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { User, Bell, Shield, Palette, LogOut, Save, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { 
+  User, Bell, Shield, Palette, LogOut, Save, Loader2, AlertCircle, CheckCircle,
+  Heart, Sparkles, Download, Lock, Eye, EyeOff
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Settings = () => {
   const [profile, setProfile] = useState({
@@ -22,7 +33,9 @@ const Settings = () => {
     city: '',
     state: '',
     grade: '',
-    target_exam: ''
+    target_exam: '',
+    daily_goal: 15,
+    daily_study_hours: 4
   });
 
   const [notifications, setNotifications] = useState({
@@ -36,12 +49,15 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [user, setUser] = useState<any>(null);
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [showFarewellDialog, setShowFarewellDialog] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [theme, setTheme] = useState('light');
 
-  const { signOut } = useAuth();
+  const { signOut, isPremium } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Load user data on component mount
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -50,7 +66,6 @@ const Settings = () => {
     try {
       setLoading(true);
       
-      // Get current user
       const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !currentUser) {
@@ -66,7 +81,6 @@ const Settings = () => {
 
       setUser(currentUser);
 
-      // Get profile data from profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -75,7 +89,6 @@ const Settings = () => {
 
       if (profileError) {
         console.error('Profile loading error:', profileError);
-        // Use auth user metadata as fallback
         const userMeta = currentUser.user_metadata || {};
         setProfile({
           firstName: userMeta.firstName || currentUser.email?.split('@')[0] || '',
@@ -85,10 +98,11 @@ const Settings = () => {
           city: userMeta.city || '',
           state: userMeta.state || '',
           grade: userMeta.grade || '12th',
-          target_exam: userMeta.target_exam || 'JEE'
+          target_exam: userMeta.target_exam || 'JEE',
+          daily_goal: 15,
+          daily_study_hours: 4
         });
       } else {
-        // Split full_name back to firstName/lastName
         const nameParts = profileData.full_name?.split(' ') || ['', ''];
         setProfile({
           firstName: nameParts[0] || '',
@@ -99,8 +113,11 @@ const Settings = () => {
           state: profileData.state || '',
           grade: profileData.grade === 11 ? '11th' : 
                  profileData.grade === 12 ? '12th' : 
+                 profileData.grade >= 6 && profileData.grade <= 10 ? `${profileData.grade}th` :
                  '12th-pass',
-          target_exam: profileData.target_exam || 'JEE'
+          target_exam: profileData.target_exam || 'JEE',
+          daily_goal: profileData.daily_goal || 15,
+          daily_study_hours: profileData.daily_study_hours || 4
         });
       }
 
@@ -127,19 +144,21 @@ const Settings = () => {
         throw new Error('User not authenticated');
       }
 
-      // Validate required fields
-      if (!profile.firstName.trim() || !profile.lastName.trim() || !profile.email.trim()) {
+      if (!profile.firstName.trim() || !profile.email.trim()) {
         toast({
           title: "Validation Error",
-          description: "First name, last name, and email are required",
+          description: "First name and email are required",
           variant: "destructive"
         });
         setSaving(false);
         return;
       }
 
-      // Prepare update data
-      const gradeNumber = profile.grade === '11th' ? 11 : profile.grade === '12th' ? 12 : 13;
+      const gradeNumber = profile.grade === '11th' ? 11 : 
+                          profile.grade === '12th' ? 12 : 
+                          profile.grade === '12th-pass' ? 13 :
+                          parseInt(profile.grade) || 12;
+
       const updateData = {
         full_name: `${profile.firstName.trim()} ${profile.lastName.trim()}`.trim(),
         email: profile.email.trim(),
@@ -148,22 +167,17 @@ const Settings = () => {
         state: profile.state?.trim() || null,
         grade: gradeNumber,
         target_exam: profile.target_exam || 'JEE',
+        daily_goal: profile.daily_goal,
+        daily_study_hours: profile.daily_study_hours,
         updated_at: new Date().toISOString()
       };
 
-      console.log('💾 Saving profile data:', updateData);
-
-      console.log('💾 Saving profile data:', updateData);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', user.id)
-        .select();
+        .eq('id', user.id);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setSaveStatus('success');
       toast({
@@ -171,7 +185,6 @@ const Settings = () => {
         description: "Profile updated successfully",
       });
       
-      // Reset success message after 3 seconds
       setTimeout(() => setSaveStatus('idle'), 3000);
 
     } catch (error: any) {
@@ -191,8 +204,6 @@ const Settings = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      
-      // Clear any cached data
       localStorage.clear();
       sessionStorage.clear();
       
@@ -213,24 +224,104 @@ const Settings = () => {
     }
   };
 
-  const handleInputChange = (field: keyof typeof profile, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  const handleDeactivateAccount = async () => {
+    setDeactivating(true);
     
-    // Reset save status when user makes changes
-    if (saveStatus !== 'idle') {
-      setSaveStatus('idle');
+    try {
+      // Mark the account as deactivated in the profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_eligible: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setShowDeactivateDialog(false);
+      setShowFarewellDialog(true);
+      
+    } catch (error) {
+      console.error('Error deactivating account:', error);
+      toast({
+        title: "Error",
+        description: "Failed to deactivate account. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeactivating(false);
     }
   };
 
+  const handleFarewellClose = async () => {
+    setShowFarewellDialog(false);
+    await signOut();
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/');
+  };
+
+  const handleExportData = async () => {
+    try {
+      toast({
+        title: "Preparing your data...",
+        description: "This may take a moment",
+      });
+
+      // Fetch all user data
+      const [profileRes, attemptsRes, sessionsRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('question_attempts').select('*').eq('user_id', user.id),
+        supabase.from('test_sessions').select('*').eq('user_id', user.id)
+      ]);
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        profile: profileRes.data,
+        question_attempts: attemptsRes.data,
+        test_sessions: sessionsRes.data
+      };
+
+      // Download as JSON
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jeenius-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Started!",
+        description: "Your data export has been downloaded",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export your data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleInputChange = (field: keyof typeof profile, value: any) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+    if (saveStatus !== 'idle') setSaveStatus('idle');
+  };
+
   if (loading) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Header />
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#e9e9e9' }}>
+        <Header />
         <div className="pt-24 pb-8">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading your profile...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: '#013062' }}></div>
+              <p className="mt-4 text-gray-600">Loading your settings...</p>
             </div>
           </div>
         </div>
@@ -239,41 +330,36 @@ const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#e9e9e9' }}>
       <Header />
       <div className="pt-24 pb-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+            <h1 className="text-3xl font-bold mb-2" style={{ color: '#013062' }}>Settings</h1>
             <p className="text-gray-600">
               Welcome {profile.firstName || 'Student'} • Manage your account and preferences
-            </p>
-            <p className="text-sm text-gray-500">
-              User ID: {user?.id?.substring(0, 8)}... • 
-              Email: {profile.email} • 
-              Grade: {profile.grade}
             </p>
           </div>
 
           <div className="space-y-6">
             {/* Profile Settings */}
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center" style={{ color: '#013062' }}>
                     <User className="w-5 h-5 mr-2" />
                     Profile Information
                   </CardTitle>
                   {saveStatus === 'success' && (
                     <div className="flex items-center text-green-600 text-sm">
                       <CheckCircle className="w-4 h-4 mr-1" />
-                      Saved successfully!
+                      Saved!
                     </div>
                   )}
                   {saveStatus === 'error' && (
                     <div className="flex items-center text-red-600 text-sm">
                       <AlertCircle className="w-4 h-4 mr-1" />
-                      Save failed. Try again.
+                      Failed
                     </div>
                   )}
                 </div>
@@ -287,17 +373,15 @@ const Settings = () => {
                       value={profile.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
                       placeholder="Enter your first name"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
                       value={profile.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
                       placeholder="Enter your last name"
-                      required
                     />
                   </div>
                 </div>
@@ -308,10 +392,10 @@ const Settings = () => {
                     id="email"
                     type="email"
                     value={profile.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="your.email@example.com"
-                    required
+                    disabled
+                    className="bg-gray-50"
                   />
+                  <p className="text-xs text-gray-500">Email cannot be changed</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -331,9 +415,13 @@ const Settings = () => {
                       value={profile.grade}
                       onChange={(e) => handleInputChange('grade', e.target.value)}
                       className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                      required
                     >
                       <option value="">Select Grade</option>
+                      <option value="6th">6th Grade</option>
+                      <option value="7th">7th Grade</option>
+                      <option value="8th">8th Grade</option>
+                      <option value="9th">9th Grade</option>
+                      <option value="10th">10th Grade</option>
                       <option value="11th">11th Grade</option>
                       <option value="12th">12th Grade</option>
                       <option value="12th-pass">12th Pass (Dropper)</option>
@@ -362,26 +450,58 @@ const Settings = () => {
                   </div>
                 </div>
 
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="target_exam">Target Exam</Label>
+                    <select
+                      id="target_exam"
+                      value={profile.target_exam}
+                      onChange={(e) => handleInputChange('target_exam', e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="JEE">JEE (PCM)</option>
+                      <option value="NEET">NEET (PCB)</option>
+                      <option value="Foundation">Foundation</option>
+                    </select>
+                    <p className="text-xs text-gray-500">
+                      {profile.target_exam === 'JEE' ? 'Physics, Chemistry, Mathematics' : 
+                       profile.target_exam === 'NEET' ? 'Physics, Chemistry, Biology' : 
+                       'All subjects'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="daily_goal">Daily Question Goal</Label>
+                    <Input
+                      id="daily_goal"
+                      type="number"
+                      min={5}
+                      max={100}
+                      value={profile.daily_goal}
+                      onChange={(e) => handleInputChange('daily_goal', parseInt(e.target.value) || 15)}
+                    />
+                    <p className="text-xs text-gray-500">Questions to solve daily (5-100)</p>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="target_exam">Target Exam</Label>
-                  <select
-                    id="target_exam"
-                    value={profile.target_exam}
-                    onChange={(e) => handleInputChange('target_exam', e.target.value)}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="JEE">JEE Main & Advanced</option>
-                    <option value="NEET">NEET</option>
-                    <option value="BITSAT">BITSAT</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <Label htmlFor="daily_study_hours">Daily Study Hours</Label>
+                  <Input
+                    id="daily_study_hours"
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={profile.daily_study_hours}
+                    onChange={(e) => handleInputChange('daily_study_hours', parseInt(e.target.value) || 4)}
+                  />
+                  <p className="text-xs text-gray-500">Hours you can dedicate daily (1-12)</p>
                 </div>
 
                 <div className="flex items-center gap-4 pt-4">
                   <Button 
                     onClick={handleSaveProfile} 
-                    disabled={saving || !profile.firstName || !profile.lastName || !profile.email}
+                    disabled={saving || !profile.firstName || !profile.email}
                     className="flex items-center gap-2"
+                    style={{ backgroundColor: '#013062' }}
                   >
                     {saving ? (
                       <>
@@ -408,9 +528,9 @@ const Settings = () => {
             </Card>
 
             {/* Notification Settings */}
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center" style={{ color: '#013062' }}>
                   <Bell className="w-5 h-5 mr-2" />
                   Notifications
                 </CardTitle>
@@ -424,17 +544,6 @@ const Settings = () => {
                   <Switch
                     checked={notifications.email}
                     onCheckedChange={(checked) => setNotifications({...notifications, email: checked})}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Push Notifications</Label>
-                    <p className="text-sm text-gray-600">Browser push notifications</p>
-                  </div>
-                  <Switch
-                    checked={notifications.push}
-                    onCheckedChange={(checked) => setNotifications({...notifications, push: checked})}
                   />
                 </div>
 
@@ -463,59 +572,36 @@ const Settings = () => {
             </Card>
 
             {/* Privacy & Security */}
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center" style={{ color: '#013062' }}>
                   <Shield className="w-5 h-5 mr-2" />
                   Privacy & Security
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-gradient-to-br from-slate-50 to-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-700 mb-2">
-                    <strong>Account Security:</strong> Your account is secured with email authentication.
+                <div className="p-4 rounded-lg" style={{ backgroundColor: '#e6eeff' }}>
+                  <p className="text-sm mb-2" style={{ color: '#013062' }}>
+                    <strong>Account Security:</strong> Your account is secured with Google authentication.
                   </p>
                   <p className="text-xs text-gray-600">
                     Account created: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
                   </p>
-                  <p className="text-xs text-gray-600">
-                    Last updated: {new Date().toLocaleDateString()}
-                  </p>
                 </div>
                 
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => {
-                    toast({
-                      title: "Coming Soon",
-                      description: "Password change feature will be available soon",
-                    });
-                  }}>
-                    Change Password
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    toast({
-                      title: "Coming Soon", 
-                      description: "Data export feature will be available soon",
-                    });
-                  }}>
+                  <Button variant="outline" onClick={handleExportData} className="flex items-center gap-2">
+                    <Download className="w-4 h-4" />
                     Download My Data
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    toast({
-                      title: "Coming Soon",
-                      description: "Privacy settings will be available soon",
-                    });
-                  }}>
-                    Privacy Settings
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
             {/* Appearance */}
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center" style={{ color: '#013062' }}>
                   <Palette className="w-5 h-5 mr-2" />
                   Appearance
                 </CardTitle>
@@ -524,9 +610,12 @@ const Settings = () => {
                 <div className="space-y-4">
                   <div>
                     <Label>Theme Preference</Label>
-                    <select className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm mt-2">
+                    <select 
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm mt-2"
+                      value={theme}
+                      onChange={(e) => setTheme(e.target.value)}
+                    >
                       <option value="light">Light Mode</option>
-                      <option value="dark">Dark Mode (Coming Soon)</option>
                       <option value="system">System Default</option>
                     </select>
                   </div>
@@ -535,7 +624,7 @@ const Settings = () => {
             </Card>
 
             {/* Account Actions */}
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center text-red-600">
                   <LogOut className="w-5 h-5 mr-2" />
@@ -543,32 +632,103 @@ const Settings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-red-50 p-4 rounded-lg">
-                  <p className="text-sm text-red-700 mb-2">
-                    <strong>Warning:</strong> These actions cannot be undone.
-                  </p>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleSignOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
+                    <LogOut className="w-4 h-4" />
                     Sign Out
                   </Button>
-                  <Button variant="destructive" onClick={() => {
-                    toast({
-                      title: "Account Deletion",
-                      description: "Please contact support to delete your account",
-                      variant: "destructive"
-                    });
-                  }}>
-                    Delete Account
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setShowDeactivateDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart className="w-4 h-4" />
+                    Deactivate Account
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500">
+                  Deactivating your account will pause your progress. You can reactivate anytime by logging back in.
+                </p>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Heart className="w-5 h-5 text-red-500" />
+              Deactivate Account?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                We're sad to see you go! 😢
+              </p>
+              <p>
+                Your account will be deactivated, but don't worry - your progress will be saved. 
+                You can come back anytime and pick up right where you left off!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay with us 💪</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeactivateAccount}
+              disabled={deactivating}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deactivating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Farewell Dialog */}
+      <AlertDialog open={showFarewellDialog} onOpenChange={() => {}}>
+        <AlertDialogContent className="text-center">
+          <AlertDialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#e6eeff' }}>
+                <Heart className="w-10 h-10 text-red-400" />
+              </div>
+            </div>
+            <AlertDialogTitle className="text-2xl" style={{ color: '#013062' }}>
+              See You Soon! 💙
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-center">
+              <p className="text-lg">
+                Your JEEnius journey has been paused, but never forgotten.
+              </p>
+              <p className="text-gray-600">
+                Every question you solved, every streak you maintained, 
+                every late-night study session - they all shaped a brilliant mind.
+              </p>
+              <p className="font-medium" style={{ color: '#013062' }}>
+                Remember: Great achievers take breaks, but they always come back stronger! 
+              </p>
+              <div className="pt-4">
+                <Sparkles className="w-6 h-6 mx-auto text-yellow-500" />
+                <p className="text-sm text-gray-500 mt-2">
+                  Your progress is safely stored. Come back whenever you're ready! 🚀
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="justify-center">
+            <AlertDialogAction 
+              onClick={handleFarewellClose}
+              style={{ backgroundColor: '#013062' }}
+              className="px-8"
+            >
+              Goodbye for now 👋
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
