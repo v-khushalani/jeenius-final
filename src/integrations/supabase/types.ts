@@ -1435,7 +1435,15 @@ export type Database = {
           topic_name?: string
           topic_number?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "topics_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "chapters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_limits: {
         Row: {

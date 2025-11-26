@@ -64,7 +64,7 @@ const ChapterManager = () => {
         <CardContent>
           {/* Subject Selector */}
           <div className="flex gap-2 mb-6">
-            {['Physics', 'Chemistry', 'Maths', 'Biology'].map(subject => (
+            {['Physics', 'Chemistry', 'Mathematics', 'Biology'].map(subject => (
               <Button
                 key={subject}
                 onClick={() => setSelectedSubject(subject)}

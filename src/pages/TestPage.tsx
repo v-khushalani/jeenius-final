@@ -61,24 +61,21 @@ const TestPage = () => {
 
   const fetchSubjectsAndChapters = async () => {
     try {
-      const targetExam = profile?.target_exam || 'JEE';
-
-      const { data: questions, error } = await supabase
-        .from('questions')
-        .select('subject, chapter')
-        .eq('exam', targetExam);
+      // Fetch chapters from chapters table (properly linked)
+      const { data: chaptersData, error: chaptersError } = await supabase
+        .from('chapters')
+        .select('id, subject, chapter_name, chapter_number')
+        .order('chapter_number');
       
-      if (error) throw error;
+      if (chaptersError) throw chaptersError;
 
-      const uniqueSubjects = [...new Set(questions.map(q => q.subject))];
-      const chaptersBySubject = {};
+      const uniqueSubjects = [...new Set(chaptersData?.map(c => c.subject) || [])];
+      const chaptersBySubject: Record<string, string[]> = {};
       
       uniqueSubjects.forEach(subject => {
-        const subjectChapters = [...new Set(
-          questions
-            .filter(q => q.subject === subject)
-            .map(q => q.chapter)
-        )];
+        const subjectChapters = chaptersData
+          ?.filter(c => c.subject === subject)
+          .map(c => c.chapter_name) || [];
         chaptersBySubject[subject] = subjectChapters;
       });
 
