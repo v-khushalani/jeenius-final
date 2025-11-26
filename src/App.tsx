@@ -280,6 +280,22 @@ function App() {
                     </AdminRoute>
                   }
                 />
+                <Route
+                  path="/admin/pdf-extract"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/review-queue"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
                 
                 <Route path="/pricing" element={<PricingPage />} />
 
