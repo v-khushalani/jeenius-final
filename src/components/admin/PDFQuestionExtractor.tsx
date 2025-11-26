@@ -222,12 +222,12 @@ export function PDFQuestionExtractor() {
 
             <div className="space-y-2">
               <Label>Subject (Optional)</Label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select value={selectedSubject || "auto"} onValueChange={(val) => setSelectedSubject(val === "auto" ? "" : val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Auto-detect" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Auto-detect</SelectItem>
+                  <SelectItem value="auto">Auto-detect</SelectItem>
                   <SelectItem value="Physics">Physics</SelectItem>
                   <SelectItem value="Chemistry">Chemistry</SelectItem>
                   <SelectItem value="Mathematics">Mathematics</SelectItem>
