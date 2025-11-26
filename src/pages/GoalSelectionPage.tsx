@@ -148,7 +148,7 @@ const GoalSelectionPage = () => {
       console.log('👤 User name from profile:', profile?.full_name);
   
       // Update profile with grade, exam, and subjects
-      const gradeNumber = selectedGrade === '11th' ? 11 : selectedGrade === '12th' ? 12 : 13;
+      const gradeNumber = parseInt(selectedGrade, 10) || 11;
       const { error: profileError } = await supabase
         .from('profiles')
         .update({

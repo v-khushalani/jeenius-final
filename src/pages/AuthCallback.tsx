@@ -11,48 +11,56 @@ const AuthCallback = () => {
       try {
         console.log('🔄 Processing OAuth callback...');
         
-        // First, get the session to check the auth code from URL
+        // Get session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error('❌ Session error:', sessionError);
-          // Try to handle the OAuth callback with the URL hash/params
-          const { data: authData, error: authError } = await supabase.auth.getUser();
+          navigate('/login?error=auth_failed');
+          return;
+        }
+
+        const user = sessionData.session?.user;
+        
+        if (!user) {
+          console.log('⚠️ No session found, waiting...');
+          // Wait for session to establish
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const { data: retryData } = await supabase.auth.getSession();
           
-          if (authError) {
-            console.error('❌ Auth callback error:', authError);
-            navigate('/login?error=auth_failed');
-            return;
-          }
-          
-          if (authData.user) {
-            console.log('✅ User authenticated via getUser');
-            // Small delay to ensure session is established
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1000);
+          if (!retryData.session?.user) {
+            console.log('❌ Still no session, redirecting to login');
+            navigate('/login');
             return;
           }
         }
 
-       if (sessionData.session?.user) {
-        console.log('✅ User authenticated successfully');
-        console.log('🎯 Redirecting to dashboard');
-        navigate('/dashboard');
-        } else {
-          console.log('⚠️ No session found, trying to establish session...');
-          // Wait a bit for the session to be established by Supabase
-          setTimeout(async () => {
-            const { data: retryData } = await supabase.auth.getSession();
-            if (retryData.session?.user) {
-              console.log('✅ Session established on retry');
-              navigate('/dashboard');
-            } else {
-              console.log('❌ Still no session, redirecting to login');
-              navigate('/login');
-            }
-          }, 2000);
+        const userId = user?.id || sessionData.session?.user?.id;
+        console.log('✅ User authenticated:', userId);
+
+        // Check if user profile exists and has goals set
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('goals_set, target_exam, grade')
+          .eq('id', userId)
+          .single();
+
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist - AuthContext will create it, redirect to goal selection
+          console.log('📝 New user, redirecting to goal selection');
+          navigate('/goal-selection', { replace: true });
+          return;
         }
+
+        // Check if goals are complete
+        if (profile?.goals_set && profile?.target_exam && profile?.grade) {
+          console.log('✅ Profile complete, redirecting to dashboard');
+          navigate('/dashboard', { replace: true });
+        } else {
+          console.log('📝 Goals not set, redirecting to goal selection');
+          navigate('/goal-selection', { replace: true });
+        }
+        
       } catch (error) {
         console.error('❌ Callback handling error:', error);
         navigate('/login?error=callback_failed');
