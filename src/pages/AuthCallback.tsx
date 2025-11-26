@@ -11,6 +11,17 @@ const AuthCallback = () => {
       try {
         console.log('🔄 Processing OAuth callback...');
         
+        // Check for error in URL params first
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        const errorDescription = urlParams.get('error_description');
+        
+        if (errorParam) {
+          console.error('❌ Auth error from URL:', errorParam, errorDescription);
+          navigate(`/login?error=${encodeURIComponent(errorDescription || errorParam)}`);
+          return;
+        }
+        
         // Get session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         

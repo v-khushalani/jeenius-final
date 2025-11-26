@@ -24,8 +24,20 @@ const Login = () => {
     message: "Too many login attempts. Please wait 15 minutes before trying again."
   });
 
-  // Redirect if already authenticated
+  // Clear stale auth data and redirect if already authenticated
   useEffect(() => {
+    // Clear any stale localStorage auth tokens on login page load
+    // This prevents "Signing back in" confusion when no valid session exists
+    const clearStaleAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // No valid session, clear any stale tokens
+        localStorage.removeItem('sb-zbclponzlwulmltwkjga-auth-token');
+      }
+    };
+    
+    clearStaleAuth();
+    
     if (isAuthenticated) {
       navigate('/dashboard');
     }
