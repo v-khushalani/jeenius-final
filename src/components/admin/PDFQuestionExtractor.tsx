@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, CheckCircle2, XCircle, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, XCircle, Image as ImageIcon, Sparkles, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import * as pdfjsLib from "pdfjs-dist";
 // @ts-ignore - Vite handles this URL import
@@ -19,8 +19,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 interface ExtractionLog {
   page: number;
-  status: "pending" | "processing" | "success" | "error";
+  status: "pending" | "processing" | "success" | "error" | "warning";
   questionsFound: number;
+  reportedTotal?: number;
   message?: string;
 }
 
@@ -126,13 +127,25 @@ export function PDFQuestionExtractor() {
           if (error) throw error;
 
           const questionsFound = data.questionsExtracted || 0;
+          const reportedTotal = data.reportedTotal || questionsFound;
           extracted += questionsFound;
           setTotalExtracted(extracted);
+
+          // Check if some questions may have been missed
+          const hasMismatch = reportedTotal > questionsFound;
 
           // Update log
           setLogs(prev => prev.map(log => 
             log.page === pageNum 
-              ? { ...log, status: "success", questionsFound, message: `Found ${questionsFound} questions` }
+              ? { 
+                  ...log, 
+                  status: hasMismatch ? "warning" : "success", 
+                  questionsFound, 
+                  reportedTotal,
+                  message: hasMismatch 
+                    ? `Found ${questionsFound}/${reportedTotal} (some may be missed)` 
+                    : `Found ${questionsFound} questions` 
+                }
               : log
           ));
 
@@ -325,6 +338,7 @@ export function PDFQuestionExtractor() {
                     key={idx}
                     className={`flex items-center justify-between p-2 rounded-lg ${
                       log.status === "success" ? "bg-green-500/10" :
+                      log.status === "warning" ? "bg-yellow-500/10" :
                       log.status === "error" ? "bg-red-500/10" :
                       log.status === "processing" ? "bg-yellow-500/10" :
                       "bg-muted"
@@ -332,6 +346,7 @@ export function PDFQuestionExtractor() {
                   >
                     <div className="flex items-center gap-2">
                       {log.status === "success" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                      {log.status === "warning" && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
                       {log.status === "error" && <XCircle className="h-4 w-4 text-red-500" />}
                       {log.status === "processing" && <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />}
                       {log.status === "pending" && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
@@ -340,7 +355,9 @@ export function PDFQuestionExtractor() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">{log.message}</span>
                       {log.questionsFound > 0 && (
-                        <Badge variant="secondary">{log.questionsFound} Q</Badge>
+                        <Badge variant={log.status === "warning" ? "outline" : "secondary"}>
+                          {log.questionsFound} Q
+                        </Badge>
                       )}
                     </div>
                   </div>

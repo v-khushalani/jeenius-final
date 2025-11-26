@@ -17,6 +17,7 @@ import {
   FileText, BookOpen, AlertTriangle, Copy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { MathDisplay } from "./MathDisplay";
 
 interface ExtractedQuestion {
   id: string;
@@ -616,19 +617,59 @@ export function ExtractionReviewQueue() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Chapter</Label>
-                        <Input 
+                        <Label>Chapter (from existing)</Label>
+                        <Select 
                           value={editedQuestion.parsed_question.chapter}
-                          onChange={(e) => updateEditedField("chapter", e.target.value)}
-                        />
+                          onValueChange={(v) => {
+                            updateEditedField("chapter", v);
+                            // Find chapter and load its topics
+                            const selectedChapter = chapters.find(c => c.chapter_name === v);
+                            if (selectedChapter) {
+                              fetchTopics(selectedChapter.id);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select chapter" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {chapters
+                              .filter(c => c.subject === editedQuestion.parsed_question.subject)
+                              .map(c => (
+                                <SelectItem key={c.id} value={c.chapter_name}>
+                                  {c.chapter_name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div className="space-y-2">
                         <Label>Topic</Label>
-                        <Input 
-                          value={editedQuestion.parsed_question.topic}
-                          onChange={(e) => updateEditedField("topic", e.target.value)}
-                        />
+                        {topics.length > 0 ? (
+                          <Select 
+                            value={editedQuestion.parsed_question.topic}
+                            onValueChange={(v) => updateEditedField("topic", v)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select topic" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {topics.map(t => (
+                                <SelectItem key={t.id} value={t.topic_name}>
+                                  {t.topic_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input 
+                            value={editedQuestion.parsed_question.topic}
+                            onChange={(e) => updateEditedField("topic", e.target.value)}
+                            placeholder="Enter topic or select chapter first"
+                          />
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -644,15 +685,16 @@ export function ExtractionReviewQueue() {
                     /* View Mode */
                     <div className="space-y-4">
                       <div className="p-4 bg-muted rounded-lg">
-                        <p className="font-medium whitespace-pre-wrap">
-                          {currentQuestion.parsed_question.question}
-                        </p>
+                        <div className="font-medium whitespace-pre-wrap">
+                          <MathDisplay text={currentQuestion.parsed_question.question} />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         {["A", "B", "C", "D"].map((opt) => {
                           const optionKey = `option_${opt.toLowerCase()}` as keyof typeof currentQuestion.parsed_question;
                           const isCorrect = currentQuestion.parsed_question.correct_option === opt;
+                          const optionText = currentQuestion.parsed_question[optionKey] as string;
                           return (
                             <div 
                               key={opt}
@@ -661,7 +703,7 @@ export function ExtractionReviewQueue() {
                               }`}
                             >
                               <span className="font-semibold mr-2">({opt})</span>
-                              {currentQuestion.parsed_question[optionKey]}
+                              <MathDisplay text={optionText || ''} />
                               {isCorrect && <CheckCircle2 className="h-4 w-4 inline ml-2 text-green-500" />}
                             </div>
                           );
@@ -671,7 +713,9 @@ export function ExtractionReviewQueue() {
                       {currentQuestion.parsed_question.explanation && (
                         <div className="p-3 bg-blue-500/10 rounded-lg">
                           <p className="text-sm font-medium mb-1">Explanation:</p>
-                          <p className="text-sm">{currentQuestion.parsed_question.explanation}</p>
+                          <div className="text-sm">
+                            <MathDisplay text={currentQuestion.parsed_question.explanation} />
+                          </div>
                         </div>
                       )}
 
