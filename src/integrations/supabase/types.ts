@@ -1440,39 +1440,48 @@ export type Database = {
       topics: {
         Row: {
           chapter_id: string | null
+          concepts: string[] | null
           created_at: string | null
           description: string | null
           difficulty_level: string | null
           estimated_time: number | null
           id: string
+          important_points: string[] | null
           is_free: boolean | null
           is_premium: boolean | null
+          key_formulas: string[] | null
           order_index: number | null
           topic_name: string
           topic_number: number | null
         }
         Insert: {
           chapter_id?: string | null
+          concepts?: string[] | null
           created_at?: string | null
           description?: string | null
           difficulty_level?: string | null
           estimated_time?: number | null
           id?: string
+          important_points?: string[] | null
           is_free?: boolean | null
           is_premium?: boolean | null
+          key_formulas?: string[] | null
           order_index?: number | null
           topic_name: string
           topic_number?: number | null
         }
         Update: {
           chapter_id?: string | null
+          concepts?: string[] | null
           created_at?: string | null
           description?: string | null
           difficulty_level?: string | null
           estimated_time?: number | null
           id?: string
+          important_points?: string[] | null
           is_free?: boolean | null
           is_premium?: boolean | null
+          key_formulas?: string[] | null
           order_index?: number | null
           topic_name?: string
           topic_number?: number | null
@@ -1842,6 +1851,47 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_topic_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          topic_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          topic_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          topic_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_topic_progress_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
