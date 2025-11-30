@@ -33,23 +33,23 @@ const PricingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-green-50">
       <Header />
-      <div className="pt-24 pb-16">
+      <div className="pt-20 sm:pt-24 pb-8 sm:pb-16">
         {/* Hero Section */}
-        <section className="py-12">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+        <section className="py-6 sm:py-12">
+          <div className="container mx-auto px-3 sm:px-4 text-center">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
               Choose Your Path to
-              <span className="text-green-600 block mt-2">JEE Success 🎯</span>
+              <span className="text-green-600 block mt-1 sm:mt-2">JEE Success 🎯</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-8">
               Start free, upgrade anytime. No hidden costs, no surprises.
             </p>
 
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-4 mb-12">
+            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-8 sm:mb-12">
               <button
                 onClick={() => setBillingCycle('monthly')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition-all ${
                   billingCycle === 'monthly'
                     ? 'bg-green-600 text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
@@ -59,14 +59,14 @@ const PricingPage = () => {
               </button>
               <button
                 onClick={() => setBillingCycle('yearly')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all relative ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition-all relative ${
                   billingCycle === 'yearly'
                     ? 'bg-green-600 text-white shadow-lg'
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 Yearly
-                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                   Save 15%
                 </span>
               </button>
@@ -75,35 +75,35 @@ const PricingPage = () => {
         </section>
 
         {/* Pricing Cards */}
-        <section className="py-8">
-          <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <section className="py-4 sm:py-8">
+          <div className="container mx-auto px-3 sm:px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-5xl mx-auto">
               
               {/* FREE PLAN */}
               <Card className="relative shadow-lg hover:shadow-xl transition-all duration-300 border-2">
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-2xl font-bold text-gray-900">
+                <CardHeader className="text-center pb-3 sm:pb-4">
+                  <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
                     Starter
                   </CardTitle>
-                  <div className="mt-4">
+                  <div className="mt-3 sm:mt-4">
                     <div className="flex items-baseline justify-center">
-                      <span className="text-5xl font-bold text-gray-900">₹0</span>
-                      <span className="text-gray-600 ml-2">/forever</span>
+                      <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">₹0</span>
+                      <span className="text-sm sm:text-base text-gray-600 ml-2">/forever</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">Perfect to get started</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Perfect to get started</p>
                   </div>
                 </CardHeader>
 
                 <CardContent>
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
                     {freeFeatures.map((feature, index) => (
-                      <li key={index} className="flex items-start space-x-3">
+                      <li key={index} className="flex items-start space-x-2 sm:space-x-3">
                         {feature.included ? (
-                          <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" />
                         ) : (
-                          <X className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" />
+                          <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-300 flex-shrink-0 mt-0.5" />
                         )}
-                        <span className={feature.included ? 'text-gray-700' : 'text-gray-400 line-through'}>
+                        <span className={`text-xs sm:text-sm ${feature.included ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
                           {feature.text}
                         </span>
                       </li>
@@ -111,7 +111,7 @@ const PricingPage = () => {
                   </ul>
 
                   <Button 
-                    className="w-full text-lg py-6 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50" 
+                    className="w-full text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50" 
                     size="lg"
                   >
                     Get Started Free
@@ -120,19 +120,19 @@ const PricingPage = () => {
               </Card>
 
               {/* PRO PLAN */}
-              <Card className="relative shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-green-500 scale-105">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold flex items-center space-x-2 shadow-lg">
-                    <Crown className="w-4 h-4" />
+              <Card className="relative shadow-2xl hover:shadow-3xl transition-all duration-300 border-2 border-green-500 sm:scale-105">
+                <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold flex items-center space-x-1 sm:space-x-2 shadow-lg">
+                    <Crown className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>MOST POPULAR</span>
                   </div>
                 </div>
 
-                <CardHeader className="text-center pb-4 bg-gradient-to-br from-green-50 to-emerald-50">
-                  <CardTitle className="text-2xl font-bold text-gray-900">
+                <CardHeader className="text-center pb-3 sm:pb-4 bg-gradient-to-br from-green-50 to-emerald-50 pt-4 sm:pt-6">
+                  <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
                     Pro
                   </CardTitle>
-                  <div className="mt-4">
+                  <div className="mt-3 sm:mt-4">
                     <div className="flex items-baseline justify-center">
                       {billingCycle === 'monthly' ? (
                         <>

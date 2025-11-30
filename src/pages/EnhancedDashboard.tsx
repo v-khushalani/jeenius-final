@@ -233,10 +233,10 @@ const EnhancedDashboard = () => {
     <div className="min-h-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
 
-      {/* ✅ FIXED: Container with proper header offset and banner space */}
+      {/* ✅ MOBILE OPTIMIZED: Container with proper header offset and banner space */}
       <div className={`fixed left-0 right-0 bottom-0 overflow-hidden transition-all duration-300 ${showBanner && notification ? 'top-[64px]' : 'top-[64px]'}`}>
         <div className="h-full overflow-y-auto">
-          <div className="container mx-auto px-3 sm:px-4 lg:px-6 max-w-7xl py-3">
+          <div className="container mx-auto px-2 sm:px-4 lg:px-6 max-w-7xl py-2 sm:py-3">
             
             {/* ✅ PERFECT SPACING: All banners and cards */}
             <div className="space-y-3">
@@ -327,8 +327,8 @@ const EnhancedDashboard = () => {
                 </div>
               )}
 
-              {/* ✅ NEW: 4 Dynamic Stats Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+              {/* ✅ MOBILE OPTIMIZED: 4 Dynamic Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2 md:gap-3">
                 
                 {/* 1st Card: Day Streak */}
                 <Card className={`rounded-lg sm:rounded-xl shadow-sm hover:shadow-md transition-all border-l-4 ${streakColors.border} ${streakColors.bg} backdrop-blur-sm`}> 

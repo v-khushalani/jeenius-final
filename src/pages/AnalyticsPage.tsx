@@ -253,39 +253,39 @@ const AnalyticsPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col overflow-hidden">
       <Header />
       
-      <div className="flex-1 pt-24 pb-12 overflow-hidden">
-        <div className="container mx-auto px-4 h-full flex flex-col">
+      <div className="flex-1 pt-20 sm:pt-24 pb-6 sm:pb-12 overflow-hidden">
+        <div className="container mx-auto px-3 sm:px-4 h-full flex flex-col">
           {/* Page Header */}
-          <div className="mb-6 shrink-0">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
+          <div className="mb-4 sm:mb-6 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Performance Analytics</h1>
-                <p className="text-sm text-gray-600">Track your progress and identify areas for improvement</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Performance Analytics</h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Track your progress and identify areas for improvement</p>
               </div>
             </div>
           </div>
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid grid-cols-2 w-full max-w-md shrink-0 mb-6">
-              <TabsTrigger value="overview">📊 Overview</TabsTrigger>
-              <TabsTrigger value="detailed">📚 Detailed Analysis</TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full max-w-md shrink-0 mb-3 sm:mb-4 md:mb-6 h-9 sm:h-10">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm">📊 Overview</TabsTrigger>
+              <TabsTrigger value="detailed" className="text-xs sm:text-sm">📚 Detailed</TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
-            <TabsContent value="overview" className="flex-1 overflow-auto mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/50 shadow-xl hover:shadow-2xl transition-all hover:scale-105">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-blue-700 mb-1">Questions Solved</p>
-                        <p className="text-3xl font-bold text-blue-900">{analytics.overview.totalQuestions}</p>
+            <TabsContent value="overview" className="flex-1 overflow-auto mt-0 sm:mt-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200/50 shadow-lg hover:shadow-xl transition-all">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+                      <div className="text-center sm:text-left">
+                        <p className="text-[10px] sm:text-xs text-blue-700 mb-0.5 sm:mb-1">Questions Solved</p>
+                        <p className="text-2xl sm:text-3xl font-bold text-blue-900">{analytics.overview.totalQuestions}</p>
                       </div>
-                      <Brain className="h-8 w-8 text-blue-600" />
+                      <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                     </div>
                   </CardContent>
                 </Card>
@@ -332,7 +332,7 @@ const AnalyticsPage = () => {
               </div>
 
               {/* Subject Performance Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 {Object.entries(analytics.subjects).map(([subject, data]: [string, any]) => (
                   <Card key={subject} className="border-2 hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">

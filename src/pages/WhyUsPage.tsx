@@ -125,34 +125,34 @@ const WhyUsPage = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="relative z-10 pt-12 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 pt-20 sm:pt-24 pb-12 sm:pb-20 px-3 sm:px-4 lg:px-8">
         <div className="max-w-7xl mx-auto">
           
           {/* Header Badge */}
-          <div className="flex justify-center mb-8 animate-fade-in">
-            <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-sm font-semibold">
-              <Sparkles className="w-4 h-4 mr-2 inline" />
+          <div className="flex justify-center mb-6 sm:mb-8 animate-fade-in">
+            <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
               Built by JEE Warriors, For JEE Warriors
             </Badge>
           </div>
 
           {/* Main Headline */}
-          <div className="text-center mb-12 space-y-4">
-            <h1 className="text-5xl md:text-7xl font-black text-slate-900 leading-tight">
-              We're Not Just <br />
+          <div className="text-center mb-8 sm:mb-12 space-y-3 sm:space-y-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 leading-tight">
+              We're Not Just <br className="hidden sm:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient">
                 Another App
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed px-2">
               We're <span className="font-bold text-slate-900">JEE survivors</span> who built the platform we wish we had. 
               No BS. No shortcuts. Just <span className="font-bold text-blue-600">smart, caring AI</span> that helps you dominate.
             </p>
           </div>
 
           {/* Rotating Feature Cards */}
-          <div className="max-w-4xl mx-auto mb-16">
-            <div className="relative h-64 md:h-48">
+          <div className="max-w-4xl mx-auto mb-10 sm:mb-16">
+            <div className="relative h-auto min-h-[280px] sm:min-h-[240px] md:h-48">
               {heroFeatures.map((feature, idx) => (
                 <div
                   key={idx}
@@ -162,17 +162,17 @@ const WhyUsPage = () => {
                       : 'opacity-0 transform translate-y-8 scale-95 pointer-events-none'
                   }`}
                 >
-                  <Card className={`bg-gradient-to-br ${feature.gradient} border-0 shadow-2xl ${feature.glow} hover:shadow-3xl transition-all duration-300`}>
-                    <CardContent className="p-8 md:p-10">
-                      <div className="flex items-start gap-6">
-                        <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl">
-                          <feature.icon className="w-10 h-10 text-white" />
+                  <Card className={`bg-gradient-to-br ${feature.gradient} border-0 shadow-xl sm:shadow-2xl ${feature.glow} hover:shadow-3xl transition-all duration-300`}>
+                    <CardContent className="p-6 sm:p-8 md:p-10">
+                      <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+                        <div className="p-3 sm:p-4 bg-white/20 backdrop-blur-sm rounded-xl sm:rounded-2xl flex-shrink-0">
+                          <feature.icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3">
                             {feature.title}
                           </h3>
-                          <p className="text-lg text-white/90 leading-relaxed">
+                          <p className="text-sm sm:text-base md:text-lg text-white/90 leading-relaxed">
                             {feature.desc}
                           </p>
                         </div>
@@ -198,7 +198,7 @@ const WhyUsPage = () => {
           </div>
 
           {/* Stats Section */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-12 sm:mb-20">
             {stats.map((stat, idx) => {
               const colorMap = {
                 blue: { gradient: 'from-blue-500 to-indigo-600', bg: 'from-blue-50 to-indigo-50', text: 'text-blue-700' },
@@ -210,14 +210,14 @@ const WhyUsPage = () => {
               
               return (
                 <Card key={idx} className={`bg-gradient-to-br ${colors.bg} border-2 border-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group`}>
-                  <CardContent className="p-6 text-center">
-                    <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${colors.gradient} mb-3 group-hover:scale-110 transition-transform`}>
-                      <stat.icon className="w-6 h-6 text-white" />
+                  <CardContent className="p-4 sm:p-6 text-center">
+                    <div className={`inline-flex p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br ${colors.gradient} mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
+                      <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
-                    <div className={`text-3xl md:text-4xl font-black ${colors.text} mb-1`}>
+                    <div className={`text-2xl sm:text-3xl md:text-4xl font-black ${colors.text} mb-0.5 sm:mb-1`}>
                       {stat.num}
                     </div>
-                    <div className="text-sm font-semibold text-slate-600">
+                    <div className="text-xs sm:text-sm font-semibold text-slate-600">
                       {stat.label}
                     </div>
                   </CardContent>
@@ -227,34 +227,34 @@ const WhyUsPage = () => {
           </div>
 
           {/* Why Different Section */}
-          <div className="mb-20">
-            <div className="text-center mb-12">
-              <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 text-sm font-semibold mb-4">
-                <Star className="w-4 h-4 mr-2 inline" />
+          <div className="mb-12 sm:mb-20">
+            <div className="text-center mb-8 sm:mb-12">
+              <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
                 What Makes Us Different
               </Badge>
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
                 Not Your Average <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">Study App</span>
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {differenceCards.map((card, idx) => (
                 <Card key={idx} className={`bg-gradient-to-br ${card.bg} border-2 border-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] group`}>
-                  <CardContent className="p-8">
-                    <div className="flex items-start gap-4 mb-6">
-                      <div className={`p-4 rounded-xl bg-gradient-to-br ${card.gradient} group-hover:scale-110 transition-transform`}>
-                        <card.icon className="w-8 h-8 text-white" />
+                  <CardContent className="p-5 sm:p-6 md:p-8">
+                    <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+                      <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} group-hover:scale-110 transition-transform flex-shrink-0`}>
+                        <card.icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold text-slate-900 mt-2">
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
                         {card.title}
                       </h3>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                       {card.points.map((point, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-slate-700 leading-relaxed">{point}</p>
+                        <div key={i} className="flex items-start gap-2 sm:gap-3">
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs sm:text-sm md:text-base text-slate-700 leading-relaxed">{point}</p>
                         </div>
                       ))}
                     </div>
@@ -265,33 +265,33 @@ const WhyUsPage = () => {
           </div>
 
           {/* Testimonials */}
-          <div className="mb-20">
-            <div className="text-center mb-12">
-              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 text-sm font-semibold mb-4">
-                <Award className="w-4 h-4 mr-2 inline" />
+          <div className="mb-12 sm:mb-20">
+            <div className="text-center mb-8 sm:mb-12">
+              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
+                <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
                 Success Stories
               </Badge>
-              <h2 className="text-4xl md:text-5xl font-black text-slate-900">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
                 Real Students. Real <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Results</span>
               </h2>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {testimonials.map((test, idx) => (
                 <Card key={idx} className="bg-white border-2 border-slate-200 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0">
                         {test.name[0]}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900">{test.name}</div>
+                        <div className="font-bold text-sm sm:text-base text-slate-900">{test.name}</div>
                         <Badge className="bg-green-100 text-green-700 text-xs">
                           {test.rank}
                         </Badge>
                       </div>
                     </div>
-                    <p className="text-slate-600 italic leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-600 italic leading-relaxed">
                       "{test.text}"
                     </p>
                   </CardContent>
@@ -302,26 +302,26 @@ const WhyUsPage = () => {
 
           {/* CTA Section */}
           <Card className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 border-0 shadow-2xl">
-            <CardContent className="p-12 text-center">
-              <div className="max-w-3xl mx-auto space-y-6">
-                <h2 className="text-4xl md:text-5xl font-black text-white leading-tight">
+            <CardContent className="p-6 sm:p-8 md:p-12 text-center">
+              <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight">
                   Ready to Transform Your JEE Journey?
                 </h2>
-                <p className="text-xl text-slate-300 leading-relaxed">
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-300 leading-relaxed">
                   Join thousands of students who chose smart preparation over endless grinding. 
                   Your rank 1 story starts here.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                  <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/50 hover:shadow-xl hover:scale-105 transition-all group">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-8">
+                  <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-sm sm:text-base md:text-lg px-6 sm:px-8 py-4 sm:py-5 md:py-6 rounded-xl shadow-lg shadow-green-500/50 hover:shadow-xl hover:scale-105 transition-all group">
                     Start Learning Free
-                    <Sparkles className="w-5 h-5 ml-2 group-hover:rotate-12 transition-transform" />
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:rotate-12 transition-transform" />
                   </Button>
-                  <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold text-lg px-8 py-6 rounded-xl backdrop-blur-sm">
+                  <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold text-sm sm:text-base md:text-lg px-6 sm:px-8 py-4 sm:py-5 md:py-6 rounded-xl backdrop-blur-sm">
                     Watch Demo
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                   </Button>
                 </div>
-                <p className="text-sm text-slate-400 mt-4">
+                <p className="text-xs sm:text-sm text-slate-400 mt-3 sm:mt-4">
                   No credit card required • 7-day free trial • Cancel anytime
                 </p>
               </div>

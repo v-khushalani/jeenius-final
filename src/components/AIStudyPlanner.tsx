@@ -45,7 +45,7 @@ export default function AIStudyPlanner() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header with stats */}
       <PlannerHeader
         targetExam={data.targetExam}

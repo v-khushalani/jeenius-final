@@ -74,35 +74,35 @@ const FeaturesPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header />
-      <div className="pt-24 pb-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-20 sm:pt-24 pb-8 sm:pb-12">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8">
           
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
               Powerful Features for <span className="text-primary">JEE Success</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto">
               Discover all the tools and features that make JEEnius the best platform for JEE preparation
             </p>
           </div>
 
           {/* Main Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12 md:mb-16">
             {features.map((feature, index) => (
               <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
                 <CardHeader>
-                  <div className={`w-12 h-12 ${feature.color} rounded-lg flex items-center justify-center mb-4`}>
-                    <feature.icon className="w-6 h-6 text-white" />
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 ${feature.color} rounded-lg flex items-center justify-center mb-3 sm:mb-4`}>
+                    <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600 mb-4">{feature.description}</p>
-                  <ul className="space-y-2">
+                  <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">{feature.description}</p>
+                  <ul className="space-y-1.5 sm:space-y-2">
                     {feature.benefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-center text-sm text-gray-700">
-                        <div className="w-2 h-2 bg-primary rounded-full mr-2"></div>
+                      <li key={idx} className="flex items-center text-xs sm:text-sm text-gray-700">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full mr-2 flex-shrink-0"></div>
                         {benefit}
                       </li>
                     ))}
@@ -113,13 +113,13 @@ const FeaturesPage = () => {
           </div>
 
           {/* Premium Features */}
-          <div className="bg-gradient-to-r from-primary/10 to-blue-50 rounded-2xl p-8 mb-12">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Premium Features</h2>
-              <p className="text-gray-600">Unlock advanced features with our premium plans</p>
+          <div className="bg-gradient-to-r from-primary/10 to-blue-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 mb-8 sm:mb-12">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Premium Features</h2>
+              <p className="text-sm sm:text-base text-gray-600">Unlock advanced features with our premium plans</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
               {premiumFeatures.map((feature, index) => (
                 <div key={index} className="bg-white rounded-lg p-6 shadow-sm">
                   <feature.icon className="w-8 h-8 text-primary mb-3" />
