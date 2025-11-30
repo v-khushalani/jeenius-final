@@ -77,7 +77,16 @@ export function usePDFExtraction() {
 
   const approveQuestion = useCallback(async (questionId: string, questionData: Record<string, unknown>) => {
     try {
-      // Insert into questions table
+      // Validate chapter_id and topic_id exist (must be connected to existing curriculum)
+      const chapterId = questionData.chapter_id as string | null;
+      const topicId = questionData.topic_id as string | null;
+      
+      if (!chapterId) {
+        toast.error("Cannot approve: Question not connected to existing chapter");
+        return false;
+      }
+
+      // Insert into questions table with foreign key references
       const { error: insertError } = await supabase.from("questions").insert({
         question: questionData.question as string,
         option_a: questionData.option_a as string,
@@ -88,7 +97,9 @@ export function usePDFExtraction() {
         explanation: (questionData.explanation as string) || "",
         subject: questionData.subject as string,
         chapter: questionData.chapter as string,
+        chapter_id: chapterId, // Foreign key to chapters table
         topic: (questionData.topic as string) || (questionData.chapter as string),
+        topic_id: topicId, // Foreign key to topics table (nullable)
         difficulty: (questionData.difficulty as string) || "Medium",
         exam: (questionData.exam as string) || "JEE",
         question_type: "single_correct"
@@ -104,7 +115,7 @@ export function usePDFExtraction() {
 
       if (updateError) throw updateError;
 
-      toast.success("Question approved!");
+      toast.success("Question approved and connected to curriculum!");
       return true;
     } catch (error) {
       console.error("Error approving question:", error);

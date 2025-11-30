@@ -22,88 +22,105 @@ interface ExtractedQuestion {
   has_image: boolean;
 }
 
-// List of valid chapters from database for better mapping
-const VALID_CHAPTERS: Record<string, string[]> = {
-  "Physics": [
-    "Units and Measurements", "Motion in a Straight Line", "Motion in a Plane", 
-    "Laws of Motion", "Work, Energy and Power", "System of Particles", 
-    "Gravitation", "Mechanical Properties", "Thermodynamics", "Kinetic Theory",
-    "Oscillations", "Waves", "Electric Charges and Fields", "Electrostatic Potential",
-    "Current Electricity", "Moving Charges and Magnetism", "Magnetism and Matter",
-    "Electromagnetic Induction", "Alternating Current", "Electromagnetic Waves",
-    "Ray Optics", "Wave Optics", "Dual Nature of Radiation", "Atoms", "Nuclei",
-    "Semiconductor Electronics", "Communication Systems", "Kinematics", "Rotational Motion"
-  ],
-  "Chemistry": [
-    "Some Basic Concepts of Chemistry", "Structure of Atom", "Classification of Elements and Periodicity",
-    "Chemical Bonding and Molecular Structure", "States of Matter", "Thermodynamics",
-    "Equilibrium", "Redox Reactions", "Hydrogen", "The s-Block Elements", 
-    "The p-Block Elements", "Organic Chemistry - Basic Principles", "Hydrocarbons",
-    "Environmental Chemistry", "Solid State", "Solutions", "Electrochemistry",
-    "Chemical Kinetics", "Surface Chemistry", "General Principles of Metallurgy",
-    "The d and f Block Elements", "Coordination Compounds", "Haloalkanes and Haloarenes",
-    "Alcohols, Phenols and Ethers", "Aldehydes, Ketones and Carboxylic Acids",
-    "Amines", "Biomolecules", "Polymers", "Chemistry in Everyday Life"
-  ],
-  "Mathematics": [
-    "Sets", "Relations and Functions", "Trigonometric Functions", "Complex Numbers",
-    "Linear Inequalities", "Permutations and Combinations", "Binomial Theorem",
-    "Sequences and Series", "Straight Lines", "Conic Sections", "Limits and Continuity",
-    "Differentiation", "Application of Derivatives", "Indefinite Integration",
-    "Definite Integration", "Application of Integrals", "Differential Equations",
-    "Vectors", "Three Dimensional Geometry", "Probability", "Statistics",
-    "Matrices and Determinants", "Mathematical Reasoning", "Circles", "Area Under Curves"
-  ],
-  "Biology": [
-    "The Living World", "Biological Classification", "Plant Kingdom", "Animal Kingdom",
-    "Morphology of Flowering Plants", "Anatomy of Flowering Plants", "Cell: The Unit of Life",
-    "Biomolecules", "Cell Cycle and Cell Division", "Transport in Plants",
-    "Mineral Nutrition", "Photosynthesis in Higher Plants", "Respiration in Plants",
-    "Plant Growth and Development", "Digestion and Absorption", "Breathing and Exchange of Gases",
-    "Body Fluids and Circulation", "Excretory Products and their Elimination",
-    "Locomotion and Movement", "Neural Control and Coordination",
-    "Chemical Coordination and Integration", "Reproduction in Organisms",
-    "Sexual Reproduction in Flowering Plants", "Human Reproduction", "Reproductive Health",
-    "Principles of Inheritance and Variation", "Molecular Basis of Inheritance",
-    "Evolution", "Human Health and Disease", "Strategies for Enhancement in Food Production",
-    "Microbes in Human Welfare", "Biotechnology: Principles and Processes",
-    "Biotechnology and its Applications", "Organisms and Populations", "Ecosystem",
-    "Biodiversity and Conservation", "Environmental Issues"
-  ]
-};
+interface DatabaseChapter {
+  id: string;
+  chapter_name: string;
+  subject: string;
+}
 
-// Find best matching chapter
-function findBestChapter(extractedChapter: string, subject: string): string {
-  if (!extractedChapter || !subject) return extractedChapter;
+interface DatabaseTopic {
+  id: string;
+  topic_name: string;
+  chapter_id: string;
+}
+
+// Smart matching function to find best chapter from database
+function findBestChapterMatch(
+  extractedChapter: string, 
+  subject: string, 
+  dbChapters: DatabaseChapter[]
+): DatabaseChapter | null {
+  if (!extractedChapter || !subject) return null;
   
-  const chapters = VALID_CHAPTERS[subject] || [];
+  const relevantChapters = dbChapters.filter(ch => ch.subject === subject);
   const normalized = extractedChapter.toLowerCase().trim();
   
   // Exact match
-  for (const chapter of chapters) {
-    if (chapter.toLowerCase() === normalized) return chapter;
-  }
-  
-  // Partial match
-  for (const chapter of chapters) {
-    if (chapter.toLowerCase().includes(normalized) || normalized.includes(chapter.toLowerCase())) {
+  for (const chapter of relevantChapters) {
+    if (chapter.chapter_name.toLowerCase() === normalized) {
       return chapter;
     }
   }
   
-  // Word overlap match
-  const extractedWords = normalized.split(/\s+/);
-  let bestMatch = { chapter: extractedChapter, score: 0 };
+  // Partial match - chapter name contains extracted text or vice versa
+  for (const chapter of relevantChapters) {
+    const chName = chapter.chapter_name.toLowerCase();
+    if (chName.includes(normalized) || normalized.includes(chName)) {
+      return chapter;
+    }
+  }
   
-  for (const chapter of chapters) {
-    const chapterWords = chapter.toLowerCase().split(/\s+/);
-    const overlap = extractedWords.filter(w => chapterWords.some(cw => cw.includes(w) || w.includes(cw))).length;
+  // Word overlap match - find best scoring match
+  const extractedWords = normalized.split(/\s+/).filter(w => w.length > 2);
+  let bestMatch = { chapter: null as DatabaseChapter | null, score: 0 };
+  
+  for (const chapter of relevantChapters) {
+    const chapterWords = chapter.chapter_name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const overlap = extractedWords.filter(w => 
+      chapterWords.some(cw => cw.includes(w) || w.includes(cw))
+    ).length;
+    
     if (overlap > bestMatch.score) {
       bestMatch = { chapter, score: overlap };
     }
   }
   
-  return bestMatch.score >= 1 ? bestMatch.chapter : extractedChapter;
+  // Only return if we have at least 1 word match
+  return bestMatch.score >= 1 ? bestMatch.chapter : null;
+}
+
+// Smart matching function to find best topic from database
+function findBestTopicMatch(
+  extractedTopic: string, 
+  chapterId: string, 
+  dbTopics: DatabaseTopic[]
+): DatabaseTopic | null {
+  if (!extractedTopic || !chapterId) return null;
+  
+  const relevantTopics = dbTopics.filter(t => t.chapter_id === chapterId);
+  const normalized = extractedTopic.toLowerCase().trim();
+  
+  // Exact match
+  for (const topic of relevantTopics) {
+    if (topic.topic_name.toLowerCase() === normalized) {
+      return topic;
+    }
+  }
+  
+  // Partial match
+  for (const topic of relevantTopics) {
+    const tName = topic.topic_name.toLowerCase();
+    if (tName.includes(normalized) || normalized.includes(tName)) {
+      return topic;
+    }
+  }
+  
+  // Word overlap match
+  const extractedWords = normalized.split(/\s+/).filter(w => w.length > 2);
+  let bestMatch = { topic: null as DatabaseTopic | null, score: 0 };
+  
+  for (const topic of relevantTopics) {
+    const topicWords = topic.topic_name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const overlap = extractedWords.filter(w => 
+      topicWords.some(tw => tw.includes(w) || w.includes(tw))
+    ).length;
+    
+    if (overlap > bestMatch.score) {
+      bestMatch = { topic, score: overlap };
+    }
+  }
+  
+  return bestMatch.score >= 1 ? bestMatch.topic : null;
 }
 
 // Determine difficulty based on question complexity
@@ -175,6 +192,22 @@ serve(async (req) => {
       throw new Error("Admin access required");
     }
 
+    // Fetch ALL chapters and topics from database for matching
+    console.log("📚 Fetching database curriculum...");
+    const { data: dbChapters, error: chaptersError } = await supabaseClient
+      .from("chapters")
+      .select("id, chapter_name, subject");
+    
+    const { data: dbTopics, error: topicsError } = await supabaseClient
+      .from("topics")
+      .select("id, topic_name, chapter_id");
+    
+    if (chaptersError || topicsError || !dbChapters || !dbTopics) {
+      throw new Error("Failed to load curriculum from database");
+    }
+
+    console.log(`✅ Loaded ${dbChapters.length} chapters and ${dbTopics.length} topics from database`);
+
     const { imageBase64, sourceFile, pageNumber, subject, chapter, exam } = await req.json();
 
     if (!imageBase64) {
@@ -212,11 +245,9 @@ ${subject ? `Confirmed subject: ${subject}` : `Detect from content:
 - Mathematics: algebra, calculus, geometry, trigonometry, statistics
 - Biology: cells, organisms, genetics, physiology, ecology`}
 
-CHAPTER MAPPING - Map to these standard chapters ONLY:
-${subject ? `For ${subject}: ${(VALID_CHAPTERS[subject] || []).join(', ')}` : `Physics: Units, Motion, Laws of Motion, Work Energy Power, Gravitation, Thermodynamics, Waves, Electrostatics, Current Electricity, Magnetism, Optics, Modern Physics
-Chemistry: Basic Concepts, Atomic Structure, Periodic Table, Chemical Bonding, States of Matter, Thermodynamics, Equilibrium, Electrochemistry, Kinetics, Organic Chemistry
-Mathematics: Sets, Functions, Trigonometry, Complex Numbers, Sequences, Calculus, Vectors, Probability, Matrices
-Biology: Cell Biology, Genetics, Human Physiology, Plant Biology, Ecology, Evolution`}
+CHAPTER MAPPING - CRITICAL: Map ONLY to these existing chapters from database:
+${subject ? `For ${subject}: ${dbChapters.filter(ch => ch.subject === subject).map(ch => ch.chapter_name).join(', ')}` : 
+  `Available chapters: ${dbChapters.map(ch => `${ch.subject}: ${ch.chapter_name}`).join('; ')}`}
 
 ${chapter ? `Chapter hint: ${chapter}` : ""}
 ${exam ? `Exam type: ${exam}` : "Exam: JEE/NEET"}
@@ -335,7 +366,7 @@ NOW EXTRACT ALL QUESTIONS - CHECK TWICE THAT YOU HAVEN'T MISSED ANY:`;
       }
     }
 
-    // Post-process questions: validate and enhance
+    // Post-process questions: validate, match to database, and enhance
     const processedQuestions = extractedQuestions.map((q, idx) => {
       // Validate required fields
       if (!q.question || !q.option_a || !q.option_b) {
@@ -343,9 +374,32 @@ NOW EXTRACT ALL QUESTIONS - CHECK TWICE THAT YOU HAVEN'T MISSED ANY:`;
         return null;
       }
       
-      // Map chapter to valid chapter
+      // Determine subject
       const finalSubject = q.subject || subject || "Physics";
-      const finalChapter = findBestChapter(q.chapter || chapter || "", finalSubject);
+      
+      // Match to existing chapter in database
+      const matchedChapter = findBestChapterMatch(
+        q.chapter || chapter || "", 
+        finalSubject, 
+        dbChapters
+      );
+      
+      if (!matchedChapter) {
+        console.warn(`Question ${idx + 1}: No matching chapter found for "${q.chapter}" in ${finalSubject}`);
+        return null; // Skip questions that don't match any existing chapter
+      }
+      
+      // Match to existing topic in database
+      const matchedTopic = findBestTopicMatch(
+        q.topic || "", 
+        matchedChapter.id, 
+        dbTopics
+      );
+      
+      if (!matchedTopic) {
+        console.warn(`Question ${idx + 1}: No matching topic found for "${q.topic}" in chapter "${matchedChapter.chapter_name}"`);
+        // Don't skip if no topic match - we'll use chapter only
+      }
       
       // Determine difficulty if not set or seems wrong
       const finalDifficulty = q.difficulty && ["Easy", "Medium", "Hard"].includes(q.difficulty) 
@@ -355,11 +409,14 @@ NOW EXTRACT ALL QUESTIONS - CHECK TWICE THAT YOU HAVEN'T MISSED ANY:`;
       return {
         ...q,
         subject: finalSubject,
-        chapter: finalChapter,
+        chapter: matchedChapter.chapter_name,
+        chapter_id: matchedChapter.id,
+        topic: matchedTopic?.topic_name || q.topic || matchedChapter.chapter_name,
+        topic_id: matchedTopic?.id || null,
         difficulty: finalDifficulty,
         exam: exam || "JEE"
       };
-    }).filter(Boolean) as ExtractedQuestion[];
+    }).filter(Boolean) as any[];
 
     console.log(`✅ Processed ${processedQuestions.length} questions from page ${pageNumber}`);
 
