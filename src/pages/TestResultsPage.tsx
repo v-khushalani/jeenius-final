@@ -267,51 +267,52 @@ Total Marks: ${testResult.totalQuestions * 4}`;
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Header />
-      <div className="pt-32 pb-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="pt-20 sm:pt-24 pb-4 sm:pb-8">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-4 sm:mb-6 md:mb-8">
             <Button
               variant="outline"
               onClick={() => navigate("/tests")}
-              className="mb-4 hover:bg-primary hover:text-white transition-all"
+              size="sm"
+              className="mb-3 sm:mb-4 hover:bg-primary hover:text-white transition-all text-xs sm:text-sm"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Tests
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              Back
             </Button>
 
             <div className="text-center">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-blue-600 to-indigo-700 bg-clip-text text-transparent mb-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary via-blue-600 to-indigo-700 bg-clip-text text-transparent mb-1 sm:mb-2">
                 Test Results 📊
               </h1>
-              <p className="text-muted-foreground">{testResult.testTitle}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{testResult.testTitle}</p>
             </div>
           </div>
 
           {/* Results Overview */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
             {/* Score Card - Main Focus */}
-            <Card className="bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white lg:col-span-2 border-0 shadow-2xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Trophy className="w-12 h-12 opacity-90" />
+            <Card className="bg-gradient-to-br from-primary via-blue-600 to-indigo-700 text-white sm:col-span-2 lg:col-span-2 border-0 shadow-xl">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <Trophy className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 opacity-90" />
                   <div className="text-right">
-                    <div className="text-sm opacity-75">Marking: +4 | -1</div>
+                    <div className="text-xs sm:text-sm opacity-75">Marking: +4 | -1</div>
                   </div>
                 </div>
-                <div className="text-center mb-4">
-                  <div className="text-4xl font-bold mb-2">
+                <div className="text-center mb-3 sm:mb-4">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2">
                     {stats?.earnedMarks} / {stats?.totalMarks}
                   </div>
-                  <div className="text-lg opacity-90">
+                  <div className="text-base sm:text-lg opacity-90">
                     Score: {stats?.scorePercentage}%
                   </div>
-                  <div className="text-sm opacity-75 mt-1">
+                  <div className="text-xs sm:text-sm opacity-75 mt-1">
                     Accuracy: {testResult.percentage}%
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="inline-block px-4 py-2 rounded-full text-sm font-medium bg-white/20">
+                  <div className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-white/20">
                     {performance.label}
                   </div>
                 </div>
@@ -320,12 +321,12 @@ Total Marks: ${testResult.totalQuestions * 4}`;
 
             {/* Correct Answers */}
             <Card className="border-2 border-green-200 bg-green-50/50 hover:shadow-lg transition-all">
-              <CardContent className="p-6 text-center">
-                <CheckCircle className="w-10 h-10 mx-auto mb-3 text-green-600" />
-                <div className="text-2xl font-bold mb-1 text-green-700">
+              <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 mx-auto mb-2 sm:mb-3 text-green-600" />
+                <div className="text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 text-green-700">
                   {stats?.correctAnswers}
                 </div>
-                <div className="text-sm text-muted-foreground mb-1">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">
                   Correct
                 </div>
                 <div className="text-xs text-green-700 font-medium">
@@ -336,12 +337,12 @@ Total Marks: ${testResult.totalQuestions * 4}`;
 
             {/* Incorrect Answers */}
             <Card className="border-2 border-red-200 bg-red-50/50 hover:shadow-lg transition-all">
-              <CardContent className="p-6 text-center">
-                <XCircle className="w-10 h-10 mx-auto mb-3 text-red-600" />
-                <div className="text-2xl font-bold mb-1 text-red-700">
+              <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+                <XCircle className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 mx-auto mb-2 sm:mb-3 text-red-600" />
+                <div className="text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 text-red-700">
                   {stats?.incorrectAnswers}
                 </div>
-                <div className="text-sm text-muted-foreground mb-1">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">
                   Incorrect
                 </div>
                 <div className="text-xs text-red-700 font-medium">
@@ -352,12 +353,12 @@ Total Marks: ${testResult.totalQuestions * 4}`;
 
             {/* Time Taken */}
             <Card className="border-2 border-blue-200 bg-blue-50/50 hover:shadow-lg transition-all">
-              <CardContent className="p-6 text-center">
-                <Clock className="w-10 h-10 mx-auto mb-3 text-blue-600" />
-                <div className="text-2xl font-bold mb-1 text-blue-700">
+              <CardContent className="p-3 sm:p-4 md:p-6 text-center">
+                <Clock className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 mx-auto mb-2 sm:mb-3 text-blue-600" />
+                <div className="text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 text-blue-700">
                   {formatTime(testResult.timeSpent)}
                 </div>
-                <div className="text-sm text-muted-foreground mb-1">
+                <div className="text-xs sm:text-sm text-muted-foreground mb-0.5 sm:mb-1">
                   Time Taken
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -367,7 +368,7 @@ Total Marks: ${testResult.totalQuestions * 4}`;
             </Card>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {/* Performance Analysis */}
             <div className="lg:col-span-2 space-y-6">
               {/* Performance Breakdown */}

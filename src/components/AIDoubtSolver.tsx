@@ -223,36 +223,36 @@ Student's doubt: "${userMsg.content}". Answer in Hinglish within 5-7 lines.`;
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#F6F9FF]/90 backdrop-blur-md z-50 flex items-center justify-center p-3">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden border border-[#E3E8FF] relative">
+    <div className="fixed inset-0 bg-[#F6F9FF]/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-3">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#E3E8FF] relative">
         {/* Floating JEEnie Icon */}
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gradient-to-br from-[#4C6FFF] to-[#013062] p-3 rounded-full shadow-lg animate-bounce">
-          <Wand2 className="text-white w-6 h-6" />
+        <div className="absolute -top-6 sm:-top-8 left-1/2 -translate-x-1/2 bg-gradient-to-br from-[#4C6FFF] to-[#013062] p-2 sm:p-3 rounded-full shadow-lg animate-bounce">
+          <Wand2 className="text-white w-5 h-5 sm:w-6 sm:h-6" />
         </div>
 
         {/* Header */}
-        <div className="p-4 border-b border-[#E3E8FF] bg-gradient-to-r from-[#F8FAFF] to-[#EEF3FF] rounded-t-2xl flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Bot className="text-[#4C6FFF]" size={22} />
+        <div className="p-3 sm:p-4 border-b border-[#E3E8FF] bg-gradient-to-r from-[#F8FAFF] to-[#EEF3FF] rounded-t-xl sm:rounded-t-2xl flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Bot className="text-[#4C6FFF]" size={18} />
             <div>
-              <h3 className="font-bold text-[#013062] text-lg tracking-wide">
+              <h3 className="font-bold text-[#013062] text-sm sm:text-base md:text-lg tracking-wide">
                 JEEnie — AI Doubt Solver
               </h3>
-              <p className="text-xs text-[#4C6FFF]/70 font-medium">
+              <p className="text-xs text-[#4C6FFF]/70 font-medium hidden sm:block">
                 Smart • Motivating • Fast
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[#013062]/70 hover:text-[#013062] hover:bg-[#E8EDFF] p-2 rounded-lg transition-all"
+            className="text-[#013062]/70 hover:text-[#013062] hover:bg-[#E8EDFF] p-1.5 sm:p-2 rounded-lg transition-all"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Chat Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F6F9FF] text-[#013062]">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-[#F6F9FF] text-[#013062]">
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -261,27 +261,27 @@ Student's doubt: "${userMsg.content}". Answer in Hinglish within 5-7 lines.`;
               }`}
             >
               {msg.role === "assistant" && (
-                <div className="bg-[#E8EDFF] p-2 rounded-full mr-2">
-                  <Bot className="text-[#4C6FFF]" size={16} />
+                <div className="bg-[#E8EDFF] p-1.5 sm:p-2 rounded-full mr-1.5 sm:mr-2 flex-shrink-0">
+                  <Bot className="text-[#4C6FFF]" size={14} />
                 </div>
               )}
               <div
-                className={`max-w-[80%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                className={`max-w-[85%] sm:max-w-[80%] p-2.5 sm:p-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm ${
                   msg.role === "user"
                     ? "bg-gradient-to-r from-[#4C6FFF] to-[#013062] text-white rounded-br-sm"
                     : "bg-white border border-[#E0E7FF] text-[#013062] rounded-bl-sm"
                 }`}
               >
                 <div
-                  className="text-[14px]"
+                  className="text-xs sm:text-sm"
                   dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(msg.content),
                   }}
                 />
               </div>
               {msg.role === "user" && (
-                <div className="bg-[#E8EDFF] p-2 rounded-full ml-2">
-                  <User className="text-[#013062]" size={16} />
+                <div className="bg-[#E8EDFF] p-1.5 sm:p-2 rounded-full ml-1.5 sm:ml-2 flex-shrink-0">
+                  <User className="text-[#013062]" size={14} />
                 </div>
               )}
             </div>
@@ -311,28 +311,28 @@ Student's doubt: "${userMsg.content}". Answer in Hinglish within 5-7 lines.`;
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-[#E3E8FF] bg-[#F8FAFF]">
-          <div className="flex gap-2">
+        <div className="p-2.5 sm:p-3 border-t border-[#E3E8FF] bg-[#F8FAFF]">
+          <div className="flex gap-1.5 sm:gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your doubt... 💭"
               onKeyPress={handleKeyPress}
-              className="flex-1 px-4 py-3 bg-white border border-[#DDE5FF] rounded-xl text-[#013062] placeholder:text-[#4C6FFF]/60 focus:ring-2 focus:ring-[#4C6FFF] outline-none text-sm transition-all"
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-white border border-[#DDE5FF] rounded-lg sm:rounded-xl text-[#013062] placeholder:text-[#4C6FFF]/60 focus:ring-2 focus:ring-[#4C6FFF] outline-none text-xs sm:text-sm transition-all"
             />
             <Button
               onClick={handleSendMessage}
               disabled={loading || !input.trim()}
-              className="bg-gradient-to-r from-[#4C6FFF] to-[#013062] hover:opacity-90 text-white px-6 rounded-xl transition-all shadow-md"
+              className="bg-gradient-to-r from-[#4C6FFF] to-[#013062] hover:opacity-90 text-white px-3 sm:px-6 rounded-lg sm:rounded-xl transition-all shadow-md h-auto"
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={18} />
+                <Loader2 className="animate-spin" size={16} />
               ) : (
-                <Send size={18} />
+                <Send size={16} />
               )}
             </Button>
           </div>
-          <p className="text-center text-[11px] text-[#4C6FFF]/70 mt-2">
+          <p className="text-center text-[10px] sm:text-[11px] text-[#4C6FFF]/70 mt-1.5 sm:mt-2">
             💎 Powered by <strong>JEEnius AI</strong> — Learn Smarter
           </p>
         </div>
