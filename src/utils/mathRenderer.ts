@@ -54,21 +54,38 @@ export function renderMathText(text: string): string {
   processed = processed.replace(/!=/g, '≠');
   processed = processed.replace(/~=/g, '≈');
   
-  // Convert Greek letters
-  processed = processed.replace(/\balpha\b/gi, 'α');
-  processed = processed.replace(/\bbeta\b/gi, 'β');
-  processed = processed.replace(/\bgamma\b/gi, 'γ');
-  processed = processed.replace(/\bdelta\b/gi, 'δ');
-  processed = processed.replace(/\btheta\b/gi, 'θ');
-  processed = processed.replace(/\blambda\b/gi, 'λ');
-  processed = processed.replace(/\bmu\b/gi, 'μ');
-  processed = processed.replace(/\bpi\b/gi, 'π');
-  processed = processed.replace(/\bsigma\b/gi, 'σ');
-  processed = processed.replace(/\bomega\b/gi, 'ω');
-  processed = processed.replace(/\bphi\b/gi, 'φ');
-  processed = processed.replace(/\bpsi\b/gi, 'ψ');
-  processed = processed.replace(/\brho\b/gi, 'ρ');
-  processed = processed.replace(/\bepsilon\b/gi, 'ε');
+  // Convert Greek letters (only if not in LaTeX context)
+  if (!text.includes('$')) {
+    processed = processed.replace(/\balpha\b/gi, 'α');
+    processed = processed.replace(/\bbeta\b/gi, 'β');
+    processed = processed.replace(/\bgamma\b/gi, 'γ');
+    processed = processed.replace(/\bdelta\b/gi, 'δ');
+    processed = processed.replace(/\bDelta\b/g, 'Δ');
+    processed = processed.replace(/\btheta\b/gi, 'θ');
+    processed = processed.replace(/\bTheta\b/g, 'Θ');
+    processed = processed.replace(/\blambda\b/gi, 'λ');
+    processed = processed.replace(/\bLambda\b/g, 'Λ');
+    processed = processed.replace(/\bmu\b/gi, 'μ');
+    processed = processed.replace(/\bpi\b/gi, 'π');
+    processed = processed.replace(/\bPi\b/g, 'Π');
+    processed = processed.replace(/\bsigma\b/gi, 'σ');
+    processed = processed.replace(/\bSigma\b/g, 'Σ');
+    processed = processed.replace(/\bomega\b/gi, 'ω');
+    processed = processed.replace(/\bOmega\b/g, 'Ω');
+    processed = processed.replace(/\bphi\b/gi, 'φ');
+    processed = processed.replace(/\bPhi\b/g, 'Φ');
+    processed = processed.replace(/\bpsi\b/gi, 'ψ');
+    processed = processed.replace(/\bPsi\b/g, 'Ψ');
+    processed = processed.replace(/\brho\b/gi, 'ρ');
+    processed = processed.replace(/\bepsilon\b/gi, 'ε');
+    processed = processed.replace(/\btau\b/gi, 'τ');
+    processed = processed.replace(/\bxi\b/gi, 'ξ');
+    processed = processed.replace(/\bzeta\b/gi, 'ζ');
+    processed = processed.replace(/\beta\b/gi, 'η');
+    processed = processed.replace(/\bkappa\b/gi, 'κ');
+    processed = processed.replace(/\bnu\b/gi, 'ν');
+    processed = processed.replace(/\bchi\b/gi, 'χ');
+  }
   
   // Convert common math symbols
   processed = processed.replace(/\bsqrt\b/g, '√');
@@ -101,37 +118,51 @@ export function renderMathText(text: string): string {
 export function renderLatex(text: string): string {
   if (!text) return '';
   
-  // First apply basic text conversions
-  let processed = renderMathText(text);
+  let processed = text;
   
   try {
-    // Render display math $$...$$
-    processed = processed.replace(/\$\$(.*?)\$\$/g, (_, latex) => {
+    // Render display math $$...$$ first (to avoid conflicts with inline math)
+    processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, latex) => {
       try {
-        return katex.renderToString(latex, { 
+        const cleaned = latex.trim();
+        return katex.renderToString(cleaned, { 
           displayMode: true,
           throwOnError: false,
-          output: 'html'
+          output: 'html',
+          strict: false,
+          trust: true
         });
-      } catch {
-        return `$$${latex}$$`;
+      } catch (e) {
+        console.warn('Display math rendering failed:', e);
+        return match;
       }
     });
     
     // Render inline math $...$
-    processed = processed.replace(/\$(.*?)\$/g, (_, latex) => {
+    processed = processed.replace(/\$([^\$]+?)\$/g, (match, latex) => {
       try {
-        return katex.renderToString(latex, { 
+        const cleaned = latex.trim();
+        return katex.renderToString(cleaned, { 
           displayMode: false,
           throwOnError: false,
-          output: 'html'
+          output: 'html',
+          strict: false,
+          trust: true
         });
-      } catch {
-        return `$${latex}$`;
+      } catch (e) {
+        console.warn('Inline math rendering failed:', e);
+        return match;
       }
     });
+    
+    // Apply basic text conversions only to non-LaTeX parts
+    if (!processed.includes('<span class="katex">')) {
+      processed = renderMathText(processed);
+    }
   } catch (error) {
     console.error('LaTeX rendering error:', error);
+    // Fallback to basic text rendering
+    processed = renderMathText(text);
   }
   
   return processed;
