@@ -226,17 +226,31 @@ CRITICAL INSTRUCTIONS:
 4. Even if a question seems incomplete or cut off, extract what's visible
 5. Pay attention to sub-questions (parts a, b, c of a main question) - each should be a separate entry
 
-MATHEMATICAL NOTATION - CRITICAL:
-- Use LaTeX format: wrap inline math in $...$ and display math in $$...$$
-- Subscripts: H$_2$O, CO$_2$, x$_1$, v$_0$
-- Superscripts: x$^2$, 10$^{-3}$, m/s$^2$
-- Fractions: $\\frac{a}{b}$
-- Greek: $\\alpha$, $\\beta$, $\\theta$, $\\omega$, $\\lambda$, $\\mu$
-- Square root: $\\sqrt{x}$
-- Integrals: $\\int$, $\\oint$
-- Summation: $\\sum$
-- Vectors: $\\vec{v}$
-- Special: $\\times$, $\\div$, $\\pm$, $\\infty$, $\\rightarrow$
+MATHEMATICAL NOTATION - CRITICAL (ALWAYS USE LATEX):
+- ALWAYS wrap ALL math expressions in $...$ for inline or $$...$$ for display math
+- Subscripts: H$_2$O, CO$_2$, x$_1$, v$_0$, a$_n$
+- Superscripts: x$^2$, 10$^{-3}$, m/s$^2$, e$^{-x}$
+- Fractions: $\\frac{numerator}{denominator}$ (NEVER use / for fractions in math)
+- Square root: $\\sqrt{x}$, $\\sqrt[n]{x}$ for nth root
+- Limits: $\\lim_{x \\to a}$, $\\lim_{x \\to \\infty}$, $\\lim_{n \\to 0}$ (ALWAYS use \\to for arrows)
+- Integrals: $\\int$, $\\oint$, $\\int_{a}^{b}$, $\\iint$, $\\iiint$
+- Summation: $\\sum$, $\\sum_{i=1}^{n}$, $\\prod_{i=1}^{n}$
+- Vectors: $\\vec{v}$, $\\vec{F}$, $\\overrightarrow{AB}$
+- Greek letters (ALWAYS in LaTeX): $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\Delta$, $\\epsilon$, $\\theta$, $\\Theta$, $\\lambda$, $\\Lambda$, $\\mu$, $\\pi$, $\\Pi$, $\\sigma$, $\\Sigma$, $\\omega$, $\\Omega$, $\\phi$, $\\Phi$, $\\psi$, $\\Psi$, $\\rho$, $\\tau$, $\\xi$, $\\zeta$, $\\eta$, $\\kappa$, $\\nu$, $\\chi$
+- Operators: $\\times$, $\\div$, $\\pm$, $\\mp$, $\\cdot$, $\\ast$
+- Relations: $\\leq$, $\\geq$, $\\neq$, $\\approx$, $\\equiv$, $\\propto$, $\\sim$
+- Arrows: $\\rightarrow$, $\\leftarrow$, $\\leftrightarrow$, $\\Rightarrow$, $\\Leftarrow$, $\\to$ (for limits)
+- Special: $\\infty$, $\\partial$, $\\nabla$, $\\angle$, $\\degree$, $\\circ$
+- Trigonometry: $\\sin$, $\\cos$, $\\tan$, $\\sec$, $\\csc$, $\\cot$
+- Logarithms: $\\log$, $\\ln$, $\\log_{10}$
+- Chemistry: Use subscripts/superscripts: H$_2$O, CO$_2$, OH$^-$, Fe$^{3+}$
+- Complex expressions: $\\frac{d}{dx}$, $\\frac{\\partial f}{\\partial x}$, $\\int_{0}^{\\infty} e^{-x} dx$
+
+EXAMPLES OF PERFECT FORMATTING:
+- "Find $\\lim_{x \\to 0} \\frac{\\sin x}{x}$" (NOT "lim x->0 sin(x)/x")
+- "If $\\alpha$ and $\\beta$ are roots..." (NOT "If alpha and beta are roots...")
+- "The value of $\\sum_{n=1}^{\\infty} \\frac{1}{n^2}$" (NOT "sum from n=1 to infinity of 1/n^2")
+- "Calculate $\\int_{0}^{\\pi} \\sin(x) dx$" (NOT "integral from 0 to pi of sin(x) dx")
 
 SUBJECT DETECTION:
 ${subject ? `Confirmed subject: ${subject}` : `Detect from content:
