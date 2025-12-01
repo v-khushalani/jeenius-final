@@ -17,7 +17,9 @@ import {
   ChevronRight,
   Sparkles,
   Upload,
-  ClipboardCheck
+  ClipboardCheck,
+  Menu,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
@@ -44,7 +46,7 @@ interface QuickStat {
 const AdminDashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const getActiveContent = () => {
     if (location.pathname === '/admin/analytics') {
@@ -107,15 +109,36 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-40 flex flex-col">
+      <aside className={cn(
+        "fixed left-0 top-0 h-full w-64 bg-card border-r border-border z-40 flex flex-col transition-transform duration-300",
+        "lg:translate-x-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         {/* Logo Section */}
-        <div className="h-16 flex items-center px-6 border-b border-border">
-          <Shield className="h-6 w-6 text-primary mr-3" />
-          <div>
-            <h2 className="font-bold text-foreground text-lg">JEEnius Admin</h2>
-            <p className="text-xs text-muted-foreground">Control Center</p>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border">
+          <div className="flex items-center">
+            <Shield className="h-6 w-6 text-primary mr-3" />
+            <div>
+              <h2 className="font-bold text-foreground text-lg">JEEnius Admin</h2>
+              <p className="text-xs text-muted-foreground">Control Center</p>
+            </div>
           </div>
+          {/* Close button for mobile */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-accent rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -127,7 +150,10 @@ const AdminDashboard = () => {
             return (
               <button
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200",
                   isActive
@@ -156,23 +182,32 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 min-h-screen">
+      <main className="lg:ml-64 min-h-screen">
         {/* Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 sticky top-0 z-30">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{pageInfo.title}</h1>
-            <p className="text-sm text-muted-foreground">{pageInfo.subtitle}</p>
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            {/* Hamburger Menu - Mobile Only */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 hover:bg-accent rounded-lg"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground">{pageInfo.title}</h1>
+              <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">{pageInfo.subtitle}</p>
+            </div>
           </div>
           <button 
             onClick={() => navigate('/dashboard')}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs lg:text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Exit Admin →
           </button>
         </header>
 
         {/* Content Area */}
-        <div className="p-8">
+        <div className="p-4 lg:p-8">
           {getActiveContent()}
         </div>
       </main>
