@@ -249,6 +249,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/admin/topics"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
                   path="/admin/exam-config"
                   element={
                     <AdminRoute>
