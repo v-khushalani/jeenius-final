@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
 import { UserManagement } from '@/components/admin/UserManagement';
 import ChapterManager from '@/components/admin/ChapterManager';
+import TopicManager from '@/components/admin/TopicManager';
 import ExamDateManager from '@/components/admin/ExamDateManager';
 import { QuestionManager } from '@/components/admin/QuestionManager';
 import { NotificationManager } from '@/components/admin/NotificationManager';
@@ -56,6 +57,8 @@ const AdminDashboard = () => {
       return <NotificationManager />;
     } else if (location.pathname === '/admin/content') {
       return <ChapterManager />;
+    } else if (location.pathname === '/admin/topics') {
+      return <TopicManager />;
     } else if (location.pathname === '/admin/exam-config') {
       return <ExamDateManager />;
     } else if (location.pathname === '/admin/questions') {
@@ -77,6 +80,7 @@ const AdminDashboard = () => {
       '/admin/reports': { title: 'Reports', subtitle: 'Export & Analysis' },
       '/admin/notifications': { title: 'Notifications', subtitle: 'Send Announcements' },
       '/admin/content': { title: 'Chapters', subtitle: 'Content Management' },
+      '/admin/topics': { title: 'Topics', subtitle: 'Topic Management' },
       '/admin/exam-config': { title: 'Exam Dates', subtitle: 'Configure Exam Schedule' },
       '/admin/questions': { title: 'Questions', subtitle: 'Question Bank Management' },
       '/admin/pdf-extract': { title: 'PDF Extractor', subtitle: 'Extract Questions from PDFs' },
@@ -92,6 +96,7 @@ const AdminDashboard = () => {
     { path: '/admin/pdf-extract', label: 'PDF Extractor', icon: Upload, color: 'text-emerald-600' },
     { path: '/admin/review-queue', label: 'Review Queue', icon: ClipboardCheck, color: 'text-teal-600' },
     { path: '/admin/content', label: 'Chapters', icon: BookOpen, color: 'text-orange-600' },
+    { path: '/admin/topics', label: 'Topics', icon: Sparkles, color: 'text-violet-600' },
     { path: '/admin/analytics', label: 'Analytics', icon: TrendingUp, color: 'text-cyan-600' },
     { path: '/admin/reports', label: 'Reports', icon: FileText, color: 'text-indigo-600' },
     { path: '/admin/notifications', label: 'Notifications', icon: Bell, color: 'text-pink-600' },
