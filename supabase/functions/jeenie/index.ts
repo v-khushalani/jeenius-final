@@ -15,8 +15,9 @@ serve(async (req) => {
     console.log("📝 JEEnie request received at:", new Date().toISOString());
     
     // Parse request body
-    const { contextPrompt } = await req.json();
+    const { contextPrompt, conversationHistory } = await req.json();
     console.log("📥 Prompt length:", contextPrompt?.length || 0);
+    console.log("📜 Conversation history:", conversationHistory ? "Yes" : "No");
     
     if (!contextPrompt) {
       console.error("❌ No contextPrompt provided");
@@ -77,7 +78,12 @@ FORMAT for explanations:
 
 NEVER give long paragraphs. Be the cool mentor who gets to the point fast.`;
 
-    const fullPrompt = `${systemPrompt}\n\nContext:\n${contextPrompt}\n\nAb answer do:`;
+    // Include conversation history for context memory
+    const historyContext = conversationHistory 
+      ? `\n\nPrevious conversation (for context, remember what was discussed):\n${conversationHistory}\n\n`
+      : "";
+    
+    const fullPrompt = `${systemPrompt}${historyContext}\n\nCurrent question/doubt:\n${contextPrompt}\n\nAb answer do (remember previous context if any):`;
 
     // Call Gemini API with retry logic - using Gemini 2.5 Flash
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;

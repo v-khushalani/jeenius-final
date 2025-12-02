@@ -100,12 +100,46 @@ ${question.option_d ? `**D)** ${question.option_d}` : ""}
     audio.play().catch(() => {});
   };
 
+  // Quick reply options
+  const quickReplies = [
+    { label: "📖 Explain more", message: "Isko thoda aur detail mein samjhao" },
+    { label: "📝 Give example", message: "Ek example de do iska" },
+    { label: "📐 Show formula", message: "Formula dikhao iska" },
+    { label: "🔄 Step by step", message: "Step by step solve karo" },
+  ];
+
+  const handleQuickReply = (message: string) => {
+    setInput(message);
+    // Auto-send after setting
+    setTimeout(() => {
+      const fakeEvent = { key: "Enter", shiftKey: false, preventDefault: () => {} } as React.KeyboardEvent<HTMLInputElement>;
+      handleKeyPress(fakeEvent);
+    }, 100);
+  };
+
+  // Build conversation history for context
+  const buildConversationHistory = (currentMessages: Message[]): string => {
+    // Get last 6 messages for context (3 exchanges)
+    const recentMessages = currentMessages.slice(-6);
+    if (recentMessages.length === 0) return "";
+    
+    return recentMessages.map(msg => {
+      const role = msg.role === "user" ? "Student" : "JEEnie";
+      // Strip HTML tags for clean history
+      const cleanContent = msg.content.replace(/<[^>]*>/g, '').substring(0, 300);
+      return `${role}: ${cleanContent}`;
+    }).join("\n");
+  };
+
   // ✅ Supabase Edge Function call with improved error handling
-  const callEdgeFunction = async (prompt: string): Promise<string> => {
+  const callEdgeFunction = async (prompt: string, conversationHistory: string): Promise<string> => {
     try {
-      console.log("🚀 Calling JEEnie edge function...");
+      console.log("🚀 Calling JEEnie edge function with history...");
       const response = await supabase.functions.invoke("jeenie", {
-        body: { contextPrompt: prompt },
+        body: { 
+          contextPrompt: prompt,
+          conversationHistory: conversationHistory 
+        },
       });
       
       console.log("📥 Response received:", response);
@@ -186,14 +220,18 @@ ${question.option_d ? `**D)** ${question.option_d}` : ""}
     try {
       const isGeneral =
         !question?.option_a || question?.question?.includes("koi bhi");
+      
+      // Build conversation history from previous messages
+      const history = buildConversationHistory(messages);
+      
       const prompt = isGeneral
-        ? `Student's doubt: "${userMsg.content}". Give direct, on-point answer. No unnecessary elaboration.`
+        ? `Student's current doubt: "${userMsg.content}". Give direct, on-point answer. No unnecessary elaboration.`
         : `Question: ${question.question}
 Options: A) ${question.option_a}, B) ${question.option_b}, C) ${question.option_c}, D) ${question.option_d}
-Student's doubt: "${userMsg.content}". Give direct solution, explain only what's needed.`;
+Student's current doubt: "${userMsg.content}". Give direct solution, explain only what's needed.`;
 
       setTyping(true);
-      const aiResponse = await callEdgeFunction(prompt);
+      const aiResponse = await callEdgeFunction(prompt, history);
       const formatted = cleanAndFormatJeenieText(aiResponse);
       playSound("receive");
       setMessages((prev) => [...prev, { role: "assistant", content: formatted }]);
@@ -291,6 +329,21 @@ Student's doubt: "${userMsg.content}". Give direct solution, explain only what's
               )}
             </div>
           ))}
+
+          {/* Quick Reply Buttons - Show after assistant messages */}
+          {messages.length > 1 && messages[messages.length - 1]?.role === "assistant" && !typing && !loading && (
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center mt-2">
+              {quickReplies.map((reply, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleQuickReply(reply.message)}
+                  className="px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs bg-white border border-[#DDE5FF] text-[#013062] rounded-full hover:bg-[#e6eeff] hover:border-[#4C6FFF] transition-all shadow-sm font-medium"
+                >
+                  {reply.label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Typing Animation */}
           {typing && (
