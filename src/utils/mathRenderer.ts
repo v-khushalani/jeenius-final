@@ -113,38 +113,27 @@ export function renderMathText(text: string): string {
 }
 
 /**
- * Wraps raw LaTeX commands with $ delimiters for inline segments
- * Handles mixed text with LaTeX commands
+ * Wraps raw LaTeX commands with $ delimiters
+ * Handles text that contains LaTeX without proper delimiters
  */
 function wrapRawLatex(text: string): string {
   if (!text) return '';
   
-  // If already has $ delimiters everywhere, return as is
-  if (/\$[^\$]+\$/.test(text)) return text;
+  // If already has $ delimiters, return as is
+  if (/\$/.test(text)) return text;
   
-  // Pattern to match common LaTeX commands that should be wrapped
-  const latexCommandPattern = /(\\(?:frac|lim|sum|int|sqrt|max|min|prod|begin|end|left|right|times|div|pm|neq|leq|geq|alpha|beta|gamma|delta|theta|lambda|infty|cdot|to|rightarrow|leftarrow)\b[^a-zA-Z])/g;
+  // Check if the entire text appears to be a LaTeX expression
+  const hasLatexCommands = /\\(begin|end|frac|lim|sum|int|sqrt|max|min|prod|left|right|times|div|pm|neq|leq|geq|alpha|beta|gamma|delta|theta|lambda|infty|cdot|to|rightarrow|leftarrow|sigma|pi|mu|omega|phi|psi|epsilon|eta|rho|tau|xi|zeta|kappa|nu|chi|Delta|Sigma|Pi|Omega|Phi|Psi|Theta|Lambda|vec|bar|hat|tilde|dot|ddot|overline|underline|overbrace|underbrace|text|mathrm|mathbf|mathit|mathbb|mathcal|binom|choose|cases|matrix|pmatrix|bmatrix|vmatrix|array|aligned|gathered|split|substack|limits|nolimits|displaystyle|textstyle|scriptstyle|scriptscriptstyle)/.test(text);
   
-  // Check if text contains LaTeX commands
-  if (latexCommandPattern.test(text)) {
-    // For now, just wrap inline LaTeX segments
-    // This is a simple approach - wrap any segment with backslash commands
-    let processed = text;
+  if (hasLatexCommands) {
+    // Check if it's a display math expression (multi-line, complex)
+    const isDisplay = /\\begin\{|\\end\{|\\\\|\\newline/.test(text);
     
-    // Find and wrap \frac{...}{...} patterns
-    processed = processed.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$\\frac{$1}{$2}$');
-    
-    // Find and wrap \lim_{...} patterns  
-    processed = processed.replace(/\\lim_\{([^}]+)\}/g, '$\\lim_{$1}$');
-    
-    // Find and wrap other common patterns
-    processed = processed.replace(/\\(sqrt|sum|int|max|min|prod)\{([^}]+)\}/g, '$\\$1{$2}$');
-    processed = processed.replace(/\\(sqrt|sum|int|max|min|prod)_\{([^}]+)\}/g, '$\\$1_{$2}$');
-    
-    // Wrap \left...\right pairs
-    processed = processed.replace(/\\left([(\[\{])([^\\]+)\\right([)\]\}])/g, '$\\left$1$2\\right$3$');
-    
-    return processed;
+    if (isDisplay) {
+      return `$$${text}$$`;
+    } else {
+      return `$${text}$`;
+    }
   }
   
   return text;
@@ -157,7 +146,8 @@ function wrapRawLatex(text: string): string {
 export function renderLatex(text: string): string {
   if (!text) return '';
   
-  let processed = text;
+  // First wrap any raw LaTeX commands with $ delimiters
+  let processed = wrapRawLatex(text);
   
   try {
     // Render display math $$...$$ first (to avoid conflicts with inline math)
