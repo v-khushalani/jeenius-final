@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { renderMathText, renderLatex, containsLatex } from '@/utils/mathRenderer';
+import { renderLatex, containsLatex, renderMathText } from '@/utils/mathRenderer';
 import 'katex/dist/katex.min.css';
 
 interface MathDisplayProps {
@@ -10,12 +10,13 @@ interface MathDisplayProps {
 
 /**
  * Component to render text with proper math/chemistry formatting
+ * Uses KaTeX for LaTeX rendering
  */
 export function MathDisplay({ text, className = '', block = false }: MathDisplayProps) {
   const renderedContent = useMemo(() => {
     if (!text) return '';
     
-    // Check if text has LaTeX delimiters
+    // Always try to render LaTeX if it looks like it has any
     if (containsLatex(text)) {
       return renderLatex(text);
     }
