@@ -113,12 +113,51 @@ export function renderMathText(text: string): string {
 }
 
 /**
+ * Wraps raw LaTeX commands with $ delimiters
+ */
+function wrapRawLatex(text: string): string {
+  if (!text) return '';
+  
+  // If already has $ delimiters, return as is
+  if (/\$/.test(text)) return text;
+  
+  // Check if the entire text is a LaTeX expression
+  const latexPatterns = [
+    /\\begin\{[\w*]+\}/,
+    /\\frac\{/,
+    /\\lim_\{[^}]+\}/,
+    /\\sqrt\[?\d*\]?\{/,
+    /\\(sum|int|max|min|prod)_/,
+    /\\left[\(\[\{]/,
+  ];
+  
+  const hasLatexStart = latexPatterns.some(pattern => pattern.test(text));
+  
+  if (hasLatexStart) {
+    // Wrap the entire text in $...$ for inline or $$...$$ for display
+    const isDisplay = text.includes('\\begin{') || text.includes('\\frac{') || 
+                     text.includes('\\lim_') || text.includes('\\sum_') || 
+                     text.includes('\\int_');
+    
+    if (isDisplay) {
+      return `$$${text}$$`;
+    } else {
+      return `$${text}$`;
+    }
+  }
+  
+  return text;
+}
+
+/**
  * Renders LaTeX math expressions within $...$ or $$...$$ delimiters
+ * Also handles raw LaTeX by auto-wrapping it
  */
 export function renderLatex(text: string): string {
   if (!text) return '';
   
-  let processed = text;
+  // First, wrap any raw LaTeX
+  let processed = wrapRawLatex(text);
   
   try {
     // Render display math $$...$$ first (to avoid conflicts with inline math)
@@ -169,8 +208,22 @@ export function renderLatex(text: string): string {
 }
 
 /**
- * Check if text contains LaTeX delimiters
+ * Check if text contains LaTeX delimiters or raw LaTeX commands
  */
 export function containsLatex(text: string): boolean {
-  return /\$.*?\$/.test(text) || /\$\$.*?\$\$/.test(text);
+  // Check for $ delimiters
+  if (/\$.*?\$/.test(text) || /\$\$.*?\$\$/.test(text)) {
+    return true;
+  }
+  
+  // Check for common LaTeX commands that indicate raw LaTeX
+  const latexCommands = [
+    '\\begin{', '\\end{', '\\frac{', '\\sqrt{', '\\lim_', '\\lim{',
+    '\\sum_', '\\int_', '\\max\\', '\\min\\', '\\left', '\\right',
+    '\\times', '\\div', '\\pm', '\\neq', '\\leq', '\\geq',
+    '\\alpha', '\\beta', '\\gamma', '\\delta', '\\theta', '\\lambda',
+    '\\infty', '\\cdot', '\\to', '\\rightarrow', '\\leftarrow'
+  ];
+  
+  return latexCommands.some(cmd => text.includes(cmd));
 }
