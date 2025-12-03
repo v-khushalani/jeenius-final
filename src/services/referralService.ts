@@ -1,6 +1,6 @@
 // src/services/referralService.ts
 import { supabase } from '@/integrations/supabase/client';
-import { REFERRAL_CONFIG } from '@/config/subscriptionPlans';
+const REFERRAL_MAX_REWARDS = 4; // Max 4 referrals = 1 month free
 import UserLimitsService from './userLimitsService';
 
 export class ReferralService {
@@ -91,7 +91,7 @@ export class ReferralService {
         .eq('referrer_id', referrerId)
         .eq('reward_granted', true);
 
-      if (count && count >= REFERRAL_CONFIG.maxRewards) {
+      if (count && count >= REFERRAL_MAX_REWARDS) {
         console.log('Max referral rewards reached');
         return false;
       }

@@ -155,8 +155,8 @@ export const shouldShowUpgradePrompt = (
 export const REFERRAL_CONFIG = {
   enabled: true,
   rewardDays: 7,
-  maxRewards: 12, // Max 12 weeks (3 months) from referrals
-  message: '🎁 Refer a friend → Get 1 week Pro FREE!'
+  maxRewards: 4, // Max 4 referrals = 1 month free
+  message: 'Refer 4 friends & get 1 month FREE Pro!'
 };
 
 // Trial Config
