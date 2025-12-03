@@ -23,7 +23,7 @@ const MobileNavigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-1 safe-area-pb z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-[#e9e9e9] px-2 py-1 safe-area-pb z-50">
       <div className="flex items-center justify-around max-w-md mx-auto">
         {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;
@@ -31,18 +31,18 @@ const MobileNavigation = () => {
             <button
               key={index}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center space-y-1 p-2 rounded-lg transition-all duration-200 min-w-0 flex-1 ${
+              className={`flex flex-col items-center space-y-1 p-2 rounded-xl transition-all duration-200 min-w-0 flex-1 ${
                 isActive 
-                  ? 'text-primary bg-primary/10 transform scale-105' 
-                  : 'text-gray-600 hover:text-primary hover:bg-gray-50'
+                  ? 'text-[#013062] bg-[#e6eeff]' 
+                  : 'text-[#013062]/60 hover:text-[#013062] hover:bg-[#e6eeff]/50'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${isActive ? 'text-primary' : ''}`} />
-              <span className={`text-xs font-medium truncate ${isActive ? 'text-primary font-semibold' : ''}`}>
+              <item.icon className={`w-5 h-5 ${isActive ? 'text-[#013062]' : ''}`} />
+              <span className={`text-xs font-medium truncate ${isActive ? 'text-[#013062] font-semibold' : ''}`}>
                 {item.label}
               </span>
               {isActive && (
-                <div className="w-1 h-1 bg-primary rounded-full"></div>
+                <div className="w-1 h-1 bg-[#013062] rounded-full"></div>
               )}
             </button>
           );

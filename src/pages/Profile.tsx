@@ -139,13 +139,16 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#e9e9e9' }}>
+      <div className="min-h-screen bg-white">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#e6eeff] rounded-full -translate-y-1/2 translate-x-1/3 opacity-40" />
+        </div>
         <Header />
-        <div className="pt-24 pb-8">
+        <div className="pt-24 pb-8 relative z-10">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: '#013062' }}></div>
-              <p className="mt-4 text-gray-600">Loading profile...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#013062] mx-auto"></div>
+              <p className="mt-4 text-[#013062]/60">Loading profile...</p>
             </div>
           </div>
         </div>
@@ -170,9 +173,13 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#e9e9e9' }}>
+    <div className="min-h-screen bg-white">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#e6eeff] rounded-full -translate-y-1/2 translate-x-1/3 opacity-40" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#e6eeff] rounded-full translate-y-1/2 -translate-x-1/3 opacity-30" />
+      </div>
       <Header />
-      <div className="pt-20 pb-6 md:pt-24 md:pb-8">
+      <div className="pt-20 pb-6 md:pt-24 md:pb-8 relative z-10">
         <div className="container mx-auto px-3 sm:px-4 lg:px-8 max-w-4xl">
           
           {/* Profile Header */}

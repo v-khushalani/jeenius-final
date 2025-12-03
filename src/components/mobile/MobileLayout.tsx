@@ -12,7 +12,7 @@ interface MobileLayoutProps {
 
 const MobileLayout = ({ children, title, showBack = false, showHeader = true }: MobileLayoutProps) => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {showHeader && <MobileHeader title={title} showBack={showBack} />}
       <main className="flex-1 pb-20">
         {children}

@@ -3,16 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Flame, Target, Zap, TrendingUp, Trophy, Star, ArrowRight, Sparkles, BookOpen, Clock, Award, Users, Lightbulb, Heart, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Header from '@/components/Header';
 
 const WhyUsPage = () => {
   const [activeCard, setActiveCard] = useState(0);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,38 +21,30 @@ const WhyUsPage = () => {
     {
       icon: Brain,
       title: "AI That Actually Gets You",
-      desc: "Not just adaptive - it understands your struggles, your strengths, your style",
-      gradient: "from-blue-500 to-indigo-600",
-      glow: "shadow-blue-500/50"
+      desc: "Not just adaptive - it understands your struggles, your strengths, your style"
     },
     {
       icon: Flame,
       title: "Built by JEE Survivors",
-      desc: "We've walked your path. Every feature is designed from real pain points",
-      gradient: "from-orange-500 to-red-600",
-      glow: "shadow-orange-500/50"
+      desc: "We've walked your path. Every feature is designed from real pain points"
     },
     {
       icon: Target,
       title: "Results, Not Just Practice",
-      desc: "Every question you solve is strategically chosen to maximize your growth",
-      gradient: "from-green-500 to-emerald-600",
-      glow: "shadow-green-500/50"
+      desc: "Every question you solve is strategically chosen to maximize your growth"
     },
     {
       icon: Zap,
       title: "Instant Clarity",
-      desc: "No more waiting. Get explanations that click the moment you need them",
-      gradient: "from-yellow-500 to-amber-600",
-      glow: "shadow-yellow-500/50"
+      desc: "No more waiting. Get explanations that click the moment you need them"
     }
   ];
 
   const stats = [
-    { num: "10K+", label: "Active JEEniors", icon: Users, color: "blue" },
-    { num: "92%", label: "See Improvement", icon: TrendingUp, color: "green" },
-    { num: "5M+", label: "Questions Solved", icon: BookOpen, color: "indigo" },
-    { num: "24/7", label: "AI Mentor", icon: Clock, color: "orange" }
+    { num: "50K+", label: "Active Students", icon: Users },
+    { num: "98%", label: "See Improvement", icon: TrendingUp },
+    { num: "40K+", label: "Questions", icon: BookOpen },
+    { num: "24/7", label: "AI Mentor", icon: Clock }
   ];
 
   const differenceCards = [
@@ -65,22 +53,18 @@ const WhyUsPage = () => {
       title: "Personalization That Feels Magic",
       points: [
         "AI tracks your weak concepts in real-time",
-        "Practice sessions adapt to your mood & energy",
-        "Smart scheduling based on your retention patterns"
-      ],
-      gradient: "from-purple-500 to-pink-600",
-      bg: "from-purple-50 to-pink-50"
+        "Practice sessions adapt to your energy",
+        "Smart scheduling based on retention patterns"
+      ]
     },
     {
       icon: Heart,
       title: "Mental Health Matters",
       points: [
-        "Stress-free learning with achievable daily goals",
+        "Stress-free learning with achievable goals",
         "Positive reinforcement, not just corrections",
         "Progress tracking that celebrates small wins"
-      ],
-      gradient: "from-red-500 to-orange-600",
-      bg: "from-red-50 to-orange-50"
+      ]
     },
     {
       icon: Trophy,
@@ -89,9 +73,7 @@ const WhyUsPage = () => {
         "Compete with peers at your exact level",
         "Earn badges that actually mean something",
         "Leaderboards that motivate, not intimidate"
-      ],
-      gradient: "from-blue-500 to-indigo-600",
-      bg: "from-blue-50 to-indigo-50"
+      ]
     },
     {
       icon: Lightbulb,
@@ -100,9 +82,7 @@ const WhyUsPage = () => {
         "Not just formulas - understand the 'why'",
         "Visual learning for complex concepts",
         "Connect topics across Physics, Chemistry, Maths"
-      ],
-      gradient: "from-green-500 to-emerald-600",
-      bg: "from-green-50 to-emerald-50"
+      ]
     }
   ];
 
@@ -113,46 +93,41 @@ const WhyUsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+    <div className="min-h-screen bg-white">
+      <Header />
       
-      {/* Floating Math Symbols */}
+      {/* Background decoration */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 text-blue-500/10 text-6xl animate-bounce" style={{animationDuration: '3s'}}>∫</div>
-        <div className="absolute top-32 right-20 text-indigo-500/10 text-5xl animate-bounce" style={{animationDuration: '4s', animationDelay: '1s'}}>π</div>
-        <div className="absolute bottom-40 left-20 text-green-500/10 text-7xl animate-bounce" style={{animationDuration: '5s', animationDelay: '2s'}}>Σ</div>
-        <div className="absolute bottom-32 right-16 text-orange-500/10 text-5xl animate-bounce" style={{animationDuration: '3.5s', animationDelay: '0.5s'}}>√</div>
-        <div className="absolute top-1/2 right-1/3 text-purple-500/10 text-4xl animate-bounce" style={{animationDuration: '4.5s', animationDelay: '1.5s'}}>∆</div>
+        <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-[#e6eeff] rounded-full translate-x-1/3 opacity-40" />
+        <div className="absolute bottom-40 left-0 w-[400px] h-[400px] bg-[#e6eeff] rounded-full -translate-x-1/3 opacity-30" />
       </div>
 
-      {/* Hero Section */}
-      <div className="relative z-10 pt-20 sm:pt-24 pb-12 sm:pb-20 px-3 sm:px-4 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="relative z-10 pt-20 sm:pt-24 pb-12 sm:pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
           
           {/* Header Badge */}
-          <div className="flex justify-center mb-6 sm:mb-8 animate-fade-in">
-            <Badge className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <Badge className="bg-[#013062] text-white px-4 py-2 text-xs sm:text-sm font-semibold rounded-full">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 inline" />
               Built by JEE Warriors, For JEE Warriors
             </Badge>
           </div>
 
           {/* Main Headline */}
-          <div className="text-center mb-8 sm:mb-12 space-y-3 sm:space-y-4">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-slate-900 leading-tight">
+          <div className="text-center mb-10 sm:mb-14 space-y-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#013062] leading-tight">
               We're Not Just <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 animate-gradient">
-                Another App
-              </span>
+              <span className="text-[#013062]/70">Another App</span>
             </h1>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed px-2">
-              We're <span className="font-bold text-slate-900">JEE survivors</span> who built the platform we wish we had. 
-              No BS. No shortcuts. Just <span className="font-bold text-blue-600">smart, caring AI</span> that helps you dominate.
+            <p className="text-sm sm:text-base md:text-lg text-[#013062]/60 max-w-2xl mx-auto leading-relaxed">
+              We're <span className="font-bold text-[#013062]">JEE survivors</span> who built the platform we wish we had. 
+              Just <span className="font-bold text-[#013062]">smart, caring AI</span> that helps you dominate.
             </p>
           </div>
 
           {/* Rotating Feature Cards */}
-          <div className="max-w-4xl mx-auto mb-10 sm:mb-16">
-            <div className="relative h-auto min-h-[280px] sm:min-h-[240px] md:h-48">
+          <div className="max-w-3xl mx-auto mb-12 sm:mb-16">
+            <div className="relative h-auto min-h-[200px] sm:min-h-[180px]">
               {heroFeatures.map((feature, idx) => (
                 <div
                   key={idx}
@@ -162,17 +137,17 @@ const WhyUsPage = () => {
                       : 'opacity-0 transform translate-y-8 scale-95 pointer-events-none'
                   }`}
                 >
-                  <Card className={`bg-gradient-to-br ${feature.gradient} border-0 shadow-xl sm:shadow-2xl ${feature.glow} hover:shadow-3xl transition-all duration-300`}>
-                    <CardContent className="p-6 sm:p-8 md:p-10">
+                  <Card className="bg-[#013062] border-0 shadow-xl">
+                    <CardContent className="p-6 sm:p-8">
                       <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                        <div className="p-3 sm:p-4 bg-white/20 backdrop-blur-sm rounded-xl sm:rounded-2xl flex-shrink-0">
+                        <div className="p-3 sm:p-4 bg-white/10 rounded-2xl flex-shrink-0">
                           <feature.icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3">
+                          <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">
                             {feature.title}
                           </h3>
-                          <p className="text-sm sm:text-base md:text-lg text-white/90 leading-relaxed">
+                          <p className="text-sm sm:text-base text-white/80 leading-relaxed">
                             {feature.desc}
                           </p>
                         </div>
@@ -190,7 +165,7 @@ const WhyUsPage = () => {
                   key={idx}
                   onClick={() => setActiveCard(idx)}
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    activeCard === idx ? 'w-8 bg-blue-600' : 'w-2 bg-slate-300 hover:bg-slate-400'
+                    activeCard === idx ? 'w-8 bg-[#013062]' : 'w-2 bg-[#e9e9e9] hover:bg-[#013062]/30'
                   }`}
                 />
               ))}
@@ -198,63 +173,53 @@ const WhyUsPage = () => {
           </div>
 
           {/* Stats Section */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-12 sm:mb-20">
-            {stats.map((stat, idx) => {
-              const colorMap = {
-                blue: { gradient: 'from-blue-500 to-indigo-600', bg: 'from-blue-50 to-indigo-50', text: 'text-blue-700' },
-                green: { gradient: 'from-green-500 to-emerald-600', bg: 'from-green-50 to-emerald-50', text: 'text-green-700' },
-                indigo: { gradient: 'from-indigo-500 to-purple-600', bg: 'from-indigo-50 to-purple-50', text: 'text-indigo-700' },
-                orange: { gradient: 'from-orange-500 to-red-600', bg: 'from-orange-50 to-red-50', text: 'text-orange-700' }
-              };
-              const colors = colorMap[stat.color];
-              
-              return (
-                <Card key={idx} className={`bg-gradient-to-br ${colors.bg} border-2 border-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer group`}>
-                  <CardContent className="p-4 sm:p-6 text-center">
-                    <div className={`inline-flex p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-br ${colors.gradient} mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
-                      <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <div className={`text-2xl sm:text-3xl md:text-4xl font-black ${colors.text} mb-0.5 sm:mb-1`}>
-                      {stat.num}
-                    </div>
-                    <div className="text-xs sm:text-sm font-semibold text-slate-600">
-                      {stat.label}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-14 sm:mb-20">
+            {stats.map((stat, idx) => (
+              <Card key={idx} className="bg-white border border-[#e9e9e9] hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300 group">
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <div className="inline-flex p-2 sm:p-3 rounded-xl bg-[#e6eeff] mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                    <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-[#013062]" />
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-bold text-[#013062] mb-0.5">
+                    {stat.num}
+                  </div>
+                  <div className="text-xs sm:text-sm text-[#013062]/60">
+                    {stat.label}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Why Different Section */}
-          <div className="mb-12 sm:mb-20">
+          <div className="mb-14 sm:mb-20">
             <div className="text-center mb-8 sm:mb-12">
-              <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
-                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
+              <Badge className="bg-[#e6eeff] text-[#013062] px-4 py-2 text-xs sm:text-sm font-semibold mb-4 rounded-full">
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-2 inline" />
                 What Makes Us Different
               </Badge>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
-                Not Your Average <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">Study App</span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#013062]">
+                Not Your Average <span className="text-[#013062]/70">Study App</span>
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {differenceCards.map((card, idx) => (
-                <Card key={idx} className={`bg-gradient-to-br ${card.bg} border-2 border-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] group`}>
-                  <CardContent className="p-5 sm:p-6 md:p-8">
-                    <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
-                      <div className={`p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} group-hover:scale-110 transition-transform flex-shrink-0`}>
-                        <card.icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                <Card key={idx} className="bg-white border border-[#e9e9e9] hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300 group">
+                  <CardContent className="p-5 sm:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4 mb-4">
+                      <div className="p-3 rounded-xl bg-[#e6eeff] group-hover:scale-110 transition-transform flex-shrink-0">
+                        <card.icon className="w-6 h-6 text-[#013062]" />
                       </div>
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mt-1 sm:mt-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-[#013062] mt-1">
                         {card.title}
                       </h3>
                     </div>
-                    <div className="space-y-2 sm:space-y-3">
+                    <div className="space-y-2">
                       {card.points.map((point, i) => (
                         <div key={i} className="flex items-start gap-2 sm:gap-3">
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-xs sm:text-sm md:text-base text-slate-700 leading-relaxed">{point}</p>
+                          <CheckCircle className="w-4 h-4 text-[#013062] mt-0.5 flex-shrink-0" />
+                          <p className="text-xs sm:text-sm text-[#013062]/70 leading-relaxed">{point}</p>
                         </div>
                       ))}
                     </div>
@@ -265,33 +230,33 @@ const WhyUsPage = () => {
           </div>
 
           {/* Testimonials */}
-          <div className="mb-12 sm:mb-20">
+          <div className="mb-14 sm:mb-20">
             <div className="text-center mb-8 sm:mb-12">
-              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
-                <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 inline" />
+              <Badge className="bg-[#e6eeff] text-[#013062] px-4 py-2 text-xs sm:text-sm font-semibold mb-4 rounded-full">
+                <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-2 inline" />
                 Success Stories
               </Badge>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900">
-                Real Students. Real <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">Results</span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#013062]">
+                Real Students. Real <span className="text-[#013062]/70">Results</span>
               </h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {testimonials.map((test, idx) => (
-                <Card key={idx} className="bg-white border-2 border-slate-200 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                <Card key={idx} className="bg-white border border-[#e9e9e9] hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300">
                   <CardContent className="p-4 sm:p-6">
-                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#013062] flex items-center justify-center text-white font-bold text-base sm:text-lg flex-shrink-0">
                         {test.name[0]}
                       </div>
                       <div>
-                        <div className="font-bold text-sm sm:text-base text-slate-900">{test.name}</div>
-                        <Badge className="bg-green-100 text-green-700 text-xs">
+                        <div className="font-bold text-sm sm:text-base text-[#013062]">{test.name}</div>
+                        <Badge className="bg-[#e6eeff] text-[#013062] text-xs">
                           {test.rank}
                         </Badge>
                       </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-slate-600 italic leading-relaxed">
+                    <p className="text-xs sm:text-sm text-[#013062]/70 italic leading-relaxed">
                       "{test.text}"
                     </p>
                   </CardContent>
@@ -301,52 +266,37 @@ const WhyUsPage = () => {
           </div>
 
           {/* CTA Section */}
-          <Card className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 border-0 shadow-2xl">
+          <Card className="bg-[#013062] border-0 shadow-xl">
             <CardContent className="p-6 sm:p-8 md:p-12 text-center">
-              <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight">
-                  Ready to Transform Your JEE Journey?
+              <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
+                  Ready to Transform Your Journey?
                 </h2>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-slate-300 leading-relaxed">
-                  Join thousands of students who chose smart preparation over endless grinding. 
-                  Your rank 1 story starts here.
+                <p className="text-sm sm:text-base text-white/70 leading-relaxed">
+                  Join thousands of students who chose smart preparation over endless grinding.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-8">
-                  <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-sm sm:text-base md:text-lg px-6 sm:px-8 py-4 sm:py-5 md:py-6 rounded-xl shadow-lg shadow-green-500/50 hover:shadow-xl hover:scale-105 transition-all group">
+                  <Button 
+                    onClick={() => navigate('/signup')}
+                    className="bg-white hover:bg-[#e6eeff] text-[#013062] font-bold text-sm sm:text-base px-6 sm:px-8 py-4 sm:py-5 rounded-full shadow-lg hover:scale-105 transition-all group"
+                  >
                     Start Learning Free
                     <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:rotate-12 transition-transform" />
                   </Button>
-                  <Button variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold text-sm sm:text-base md:text-lg px-6 sm:px-8 py-4 sm:py-5 md:py-6 rounded-xl backdrop-blur-sm">
-                    Watch Demo
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/login')}
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold text-sm sm:text-base px-6 sm:px-8 py-4 sm:py-5 rounded-full"
+                  >
+                    Sign In
                     <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                   </Button>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400 mt-3 sm:mt-4">
-                  No credit card required • 7-day free trial • Cancel anytime
-                </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      <style>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

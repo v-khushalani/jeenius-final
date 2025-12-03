@@ -334,33 +334,37 @@ const TestPage = () => {
 
   if (!testMode) {
     return (
-      <div className="h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#e6eeff] rounded-full -translate-y-1/2 translate-x-1/3 opacity-40" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#e6eeff] rounded-full translate-y-1/2 -translate-x-1/3 opacity-30" />
+        </div>
         <Header />
-        <div className="flex-1 overflow-y-auto pt-16 sm:pt-20 pb-4">
+        <div className="flex-1 overflow-y-auto pt-16 sm:pt-20 pb-4 relative z-10">
           <div className="container mx-auto px-3 sm:px-4 lg:px-8 max-w-7xl">
             {!isPremium && (
-              <div className="mb-4 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-md">
+              <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-[#e6eeff] border border-[#013062]/10 shadow-sm">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="bg-orange-500 p-2 rounded-lg shrink-0">
+                    <div className="bg-[#013062] p-2 rounded-xl shrink-0">
                       <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-orange-900 text-sm sm:text-base">
-                        📝 Mock Tests: {monthlyTestsUsed}/{MONTHLY_LIMIT_FREE} this month
+                      <p className="font-bold text-[#013062] text-sm sm:text-base">
+                        Mock Tests: {monthlyTestsUsed}/{MONTHLY_LIMIT_FREE} this month
                       </p>
-                      <p className="text-xs sm:text-sm text-orange-700 mt-1">
+                      <p className="text-xs sm:text-sm text-[#013062]/70 mt-1">
                         {monthlyTestsUsed >= MONTHLY_LIMIT_FREE ? (
-                          <span className="font-semibold">⚠️ Limit reached! Upgrade for unlimited tests.</span>
+                          <span className="font-semibold">Limit reached! Upgrade for unlimited tests.</span>
                         ) : (
-                          <span>Upgrade to Pro for unlimited mock tests + AI features!</span>
+                          <span>Upgrade to Pro for unlimited mock tests!</span>
                         )}
                       </p>
                     </div>
                   </div>
                   <Button
                     onClick={() => navigate('/subscription-plans')}
-                    className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-blue-600 text-white font-semibold text-sm px-4 py-2"
+                    className="w-full sm:w-auto bg-[#013062] hover:bg-[#013062]/90 text-white font-semibold text-sm px-4 py-2 rounded-xl"
                   >
                     <Crown className="w-4 h-4 mr-2" />
                     Upgrade Now

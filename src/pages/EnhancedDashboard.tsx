@@ -230,7 +230,12 @@ const EnhancedDashboard = () => {
   const streakColors = getStreakColor(stats?.streak ?? 0);
 
   return (
-    <div className="min-h-screen h-screen overflow-hidden bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen h-screen overflow-hidden bg-white">
+      {/* Background decoration */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#e6eeff] rounded-full -translate-y-1/2 translate-x-1/3 opacity-40" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#e6eeff] rounded-full translate-y-1/2 -translate-x-1/3 opacity-30" />
+      </div>
       <Header />
 
       {/* ✅ MOBILE OPTIMIZED: Container with proper header offset and banner space */}
