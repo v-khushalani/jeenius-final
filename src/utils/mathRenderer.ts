@@ -57,10 +57,31 @@ function renderWithKatex(latex: string, displayMode: boolean = false): string {
       output: 'html'
     });
   } catch (e) {
-    console.error('KaTeX render error:', e);
-    return `<span style="color:red">${latex}</span>`;
+    console.error('KaTeX render error:', e, 'for:', latex.substring(0, 100));
+    // Return the original text wrapped in a span so it's at least visible
+    return `<span class="katex-error">${latex}</span>`;
   }
 }
+
+/**
+ * Common LaTeX command patterns that indicate math content
+ */
+const LATEX_PATTERNS = [
+  '\\frac', '\\sqrt', '\\lim', '\\sum', '\\int', '\\prod',
+  '\\left', '\\right', '\\begin', '\\end',
+  '\\alpha', '\\beta', '\\gamma', '\\delta', '\\theta', '\\epsilon',
+  '\\lambda', '\\sigma', '\\pi', '\\omega', '\\infty', '\\mu', '\\nu',
+  '\\rho', '\\phi', '\\psi', '\\tau', '\\xi', '\\eta', '\\zeta',
+  '\\times', '\\div', '\\pm', '\\neq', '\\leq', '\\geq', '\\approx',
+  '\\to', '\\rightarrow', '\\leftarrow', '\\Rightarrow', '\\Leftarrow',
+  '\\cdot', '\\vec', '\\hat', '\\bar', '\\dot', '\\ddot',
+  '\\cos', '\\sin', '\\tan', '\\cot', '\\sec', '\\csc',
+  '\\log', '\\ln', '\\exp',
+  '\\partial', '\\nabla', '\\forall', '\\exists',
+  '\\in', '\\notin', '\\subset', '\\supset', '\\cup', '\\cap',
+  '\\over', '\\atop', '\\choose',
+  '^{', '_{', // subscripts and superscripts with braces
+];
 
 /**
  * Check if text contains LaTeX that needs rendering
@@ -74,56 +95,110 @@ export function containsLatex(text: string): boolean {
   }
   
   // Check for common LaTeX commands
-  const patterns = [
-    '\\frac', '\\sqrt', '\\lim', '\\sum', '\\int',
-    '\\left', '\\right', '\\begin', '\\end',
-    '\\alpha', '\\beta', '\\gamma', '\\delta', '\\theta',
-    '\\lambda', '\\sigma', '\\pi', '\\omega', '\\infty',
-    '\\times', '\\div', '\\pm', '\\neq', '\\leq', '\\geq',
-    '\\to', '\\cdot', '\\vec', '\\cos', '\\sin', '\\tan', '\\log', '\\ln'
-  ];
+  return LATEX_PATTERNS.some(p => text.includes(p));
+}
+
+/**
+ * Wrap raw LaTeX content with $ delimiters if needed
+ */
+function wrapRawLatex(text: string): string {
+  if (!text) return '';
   
-  return patterns.some(p => text.includes(p));
+  // If already has $ delimiters, return as is
+  if (text.includes('$')) {
+    return text;
+  }
+  
+  // If it has LaTeX commands, wrap the entire thing
+  if (containsLatex(text)) {
+    return `$${text}$`;
+  }
+  
+  return text;
 }
 
 /**
  * Main function to render LaTeX math expressions
+ * This handles:
+ * 1. Text with $...$ delimiters (inline math)
+ * 2. Text with $$...$$ delimiters (display math)
+ * 3. Raw LaTeX without delimiters (auto-wrapped)
  */
 export function renderLatex(text: string): string {
   if (!text) return '';
   
-  // If no $ and no LaTeX commands, just return basic text conversions
+  // If no LaTeX content at all, just apply basic text conversions
   if (!containsLatex(text)) {
     return renderMathText(text);
   }
   
-  // If no $ delimiters but has LaTeX commands, wrap and render entire text
-  if (!text.includes('$')) {
-    const isDisplay = text.includes('\\begin{') || text.includes('\\\\');
-    return renderWithKatex(text, isDisplay);
-  }
-  
   let result = text;
   
-  // Handle display math $$...$$ first (greedy match)
-  result = result.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
-    return renderWithKatex(latex, true);
-  });
-  
-  // Handle inline math $...$
-  // Use a more permissive pattern that allows any character except $ between delimiters
-  result = result.replace(/\$([^\$]+)\$/g, (fullMatch, latex) => {
-    // Skip if looks like currency
-    if (/^\s*\d+(\.\d+)?\s*$/.test(latex)) {
-      return fullMatch;
+  // If text has $ delimiters, process them
+  if (text.includes('$')) {
+    // Handle display math $$...$$ first
+    result = result.replace(/\$\$([\s\S]+?)\$\$/g, (_, latex) => {
+      return renderWithKatex(latex, true);
+    });
+    
+    // Handle inline math $...$
+    // Use a more robust pattern that handles complex content
+    result = result.replace(/\$([^$]+)\$/g, (fullMatch, latex) => {
+      // Skip if it looks like currency (just numbers)
+      if (/^\s*\d+(\.\d+)?\s*$/.test(latex)) {
+        return fullMatch;
+      }
+      return renderWithKatex(latex, false);
+    });
+    
+    // If there are still unprocessed $ signs (odd number), try to handle them
+    // This handles cases where there's a single $...$ that didn't get matched
+    if (result.includes('$') && !result.includes('class="katex"')) {
+      // Extract content between first and last $
+      const firstDollar = result.indexOf('$');
+      const lastDollar = result.lastIndexOf('$');
+      
+      if (firstDollar !== lastDollar && firstDollar !== -1) {
+        const before = result.substring(0, firstDollar);
+        const latex = result.substring(firstDollar + 1, lastDollar);
+        const after = result.substring(lastDollar + 1);
+        
+        result = before + renderWithKatex(latex, false) + after;
+      }
     }
-    return renderWithKatex(latex, false);
-  });
+  } else {
+    // No $ delimiters but has LaTeX commands - render entire text as math
+    const isDisplay = text.includes('\\begin{') || text.includes('\\\\') || text.length > 100;
+    result = renderWithKatex(text, isDisplay);
+  }
   
-  // Apply basic text conversions to any remaining plain text
+  // Apply basic text conversions to any remaining non-KaTeX parts
+  // Only if we haven't already processed everything
   if (!result.includes('class="katex"')) {
     result = renderMathText(result);
   }
   
   return result;
+}
+
+/**
+ * Process text that might contain mixed content (text and LaTeX)
+ * More aggressive version that ensures LaTeX is always rendered
+ */
+export function renderMixedContent(text: string): string {
+  if (!text) return '';
+  
+  // If it has $ signs, use standard renderLatex
+  if (text.includes('$')) {
+    return renderLatex(text);
+  }
+  
+  // Check if it looks like pure LaTeX
+  if (containsLatex(text)) {
+    // If the whole thing looks like LaTeX, render it
+    return renderWithKatex(text, text.length > 100);
+  }
+  
+  // Otherwise just do basic conversions
+  return renderMathText(text);
 }
