@@ -1,9 +1,11 @@
 // src/services/userLimitsService.ts
 import { supabase } from '@/integrations/supabase/client';
 import StreakService from './streakService';
+import { FREE_LIMITS } from '@/config/subscriptionPlans';
 
 export class UserLimitsService {
   
+  // Daily limit: 20 for free, unlimited for pro
   static async getDailyLimit(userId: string): Promise<number> {
     const { data: profile } = await supabase
       .from('profiles')
@@ -14,7 +16,7 @@ export class UserLimitsService {
     const isPremiumActive = profile?.is_premium || 
       (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date());
 
-    return isPremiumActive ? Infinity : 15;
+    return isPremiumActive ? Infinity : FREE_LIMITS.questionsPerDay;
   }
 
   static async isPro(userId: string): Promise<boolean> {
@@ -168,18 +170,17 @@ export class UserLimitsService {
 
   static async upgradeToPRO(
     userId: string,
-    durationMonths: number = 12
+    durationDays: number = 365
   ): Promise<boolean> {
     try {
       const subscriptionStart = new Date();
       const subscriptionEnd = new Date();
-      subscriptionEnd.setMonth(subscriptionEnd.getMonth() + durationMonths);
+      subscriptionEnd.setDate(subscriptionEnd.getDate() + durationDays);
 
       await supabase
         .from('profiles')
         .update({
-          is_pro: true,
-          daily_question_limit: Infinity,
+          is_premium: true,
           subscription_start_date: subscriptionStart.toISOString(),
           subscription_end_date: subscriptionEnd.toISOString()
         })
@@ -194,6 +195,42 @@ export class UserLimitsService {
     }
   }
 
+  // Add referral reward (1 week free Pro)
+  static async addReferralReward(userId: string): Promise<boolean> {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_end_date, is_premium')
+        .eq('id', userId)
+        .single();
+
+      let newEndDate: Date;
+      
+      if (profile?.subscription_end_date && new Date(profile.subscription_end_date) > new Date()) {
+        // Extend existing subscription by 7 days
+        newEndDate = new Date(profile.subscription_end_date);
+        newEndDate.setDate(newEndDate.getDate() + 7);
+      } else {
+        // Start new subscription for 7 days
+        newEndDate = new Date();
+        newEndDate.setDate(newEndDate.getDate() + 7);
+      }
+
+      await supabase
+        .from('profiles')
+        .update({
+          is_premium: true,
+          subscription_end_date: newEndDate.toISOString()
+        })
+        .eq('id', userId);
+
+      return true;
+    } catch (error) {
+      console.error('Error adding referral reward:', error);
+      return false;
+    }
+  }
+
   static async getConversionStats() {
     const { count: totalUsers } = await supabase
       .from('profiles')
@@ -202,7 +239,7 @@ export class UserLimitsService {
     const { count: proUsers } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('is_pro', true);
+      .eq('is_premium', true);
 
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -237,41 +274,47 @@ export class UserLimitsService {
     title: string;
     message: string;
     cta: string;
+    subtitle: string;
   } {
     switch (promptType) {
       case 'daily_limit_reached':
         return {
-          title: '🎯 Daily Limit Reached!',
-          message: `You've solved 15 questions today (FREE limit). Upgrade to PRO for unlimited questions!`,
-          cta: 'Upgrade to PRO - ₹499/year'
+          title: '🚀 Daily Limit Reached!',
+          message: `You've crushed ${FREE_LIMITS.questionsPerDay} questions today! Upgrade to PRO for UNLIMITED practice.`,
+          cta: 'Go Unlimited — ₹499/year',
+          subtitle: '🔥 Just ₹1.37/day — Less than a samosa!'
         };
 
       case 'approaching_limit':
         return {
-          title: '⚠️ Approaching Daily Limit',
-          message: `Only ${data.remaining} questions left today! Upgrade to PRO for unlimited access.`,
-          cta: 'Go Unlimited - ₹499/year'
+          title: '⚠️ Almost at Limit!',
+          message: `Only ${data.remaining} questions left today! Upgrade for unlimited access.`,
+          cta: 'Go Unlimited — ₹499/year',
+          subtitle: '🥟 Cheaper than a samosa per day!'
         };
 
       case 'target_exceeds_limit':
         return {
           title: '🔥 Your Growth is Amazing!',
-          message: `Your daily target is now ${data.target} questions, but FREE limit is only 15. Upgrade to continue.`,
-          cta: 'Save My Streak - ₹499/year'
+          message: `Your target is ${data.target} questions, but FREE limit is ${FREE_LIMITS.questionsPerDay}. Upgrade to continue!`,
+          cta: 'Save My Streak — ₹499/year',
+          subtitle: '💪 Don\'t let limits stop your progress!'
         };
 
       case 'next_target_warning':
         return {
-          title: '📈 Target Increasing Soon',
-          message: `Great progress! Next week's target: ${data.nextTarget} questions. FREE limit: ${data.limit}. Upgrade now!`,
-          cta: 'Upgrade to PRO - ₹499/year'
+          title: '📈 Target Increasing!',
+          message: `Next week's target: ${data.nextTarget} questions. FREE limit: ${data.limit}. Upgrade now!`,
+          cta: 'Upgrade to PRO — ₹499/year',
+          subtitle: '🎯 Stay ahead of your targets!'
         };
 
       default:
         return {
           title: '🚀 Upgrade to PRO',
-          message: 'Unlock unlimited questions, AI features, and more!',
-          cta: 'Upgrade Now - ₹499/year'
+          message: 'Unlock unlimited questions, JEEnie AI, and more!',
+          cta: 'Get Pro — ₹499/year',
+          subtitle: '🔥 Best decision for your JEE prep!'
         };
     }
   }

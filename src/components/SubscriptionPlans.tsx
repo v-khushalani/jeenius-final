@@ -1,3 +1,6 @@
+// Synced Subscription Plans Config
+// All pricing values are centralized here and in src/config/subscriptionPlans.ts
+
 export const SUBSCRIPTION_PLANS = {
   free: {
     name: 'Starter',
@@ -7,72 +10,76 @@ export const SUBSCRIPTION_PLANS = {
     popular: false,
     bestValue: false,
     features: [
-      '✅ 15 questions per day',
-      '✅ 150 questions per month cap',
+      '✅ 20 questions per day',
+      '✅ 300 questions per month',
       '✅ 2 mock tests per month',
       '✅ Interactive Dashboard',
       '✅ Leaderboard access',
-      '❌ No Jeenie AI assistant',
+      '❌ No JEEnie AI assistant',
       '❌ No AI study planner',
       '❌ No performance analytics'
     ],
     limits: {
-      questionsPerDay: 15,
-      questionsPerMonth: 150,
+      questionsPerDay: 20,
+      questionsPerMonth: 300,
       testsPerMonth: 2,
       jeenieAccess: false,
       studyPlanner: false,
       analytics: false
     },
-    tagline: 'Perfect to get started with JEE prep'
+    tagline: '🎯 Perfect to get started with JEE prep'
   },
 
   monthly: {
     name: 'Pro Monthly',
-    price: 49,
-    originalPrice: 99,
+    price: 99,
+    originalPrice: 149,
     duration: '1 month',
     displayDuration: 'per month',
     savings: 50,
     popular: false,
     bestValue: false,
     features: [
-      '✨ 150 Questions Practice Monthly',
-      '📊 2 Monthly Mock Tests',
+      '✨ Unlimited Questions',
+      '📊 Unlimited Mock Tests',
+      '🤖 JEEnie AI Assistant',
+      '🎯 AI Study Planner',
+      '📈 Performance Analytics',
       '🏆 Full Leaderboard Access',
-
+      '⚡ Priority Support'
     ],
-    tagline: 'Less than a cold coffee per month',
-    razorpayPlanId: 'plan_monthly_49' // Replace with actual Razorpay plan ID
+    tagline: '☕ Less than a Pizza per month!',
+    razorpayPlanId: 'plan_monthly_99'
   },
   
   yearly: {
     name: 'Pro Yearly',
     price: 499,
-    originalPrice: 1199,
+    originalPrice: 1188,
     duration: '12 months',
     displayDuration: 'per year',
-    savings: 700,
+    savings: 689,
     popular: true,
     bestValue: true,
     features: [
       '✨ Everything in Pro Monthly',
-      '🤖 JEEnie (AI Assistant)',
-      '🎯 AI-powered Study Planner',
-      '📈 Advanced Performance Analytics',
-      '💾 Bookmarks & Notes (Coming Soon)',
+      '🎁 Save ₹689 (58% OFF!)',
+      '🤖 Unlimited JEEnie AI',
+      '🎯 Advanced AI Study Planner',
+      '📊 Deep Performance Analytics',
+      '🏆 Premium Leaderboard Badges',
       '⚡ Priority Support 24/7',
       '🚀 Early Access to New Features'
     ],
-    tagline: 'Most students choose this! Best value for serious learners.',
-    razorpayPlanId: 'plan_yearly_499' // Replace with actual Razorpay plan ID
+    tagline: '🔥 ₹1.37/day — Cheaper than a samosa! Most students choose this.',
+    razorpayPlanId: 'plan_yearly_499'
   }
 };
 
 // Updated Free Plan Limits
 export const FREE_PLAN_LIMITS = {
-  questionsPerDay: 15,
-  questionsPerMonth: 150,
+  questionsPerDay: 20,
+  questionsPerMonth: 300,
   mockTestsPerMonth: 2,
   jeenieAccess: false,
   studyPlanner: false,
@@ -87,48 +94,46 @@ export const PRO_PLAN_FEATURES = {
   jeenieAccess: true,
   studyPlanner: true,
   analytics: true,
-  prioritySupport: true,
-  bookmarks: true,
-  offlineMode: true
+  prioritySupport: true
 };
 
-// Updated Conversion Messages
+// Updated Conversion Messages - Make it feel like a STEAL
 export const CONVERSION_MESSAGES = {
   dailyLimit: {
     title: '🚀 Daily Limit Reached!',
-    message: 'You\'ve solved 15 questions today. Come back tomorrow or unlock unlimited practice with Pro!',
-    cta: 'Upgrade to Pro - ₹499/year',
-    subtitle: 'Less than ₹2 per day! 🎯'
+    message: "You've crushed 20 questions today! Come back tomorrow or unlock UNLIMITED practice.",
+    cta: 'Go Unlimited — ₹499/year',
+    subtitle: '🔥 Just ₹1.37/day — Less than a samosa!'
   },
   monthlyLimit: {
     title: '📊 Monthly Cap Reached!',
-    message: 'You\'ve completed 150 questions this month. Upgrade to Pro for unlimited questions!',
+    message: "You've completed 300 questions this month. Serious learner! Upgrade for unlimited.",
     cta: 'Get Unlimited Access',
-    subtitle: 'Join thousands of students using Pro'
+    subtitle: '💪 Join thousands crushing their JEE prep'
   },
   testLimit: {
     title: '📝 Test Limit Reached',
-    message: 'You\'ve taken 2 free tests this month. Get unlimited mock tests with Pro subscription!',
+    message: "You've taken 2 free tests this month. Get unlimited mock tests with Pro!",
     cta: 'Unlock Unlimited Tests',
-    subtitle: 'Practice makes perfect! 💪'
+    subtitle: '🎯 Practice makes perfect!'
   },
   jeenieBlocked: {
-    title: '🤖 JEEnie AI - Pro Feature',
-    message: 'Jeenie AI assistant is available only for Pro users. Get instant doubt solving 24/7!',
-    cta: 'Unlock Jeenie AI',
-    subtitle: 'Your personal AI tutor awaits'
+    title: '🤖 JEEnie AI — Pro Feature',
+    message: 'Get instant doubt solving 24/7 with your personal AI tutor!',
+    cta: 'Unlock JEEnie AI',
+    subtitle: '⚡ Your doubts, solved in seconds'
   },
   studyPlannerBlocked: {
-    title: '📅 AI Study Planner - Pro Feature',
-    message: 'Get a dynamic study plan that adapts to your progress and exam date. Available in Pro!',
+    title: '📅 AI Study Planner — Pro Feature',
+    message: 'Get a smart study plan that adapts to YOUR progress and exam date!',
     cta: 'Get Smart Study Plan',
-    subtitle: 'Plan smarter, not harder'
+    subtitle: '🧠 Plan smarter, not harder'
   },
   analyticsBlocked: {
-    title: '📈 Advanced Analytics - Pro Feature',
-    message: 'Unlock detailed performance insights, weak area analysis, and time management reports!',
+    title: '📈 Advanced Analytics — Pro Feature',
+    message: 'Unlock detailed insights, weak area analysis, and rank predictions!',
     cta: 'View Full Analytics',
-    subtitle: 'Know exactly where you stand'
+    subtitle: '📊 Know exactly where you stand'
   },
   chapterLocked: {
     title: '🔒 Premium Chapter',
@@ -146,20 +151,18 @@ export const shouldShowUpgradePrompt = (
   return userPlan === 'free';
 };
 
-// Referral Config
+// Referral Config - 1 week free Pro per referral
 export const REFERRAL_CONFIG = {
   enabled: true,
-  reward: {
-    type: 'free_month',
-    threshold: 3, // Refer 3 friends
-    message: 'Refer 3 friends → Get 1 month Pro free!'
-  }
+  rewardDays: 7,
+  maxRewards: 12, // Max 12 weeks (3 months) from referrals
+  message: '🎁 Refer a friend → Get 1 week Pro FREE!'
 };
 
 // Trial Config
 export const TRIAL_CONFIG = {
-  enabled: false, // Set to true if you want to enable trial
-  duration: 7, // days
+  enabled: false,
+  duration: 7,
   features: 'all_pro_features',
   message: '7-day free trial • No credit card required'
 };
