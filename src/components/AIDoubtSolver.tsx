@@ -10,8 +10,6 @@ import {
   Wand2,
   Bot,
   User,
-  Volume2,
-  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,10 +44,7 @@ const AIDoubtSolver: React.FC<AIDoubtSolverProps> = ({
   const [lastRequestTime, setLastRequestTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPro, setIsPro] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
 
   const RATE_LIMIT_MS = 3000;
@@ -112,13 +107,48 @@ ${question.option_d ? `**D)** ${question.option_d}` : ""}
     { label: "🔄 Step by step", message: "Step by step solve karo" },
   ];
 
-  const handleQuickReply = (message: string) => {
+  const handleQuickReply = async (message: string) => {
+    if (loading) return;
     setInput(message);
-    // Auto-send after setting
-    setTimeout(() => {
-      const fakeEvent = { key: "Enter", shiftKey: false, preventDefault: () => {} } as React.KeyboardEvent<HTMLInputElement>;
-      handleKeyPress(fakeEvent);
-    }, 100);
+    // Directly send the message
+    setError(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Please login to get mentored by JEEnie.");
+      return;
+    }
+    const now = Date.now();
+    if (now - lastRequestTime < RATE_LIMIT_MS) {
+      const waitTime = Math.ceil((RATE_LIMIT_MS - (now - lastRequestTime)) / 1000);
+      setError(`⏳ Wait ${waitTime}s before next question`);
+      return;
+    }
+    setLastRequestTime(now);
+    setLoading(true);
+    playSound("send");
+    const userMsg: Message = { role: "user", content: message };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    try {
+      const isGeneral = !question?.option_a || question?.question?.includes("koi bhi");
+      const history = buildConversationHistory(messages);
+      const prompt = isGeneral
+        ? `Student's current doubt: "${message}". Give direct, on-point answer. No unnecessary elaboration.`
+        : `Question: ${question.question}
+Options: A) ${question.option_a}, B) ${question.option_b}, C) ${question.option_c}, D) ${question.option_d}
+Student's current doubt: "${message}". Give direct solution, explain only what's needed.`;
+      setTyping(true);
+      const aiResponse = await callEdgeFunction(prompt, history);
+      const formatted = cleanAndFormatJeenieText(aiResponse);
+      playSound("receive");
+      setMessages((prev) => [...prev, { role: "assistant", content: formatted }]);
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : "❌ Oops! Network ya backend issue ho gaya. Please try again later.";
+      setMessages((prev) => [...prev, { role: "assistant", content: errorMessage }]);
+    } finally {
+      setTyping(false);
+      setLoading(false);
+    }
   };
 
   // Build conversation history for context
@@ -267,73 +297,6 @@ Student's current doubt: "${userMsg.content}". Give direct solution, explain onl
     }
   };
 
-  // Text-to-Speech function
-  const speakMessage = async (text: string, messageIndex: number) => {
-    // If already speaking this message, stop it
-    if (isSpeaking && speakingMessageIndex === messageIndex) {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-      setIsSpeaking(false);
-      setSpeakingMessageIndex(null);
-      return;
-    }
-    
-    // Stop any current playback
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    
-    setIsSpeaking(true);
-    setSpeakingMessageIndex(messageIndex);
-    
-    try {
-      console.log("🔊 Generating speech...");
-      
-      const response = await supabase.functions.invoke("text-to-speech", {
-        body: { text, voice: "nova" },
-      });
-      
-      if (response.error) {
-        throw new Error(response.error.message || "TTS failed");
-      }
-      
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-      
-      const audioContent = response.data?.audioContent;
-      
-      if (audioContent) {
-        // Create audio from base64
-        const audio = new Audio(`data:audio/mp3;base64,${audioContent}`);
-        audioRef.current = audio;
-        
-        audio.onended = () => {
-          setIsSpeaking(false);
-          setSpeakingMessageIndex(null);
-          audioRef.current = null;
-        };
-        
-        audio.onerror = () => {
-          setIsSpeaking(false);
-          setSpeakingMessageIndex(null);
-          audioRef.current = null;
-        };
-        
-        await audio.play();
-        console.log("✅ Playing audio");
-      }
-      
-    } catch (err) {
-      console.error("❌ TTS error:", err);
-      setIsSpeaking(false);
-      setSpeakingMessageIndex(null);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -392,30 +355,6 @@ Student's current doubt: "${userMsg.content}". Give direct solution, explain onl
                     __html: DOMPurify.sanitize(msg.content),
                   }}
                 />
-                {/* Speaker button for assistant messages */}
-                {msg.role === "assistant" && i > 0 && (
-                  <button
-                    onClick={() => speakMessage(msg.content, i)}
-                    className={`mt-2 flex items-center gap-1 text-[10px] sm:text-xs transition-all ${
-                      isSpeaking && speakingMessageIndex === i
-                        ? "text-[#4C6FFF] font-medium"
-                        : "text-[#013062]/50 hover:text-[#4C6FFF]"
-                    }`}
-                    disabled={isSpeaking && speakingMessageIndex !== i}
-                  >
-                    {isSpeaking && speakingMessageIndex === i ? (
-                      <>
-                        <VolumeX size={12} />
-                        <span>Stop</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 size={12} />
-                        <span>Listen</span>
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
               {msg.role === "user" && (
                 <div className="bg-[#E8EDFF] p-1.5 sm:p-2 rounded-full ml-1.5 sm:ml-2 flex-shrink-0">
@@ -539,6 +478,8 @@ function cleanAndFormatJeenieText(text: string): string {
     .replace(/CH4/g, 'CH₄')
     .replace(/H2SO4/g, 'H₂SO₄')
     .replace(/HNO3/g, 'HNO₃')
+    // Convert underscore notation to subscripts (F_eq → F<sub>eq</sub>)
+    .replace(/([A-Za-z])_([A-Za-z0-9]+)/g, '$1<sub>$2</sub>')
     // Format code/formulas with brand color background
     .replace(/\$(.*?)\$/g, '<code class="bg-[#e6eeff] px-2 py-1 rounded text-[#013062] font-semibold">$1</code>')
     // Bold text with brand color
