@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles, Brain, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, Zap, BookOpen, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,180 +11,89 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-white via-[#f8f9fa] to-[#e6eeff] pt-20 pb-8 md:pt-0 md:pb-0">
-      {/* Floating orbs - Apple style */}
+    <section className="relative min-h-screen flex items-center bg-white pt-20 pb-12 md:pt-0 md:pb-0 overflow-hidden">
+      {/* Subtle geometric background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-[10%] w-[150px] h-[150px] md:w-[300px] md:h-[300px] bg-primary/5 rounded-full blur-3xl animate-float" />
-        <div className="absolute top-40 right-[15%] w-[100px] h-[100px] md:w-[250px] md:h-[250px] bg-[#e6eeff] rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-20 left-[20%] w-[80px] h-[80px] md:w-[200px] md:h-[200px] bg-primary/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#e6eeff] rounded-full -translate-y-1/2 translate-x-1/3 opacity-60" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#e6eeff] rounded-full translate-y-1/2 -translate-x-1/3 opacity-40" />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-0 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
-          {/* Content */}
-          <div className="space-y-4 lg:space-y-6 animate-fade-in-up text-center lg:text-left">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full glass-card">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs md:text-sm font-medium text-primary">
-                AI-Powered Learning Platform
-              </span>
-            </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Main headline */}
+          <div className="space-y-6 animate-fade-in-up">
+            <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-[1.1]">
+              <span className="text-[#013062]">Where AI</span>
+              <span className="block text-[#013062]/70 mt-2">adapts you</span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-[#013062]/60 max-w-2xl mx-auto leading-relaxed">
+              The smartest way to prepare for JEE & NEET. Personalized learning that evolves with you.
+            </p>
+          </div>
 
-            {/* Headline */}
-            <div className="space-y-2 lg:space-y-4">
-              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-                <span className="font-bold">Master JEE with</span>
-                <span className="block text-primary mt-1 md:mt-2 font-bold">
-                  Intelligent AI
-                </span>
-              </h1>
-              <p className="text-base lg:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed font-semibold">
-                India's most advanced AI tutor that learns your style, adapts to your pace, and guides you to success.
-              </p>
-            </div>
+          {/* CTA */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button 
+              size="lg"
+              className="bg-[#013062] hover:bg-[#013062]/90 text-white px-8 py-6 text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+              onClick={handleStartLearning}
+            >
+              Start Free
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button 
+              variant="outline"
+              size="lg"
+              className="border-[#013062]/20 text-[#013062] px-8 py-6 text-lg font-semibold rounded-full hover:bg-[#e6eeff] transition-all duration-300"
+              onClick={() => navigate('/why-us')}
+            >
+              Learn More
+            </Button>
+          </div>
 
-            {/* Stats - Mobile optimized grid */}
-            <div className="flex items-center justify-center lg:justify-start gap-3 md:gap-6 pt-2">
-              <div className="text-center">
-                <div className="text-xl md:text-3xl font-bold text-primary">50K+</div>
-                <div className="text-[10px] md:text-sm text-muted-foreground mt-0.5 md:mt-1 font-semibold">Active Students</div>
+          {/* Feature cards */}
+          <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 max-w-3xl mx-auto">
+            <div className="bg-white border border-[#e9e9e9] rounded-2xl p-6 hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-xl bg-[#e6eeff] flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <Zap className="w-6 h-6 text-[#013062]" />
               </div>
-              <div className="w-px h-8 md:h-12 bg-border" />
-              <div className="text-center">
-                <div className="text-xl md:text-3xl font-bold text-primary">1M+</div>
-                <div className="text-[10px] md:text-sm text-muted-foreground mt-0.5 md:mt-1 font-semibold">Questions Solved</div>
-              </div>
-              <div className="w-px h-8 md:h-12 bg-border" />
-              <div className="text-center">
-                <div className="text-xl md:text-3xl font-bold text-primary">98%</div>
-                <div className="text-[10px] md:text-sm text-muted-foreground mt-0.5 md:mt-1 font-semibold">Success Rate</div>
-              </div>
+              <h3 className="text-[#013062] font-semibold text-lg mb-2">Adaptive Learning</h3>
+              <p className="text-[#013062]/50 text-sm">AI adjusts difficulty based on your performance</p>
             </div>
-
-            {/* CTA */}
-            <div className="flex items-center justify-center lg:justify-start gap-4 pt-2">
-              <Button 
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-white px-5 md:px-8 py-3 md:py-6 text-sm md:text-lg font-bold rounded-xl shadow-apple-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                onClick={handleStartLearning}
-              >
-                <span className="font-bold">Start Learning Free</span>
-                <ArrowRight className="ml-2 w-4 lg:w-5 h-4 lg:h-5" />
-              </Button>
+            
+            <div className="bg-white border border-[#e9e9e9] rounded-2xl p-6 hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-xl bg-[#e6eeff] flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <BookOpen className="w-6 h-6 text-[#013062]" />
+              </div>
+              <h3 className="text-[#013062] font-semibold text-lg mb-2">40K+ Questions</h3>
+              <p className="text-[#013062]/50 text-sm">Comprehensive question bank from top sources</p>
             </div>
-
-            {/* Trust badges - Mobile optimized */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 md:gap-4 pt-2 text-[10px] md:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-3 md:w-5 h-3 md:h-5 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <div className="w-1 md:w-2 h-1 md:h-2 rounded-full bg-green-500" />
-                </div>
-                <span className="font-semibold">DPDP Compliant</span>
+            
+            <div className="bg-white border border-[#e9e9e9] rounded-2xl p-6 hover:border-[#013062]/20 hover:shadow-lg transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-xl bg-[#e6eeff] flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
+                <Trophy className="w-6 h-6 text-[#013062]" />
               </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-3 md:w-5 h-3 md:h-5 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <div className="w-1 md:w-2 h-1 md:h-2 rounded-full bg-blue-500" />
-                </div>
-                <span className="font-semibold">Offline Ready</span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2">
-                <div className="w-3 md:w-5 h-3 md:h-5 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <div className="w-1 md:w-2 h-1 md:h-2 rounded-full bg-purple-500" />
-                </div>
-                <span className="font-semibold">12 Languages</span>
-              </div>
+              <h3 className="text-[#013062] font-semibold text-lg mb-2">Track Progress</h3>
+              <p className="text-[#013062]/50 text-sm">Real-time analytics and rank predictions</p>
             </div>
           </div>
 
-          {/* Visual - Mobile Preview Card */}
-          <div className="relative lg:h-[500px] animate-scale-in">
-            {/* Main card */}
-            <div className="glass-card rounded-2xl md:rounded-3xl p-4 md:p-8 shadow-apple-lg relative z-10">
-              <div className="flex items-center justify-between mb-4 md:mb-6">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-primary flex items-center justify-center">
-                    <Brain className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-xs md:text-sm font-semibold text-foreground">JEEnius AI</div>
-                    <div className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground">
-                      <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <span>Active now</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 px-2 py-1 md:px-3 md:py-1.5 rounded-full bg-primary/10">
-                  <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                  <span className="text-[10px] md:text-xs font-medium text-primary">Smart Mode</span>
-                </div>
-              </div>
-
-              {/* Chat messages - Simplified for mobile */}
-              <div className="space-y-3 md:space-y-4">
-                <div className="flex justify-start">
-                  <div className="bg-primary/5 rounded-xl md:rounded-2xl rounded-tl-sm px-3 py-2 md:px-5 md:py-3.5 max-w-[90%] md:max-w-[85%]">
-                    <p className="text-xs md:text-sm text-foreground leading-relaxed">
-                      I've analyzed your learning pattern. Let's tackle Rotational Dynamics!
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="bg-primary rounded-xl md:rounded-2xl rounded-tr-sm px-3 py-2 md:px-5 md:py-3.5 max-w-[90%] md:max-w-[85%]">
-                    <p className="text-xs md:text-sm text-white leading-relaxed">
-                      Perfect! I struggle with equations.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-primary/5 rounded-xl md:rounded-2xl rounded-tl-sm px-3 py-2 md:px-5 md:py-3.5 max-w-[90%] md:max-w-[85%]">
-                    <p className="text-xs md:text-sm text-foreground leading-relaxed">
-                      I'll break it down step-by-step. Ready?
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Input area */}
-              <div className="mt-4 md:mt-6 flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Ask me anything..."
-                  className="flex-1 px-3 py-2 md:px-4 md:py-3 rounded-lg md:rounded-xl bg-muted/50 border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs md:text-sm"
-                  disabled
-                />
-                <Button
-                  size="icon"
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-primary hover:bg-primary/90"
-                >
-                  <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
-                </Button>
-              </div>
+          {/* Stats bar */}
+          <div className="mt-16 flex items-center justify-center gap-8 md:gap-16 py-8 border-t border-b border-[#e9e9e9]">
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-[#013062]">50K+</div>
+              <div className="text-xs md:text-sm text-[#013062]/50 mt-1">Students</div>
             </div>
-
-            {/* Floating feature cards - Hidden on small mobile, visible on larger screens */}
-            <div className="absolute -left-2 md:-left-8 top-10 md:top-20 glass-card rounded-xl md:rounded-2xl p-2 md:p-4 shadow-apple max-w-[120px] md:max-w-[180px] animate-float z-10 hidden sm:block">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-green-500/10 flex items-center justify-center">
-                  <Target className="w-3 h-3 md:w-5 md:h-5 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-[10px] md:text-xs text-muted-foreground font-semibold">Accuracy</div>
-                  <div className="text-sm md:text-lg font-bold text-foreground">94%</div>
-                </div>
-              </div>
+            <div className="w-px h-10 bg-[#e9e9e9]" />
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-[#013062]">98%</div>
+              <div className="text-xs md:text-sm text-[#013062]/50 mt-1">Success Rate</div>
             </div>
-
-            <div className="absolute -right-2 md:-right-8 bottom-20 md:bottom-32 glass-card rounded-xl md:rounded-2xl p-2 md:p-4 shadow-apple max-w-[120px] md:max-w-[180px] animate-float z-10 hidden sm:block" style={{ animationDelay: '1s' }}>
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-7 h-7 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-blue-500/10 flex items-center justify-center">
-                  <TrendingUp className="w-3 h-3 md:w-5 md:h-5 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-[10px] md:text-xs text-muted-foreground font-semibold">Streak</div>
-                  <div className="text-sm md:text-lg font-bold text-foreground">28 days</div>
-                </div>
-              </div>
+            <div className="w-px h-10 bg-[#e9e9e9]" />
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold text-[#013062]">₹99</div>
+              <div className="text-xs md:text-sm text-[#013062]/50 mt-1">Per Month</div>
             </div>
           </div>
         </div>

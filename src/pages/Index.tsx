@@ -17,7 +17,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <Hero />
+      <main>
+        <Hero />
+      </main>
     </div>
   );
 };
