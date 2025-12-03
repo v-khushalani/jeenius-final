@@ -16,9 +16,21 @@ export function MathDisplay({ text, className = '', block = false }: MathDisplay
   const renderedContent = useMemo(() => {
     if (!text) return '';
     
+    // Debug logging for development
+    if (process.env.NODE_ENV === 'development' && containsLatex(text)) {
+      console.log('MathDisplay rendering:', text.substring(0, 100));
+    }
+    
     // Always try to render LaTeX if it looks like it has any
     if (containsLatex(text)) {
-      return renderLatex(text);
+      const rendered = renderLatex(text);
+      
+      // Debug: if rendering failed (no katex class), log it
+      if (process.env.NODE_ENV === 'development' && text.includes('$') && !rendered.includes('class="katex"')) {
+        console.warn('LaTeX rendering may have failed for:', text.substring(0, 100));
+      }
+      
+      return rendered;
     }
     
     // Otherwise just apply basic text conversions

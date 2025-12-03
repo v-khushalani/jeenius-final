@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import Header from '@/components/Header';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import PricingModal from '@/components/PricingModal';
+import { MathDisplay } from '@/components/admin/MathDisplay';
+import 'katex/dist/katex.min.css';
 import {
   Flame, ArrowLeft, Lightbulb, XCircle, CheckCircle2, Target,
   Sparkles, Zap, Play, Lock, TrendingUp
@@ -792,7 +794,9 @@ const handleAnswer = async (answer: string) => {
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0">
                     {currentQuestionIndex + 1}
                   </div>
-                  <h2 className="text-sm sm:text-lg md:text-xl font-extrabold text-slate-900">{question.question}</h2>
+                  <h2 className="text-sm sm:text-lg md:text-xl font-extrabold text-slate-900">
+                    <MathDisplay text={question.question} />
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2 sm:gap-3">
@@ -833,7 +837,9 @@ const handleAnswer = async (answer: string) => {
                             }`}>
                               {letter}
                             </div>
-                            <div className="text-xs sm:text-sm font-medium text-slate-900 truncate">{question[key]}</div>
+                            <div className="text-xs sm:text-sm font-medium text-slate-900">
+                              <MathDisplay text={question[key]} />
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -862,7 +868,9 @@ const handleAnswer = async (answer: string) => {
                       <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 shrink-0" />
                       <div>
                         <p className="font-bold text-blue-900 mb-1 text-sm">Explanation</p>
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">{question.explanation}</p>
+                        <div className="text-xs sm:text-sm text-slate-700 leading-relaxed">
+                          <MathDisplay text={question.explanation} />
+                        </div>
                       </div>
                     </div>
                   </div>

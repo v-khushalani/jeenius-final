@@ -397,3 +397,21 @@ body {
   font-weight: 700;
   text-shadow: 0 0 5px rgba(1, 48, 98, 0.15);
 }
+
+/* KaTeX Math Display Styles */
+.math-display {
+  display: inline;
+}
+
+.math-display .katex {
+  font-size: 1.1em;
+}
+
+.math-display .katex-display {
+  margin: 0.5em 0;
+}
+
+.katex-error {
+  color: inherit;
+  font-family: inherit;
+}
