@@ -513,8 +513,18 @@ Student's current doubt: "${userMsg.content}". Give direct solution, explain onl
   );
 };
 
-function cleanAndFormatJeenieText(text: string): string {
-  let formatted = text
+function cleanAndFormatJeenieText(text: string, isFirstResponse: boolean = false): string {
+  let formatted = text;
+  
+  // Remove "Hello Puttar" from non-first responses
+  if (!isFirstResponse) {
+    formatted = formatted
+      .replace(/\*?\*?Hello Puttar!?\*?\*?\s*🧞‍♂️?\s*/gi, '')
+      .replace(/Hello Puttar!?\s*/gi, '')
+      .replace(/^[\s\n]*/, ''); // Clean leading whitespace after removal
+  }
+  
+  formatted = formatted
     // Greek letters - convert text to proper Unicode symbols
     .replace(/\\alpha|alpha/gi, 'α')
     .replace(/\\beta|beta/gi, 'β')
