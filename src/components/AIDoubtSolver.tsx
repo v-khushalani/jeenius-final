@@ -99,13 +99,83 @@ ${question.option_d ? `**D)** ${question.option_d}` : ""}
     audio.play().catch(() => {});
   };
 
-  // Quick reply options
-  const quickReplies = [
-    { label: "📖 Explain more", message: "Isko thoda aur detail mein samjhao" },
-    { label: "📝 Give example", message: "Ek example de do iska" },
-    { label: "📐 Show formula", message: "Formula dikhao iska" },
-    { label: "🔄 Step by step", message: "Step by step solve karo" },
-  ];
+  // Generate dynamic quick replies based on last AI response
+  const generateQuickReplies = (lastResponse: string): Array<{ label: string; message: string }> => {
+    const replies: Array<{ label: string; message: string }> = [];
+    const lowerResponse = lastResponse.toLowerCase();
+    
+    // Detect topic/concept from response
+    const hasFormula = /formula|equation|=|1\/|²|³|\^/.test(lastResponse);
+    const hasPhysics = /force|velocity|acceleration|momentum|energy|power|current|voltage|resistance|lens|mirror|wave|frequency|newton|joule|watt/.test(lowerResponse);
+    const hasChemistry = /reaction|compound|element|acid|base|ion|mole|bond|electron|atom|oxidation|reduction|ph|concentration/.test(lowerResponse);
+    const hasMaths = /integral|derivative|limit|function|graph|equation|matrix|vector|trigonometry|calculus|algebra|geometry/.test(lowerResponse);
+    const hasExample = /example|for instance|consider|suppose|let's say/.test(lowerResponse);
+    const hasSteps = /step 1|step 2|firstly|secondly|then|next/.test(lowerResponse);
+    const hasProTip = /pro tip|tip:|remember|important|note/.test(lowerResponse);
+    
+    // Always add contextual "explain more" 
+    if (lastResponse.length > 100) {
+      replies.push({ label: "🔍 Aur explain karo", message: "Is concept ko aur detail mein samjhao" });
+    }
+    
+    // Add formula-related if no formula shown
+    if (!hasFormula && (hasPhysics || hasChemistry || hasMaths)) {
+      replies.push({ label: "📐 Formula dikhao", message: "Is topic ka main formula kya hai?" });
+    }
+    
+    // Add example request if no example given
+    if (!hasExample) {
+      if (hasPhysics) {
+        replies.push({ label: "🔬 Real life example", message: "Iska real life mein example do" });
+      } else if (hasChemistry) {
+        replies.push({ label: "🧪 Practical example", message: "Iska practical example do" });
+      } else if (hasMaths) {
+        replies.push({ label: "📝 Numerical example", message: "Ek numerical solve karke dikhao" });
+      } else {
+        replies.push({ label: "📝 Example do", message: "Ek example de do samajhne ke liye" });
+      }
+    }
+    
+    // Add step-by-step if complex answer without steps
+    if (!hasSteps && lastResponse.length > 150) {
+      replies.push({ label: "📋 Step by step", message: "Step by step samjhao isko" });
+    }
+    
+    // Subject-specific follow-ups
+    if (hasPhysics && !hasChemistry && !hasMaths) {
+      replies.push({ label: "⚡ Related concepts", message: "Isse related aur konse physics concepts hain?" });
+    } else if (hasChemistry && !hasPhysics) {
+      replies.push({ label: "🧬 Related reactions", message: "Isse related aur konsi reactions hain?" });
+    } else if (hasMaths && !hasPhysics && !hasChemistry) {
+      replies.push({ label: "📊 Shortcuts", message: "Iska koi shortcut method hai?" });
+    }
+    
+    // If pro tip was given, ask for common mistakes
+    if (hasProTip) {
+      replies.push({ label: "⚠️ Common mistakes", message: "Is topic mein students kya galti karte hain?" });
+    }
+    
+    // JEE/NEET specific
+    replies.push({ label: "🎯 Exam tips", message: "JEE/NEET mein is topic se kaise questions aate hain?" });
+    
+    // Return max 4 replies
+    return replies.slice(0, 4);
+  };
+  
+  // Get dynamic quick replies based on last assistant message
+  const quickReplies = useMemo(() => {
+    const lastAssistantMsg = messages.filter(m => m.role === "assistant").pop();
+    if (lastAssistantMsg) {
+      return generateQuickReplies(lastAssistantMsg.content);
+    }
+    // Default fallbacks for initial state
+    return [
+      { label: "📖 Concept samjhao", message: "Is concept ko detail mein samjhao" },
+      { label: "📝 Example do", message: "Ek example de do" },
+      { label: "📐 Formula batao", message: "Important formulas batao" },
+      { label: "🎯 Exam tips", message: "JEE/NEET ke liye tips do" },
+    ];
+  }, [messages]);
 
   const handleQuickReply = async (message: string) => {
     if (loading) return;
