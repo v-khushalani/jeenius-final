@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
+import { Zap, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UsageLimitModalProps {
@@ -21,31 +21,34 @@ export function UsageLimitModal({ open, onOpenChange, limitType, currentUsage, m
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background">
-        <DialogHeader>
-          <div className="flex items-center gap-2 text-warning">
-            <AlertCircle className="w-6 h-6" />
-            <DialogTitle>Usage Limit Reached</DialogTitle>
+      <DialogContent className="bg-background max-w-sm">
+        <DialogHeader className="text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+            <Crown className="w-6 h-6 text-primary" />
           </div>
-          <DialogDescription className="pt-4 space-y-2">
-            <p>
-              You've reached your daily limit for <strong>{limitType}</strong>.
+          <DialogTitle className="text-lg">Go Unlimited!</DialogTitle>
+          <DialogDescription className="pt-2 space-y-3">
+            <p className="text-sm">
+              You've used <span className="font-semibold">{currentUsage}/{maxUsage}</span> {limitType}.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Current usage: {currentUsage} / {maxUsage}
-            </p>
-            <p className="pt-2">
-              Upgrade to Pro to get unlimited access to all features!
-            </p>
+            <div className="bg-primary/5 rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground">Pro at just</p>
+              <p className="text-xl font-bold text-primary">₹1.37/day</p>
+              <p className="text-xs text-muted-foreground">Unlimited everything!</p>
+            </div>
           </DialogDescription>
         </DialogHeader>
-        <div className="flex gap-2 justify-end mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Maybe Later
-          </Button>
-          <Button onClick={handleUpgrade} className="bg-primary hover:bg-primary/90">
+        <div className="flex flex-col gap-2 mt-2">
+          <Button onClick={handleUpgrade}>
+            <Zap className="w-4 h-4 mr-2" />
             Upgrade to Pro
           </Button>
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Maybe later
+          </button>
         </div>
       </DialogContent>
     </Dialog>

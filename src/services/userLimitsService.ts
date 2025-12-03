@@ -95,12 +95,22 @@ export class UserLimitsService {
     const isPro = await this.isPro(userId);
     if (isPro) return { show: false, promptType: 'none' };
 
-    const { canSolve, remaining } = await this.canSolveMore(userId);
+    const { canSolve, remaining, used } = await this.canSolveMore(userId);
+    
     if (!canSolve) {
       return {
         show: true,
         promptType: 'daily_limit_reached',
         data: { remaining: 0 }
+      };
+    }
+
+    // Show soft prompt at 12-15 questions (60-75% of limit)
+    if (used >= 12 && used <= 15) {
+      return {
+        show: true,
+        promptType: 'momentum_prompt',
+        data: { questionsCompleted: used }
       };
     }
 
@@ -279,42 +289,50 @@ export class UserLimitsService {
     switch (promptType) {
       case 'daily_limit_reached':
         return {
-          title: '🚀 Daily Limit Reached!',
-          message: `You've crushed ${FREE_LIMITS.questionsPerDay} questions today! Upgrade to PRO for UNLIMITED practice.`,
+          title: 'Daily Limit Reached!',
+          message: `You've crushed ${FREE_LIMITS.questionsPerDay} questions today! Upgrade for UNLIMITED.`,
           cta: 'Go Unlimited — ₹499/year',
-          subtitle: '🔥 Just ₹1.37/day — Less than a samosa!'
+          subtitle: 'Just ₹1.37/day'
+        };
+
+      case 'momentum_prompt':
+        return {
+          title: 'Great Progress!',
+          message: `${data.questionsCompleted} questions done! Go unlimited to keep the momentum.`,
+          cta: 'Upgrade to Pro',
+          subtitle: '₹1.37/day — Cheaper than a samosa!'
         };
 
       case 'approaching_limit':
         return {
-          title: '⚠️ Almost at Limit!',
-          message: `Only ${data.remaining} questions left today! Upgrade for unlimited access.`,
-          cta: 'Go Unlimited — ₹499/year',
-          subtitle: '🥟 Cheaper than a samosa per day!'
+          title: 'Almost at Limit',
+          message: `Only ${data.remaining} questions left today.`,
+          cta: 'Go Unlimited',
+          subtitle: '₹499/year'
         };
 
       case 'target_exceeds_limit':
         return {
-          title: '🔥 Your Growth is Amazing!',
-          message: `Your target is ${data.target} questions, but FREE limit is ${FREE_LIMITS.questionsPerDay}. Upgrade to continue!`,
-          cta: 'Save My Streak — ₹499/year',
-          subtitle: '💪 Don\'t let limits stop your progress!'
+          title: 'Your Growth is Amazing!',
+          message: `Target: ${data.target} questions. FREE limit: ${FREE_LIMITS.questionsPerDay}. Upgrade to continue!`,
+          cta: 'Save My Streak',
+          subtitle: 'Don\'t let limits stop you!'
         };
 
       case 'next_target_warning':
         return {
-          title: '📈 Target Increasing!',
-          message: `Next week's target: ${data.nextTarget} questions. FREE limit: ${data.limit}. Upgrade now!`,
-          cta: 'Upgrade to PRO — ₹499/year',
-          subtitle: '🎯 Stay ahead of your targets!'
+          title: 'Target Increasing!',
+          message: `Next week's target: ${data.nextTarget}. Upgrade now!`,
+          cta: 'Upgrade to Pro',
+          subtitle: 'Stay ahead!'
         };
 
       default:
         return {
-          title: '🚀 Upgrade to PRO',
+          title: 'Upgrade to Pro',
           message: 'Unlock unlimited questions, JEEnie AI, and more!',
           cta: 'Get Pro — ₹499/year',
-          subtitle: '🔥 Best decision for your JEE prep!'
+          subtitle: 'Best decision for JEE prep!'
         };
     }
   }

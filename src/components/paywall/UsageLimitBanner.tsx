@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,7 +18,8 @@ export function UsageLimitBanner({ current, used, max, limit, type, onUpgrade }:
   const actualMax = max ?? limit ?? 100;
   const percentage = (actualCurrent / actualMax) * 100;
   
-  if (percentage < 80) return null;
+  // Show at 60% (12-15 questions) for soft nudge
+  if (percentage < 60) return null;
 
   const handleUpgrade = () => {
     if (onUpgrade) {
@@ -28,25 +29,39 @@ export function UsageLimitBanner({ current, used, max, limit, type, onUpgrade }:
     }
   };
 
+  const isLimitReached = percentage >= 100;
+  const isNearLimit = percentage >= 80;
+
   return (
-    <div className="bg-warning/10 border border-warning rounded-lg p-4 mb-4">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-1">
-            {percentage >= 100 ? 'Usage Limit Reached' : 'Approaching Usage Limit'}
-          </h3>
-          <p className="text-sm text-muted-foreground mb-2">
-            You've used {actualCurrent} of {actualMax} {type} available on the free plan.
+    <div className={`rounded-lg p-3 mb-4 ${
+      isLimitReached 
+        ? 'bg-destructive/10 border border-destructive/30' 
+        : 'bg-primary/5 border border-primary/20'
+    }`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-foreground">
+            {isLimitReached ? (
+              <span className="font-medium">Limit reached! </span>
+            ) : isNearLimit ? (
+              <span>{actualCurrent}/{actualMax} {type} used. </span>
+            ) : (
+              <span>Keep going! </span>
+            )}
+            <span className="text-muted-foreground">
+              Go unlimited at ₹1.37/day
+            </span>
           </p>
-          <Button 
-            size="sm" 
-            onClick={handleUpgrade}
-            className="bg-primary hover:bg-primary/90"
-          >
-            Upgrade to Pro
-          </Button>
         </div>
+        <Button 
+          size="sm" 
+          onClick={handleUpgrade}
+          variant={isLimitReached ? "default" : "outline"}
+          className="h-7 text-xs shrink-0"
+        >
+          <Zap className="w-3 h-3 mr-1" />
+          Upgrade
+        </Button>
       </div>
     </div>
   );
