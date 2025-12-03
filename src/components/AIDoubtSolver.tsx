@@ -99,82 +99,92 @@ ${question.option_d ? `**D)** ${question.option_d}` : ""}
     audio.play().catch(() => {});
   };
 
-  // Generate dynamic quick replies based on last AI response
-  const generateQuickReplies = (lastResponse: string): Array<{ label: string; message: string }> => {
+  // Generate truly contextual quick replies based on actual response content
+  const generateContextualReplies = (response: string): Array<{ label: string; message: string }> => {
     const replies: Array<{ label: string; message: string }> = [];
-    const lowerResponse = lastResponse.toLowerCase();
+    const cleanText = response.replace(/<[^>]*>/g, '').toLowerCase();
     
-    // Detect topic/concept from response
-    const hasFormula = /formula|equation|=|1\/|²|³|\^/.test(lastResponse);
-    const hasPhysics = /force|velocity|acceleration|momentum|energy|power|current|voltage|resistance|lens|mirror|wave|frequency|newton|joule|watt/.test(lowerResponse);
-    const hasChemistry = /reaction|compound|element|acid|base|ion|mole|bond|electron|atom|oxidation|reduction|ph|concentration/.test(lowerResponse);
-    const hasMaths = /integral|derivative|limit|function|graph|equation|matrix|vector|trigonometry|calculus|algebra|geometry/.test(lowerResponse);
-    const hasExample = /example|for instance|consider|suppose|let's say/.test(lowerResponse);
-    const hasSteps = /step 1|step 2|firstly|secondly|then|next/.test(lowerResponse);
-    const hasProTip = /pro tip|tip:|remember|important|note/.test(lowerResponse);
+    // Extract specific concepts/terms mentioned in the response
+    const conceptPatterns = [
+      { regex: /lens formula|1\/f\s*=\s*1\/v/i, topic: "lens formula", followUp: "Lens formula ka sign convention samjhao" },
+      { regex: /mirror formula/i, topic: "mirror formula", followUp: "Mirror aur lens formula mein kya difference hai?" },
+      { regex: /convex lens/i, topic: "convex lens", followUp: "Concave lens mein kya change hoga?" },
+      { regex: /concave lens/i, topic: "concave lens", followUp: "Convex lens mein kya alag hoga?" },
+      { regex: /newton'?s law|force\s*=\s*ma/i, topic: "Newton's law", followUp: "Newton ke teeno laws ka relation batao" },
+      { regex: /momentum|p\s*=\s*mv/i, topic: "momentum", followUp: "Momentum conservation kab apply hota hai?" },
+      { regex: /energy conservation/i, topic: "energy", followUp: "Kinetic aur potential energy mein convert kaise hota hai?" },
+      { regex: /ohm'?s law|v\s*=\s*ir/i, topic: "Ohm's law", followUp: "Ohm's law kab apply nahi hota?" },
+      { regex: /kirchhoff/i, topic: "Kirchhoff", followUp: "KVL aur KCL mein difference kya hai?" },
+      { regex: /thermodynamics/i, topic: "thermodynamics", followUp: "First aur second law mein kya farak hai?" },
+      { regex: /organic chemistry|iupac/i, topic: "organic", followUp: "IUPAC naming ke rules batao" },
+      { regex: /oxidation|reduction|redox/i, topic: "redox", followUp: "Oxidation number kaise calculate karte hain?" },
+      { regex: /equilibrium|le\s*chatelier/i, topic: "equilibrium", followUp: "Equilibrium shift kab hota hai?" },
+      { regex: /acid|base|ph/i, topic: "acid-base", followUp: "pH calculate karne ka formula kya hai?" },
+      { regex: /derivative|differentiation/i, topic: "calculus", followUp: "Common derivatives ki list do" },
+      { regex: /integral|integration/i, topic: "integration", followUp: "Integration ke important formulas batao" },
+      { regex: /trigonometry|sin|cos|tan/i, topic: "trigonometry", followUp: "Trigonometric identities yaad karne ka trick batao" },
+      { regex: /quadratic|ax²/i, topic: "quadratic", followUp: "Quadratic equation ke roots kab real hote hain?" },
+      { regex: /matrix|determinant/i, topic: "matrix", followUp: "Matrix inverse kaise nikalte hain?" },
+      { regex: /vector|dot product|cross product/i, topic: "vectors", followUp: "Dot aur cross product mein difference kya hai?" },
+    ];
     
-    // Always add contextual "explain more" 
-    if (lastResponse.length > 100) {
-      replies.push({ label: "🔍 Aur explain karo", message: "Is concept ko aur detail mein samjhao" });
-    }
-    
-    // Add formula-related if no formula shown
-    if (!hasFormula && (hasPhysics || hasChemistry || hasMaths)) {
-      replies.push({ label: "📐 Formula dikhao", message: "Is topic ka main formula kya hai?" });
-    }
-    
-    // Add example request if no example given
-    if (!hasExample) {
-      if (hasPhysics) {
-        replies.push({ label: "🔬 Real life example", message: "Iska real life mein example do" });
-      } else if (hasChemistry) {
-        replies.push({ label: "🧪 Practical example", message: "Iska practical example do" });
-      } else if (hasMaths) {
-        replies.push({ label: "📝 Numerical example", message: "Ek numerical solve karke dikhao" });
-      } else {
-        replies.push({ label: "📝 Example do", message: "Ek example de do samajhne ke liye" });
+    // Find matching concepts and add specific follow-ups
+    for (const pattern of conceptPatterns) {
+      if (pattern.regex.test(response)) {
+        replies.push({ label: `💡 ${pattern.topic}`, message: pattern.followUp });
+        if (replies.length >= 2) break; // Max 2 concept-specific
       }
     }
     
-    // Add step-by-step if complex answer without steps
-    if (!hasSteps && lastResponse.length > 150) {
-      replies.push({ label: "📋 Step by step", message: "Step by step samjhao isko" });
+    // Check what's missing in the response and suggest accordingly
+    const hasFormula = /=|formula|equation/i.test(response);
+    const hasExample = /example|consider|suppose|let'?s say|maan lo/i.test(cleanText);
+    const hasSteps = /step|pehle|phir|then|finally|lastly/i.test(cleanText);
+    const hasProTip = /tip|yaad|remember|important|dhyan/i.test(cleanText);
+    const hasDiagram = /diagram|figure|graph|draw/i.test(cleanText);
+    const hasNumeric = /\d+\s*(m|cm|kg|sec|amp|volt|ohm|mol)/i.test(response);
+    
+    // Only add if relevant and not already covered
+    if (!hasExample && replies.length < 3) {
+      replies.push({ label: "📝 Example do", message: "Ek solved example dikhao iska" });
     }
     
-    // Subject-specific follow-ups
-    if (hasPhysics && !hasChemistry && !hasMaths) {
-      replies.push({ label: "⚡ Related concepts", message: "Isse related aur konse physics concepts hain?" });
-    } else if (hasChemistry && !hasPhysics) {
-      replies.push({ label: "🧬 Related reactions", message: "Isse related aur konsi reactions hain?" });
-    } else if (hasMaths && !hasPhysics && !hasChemistry) {
-      replies.push({ label: "📊 Shortcuts", message: "Iska koi shortcut method hai?" });
+    if (!hasSteps && response.length > 200 && replies.length < 3) {
+      replies.push({ label: "📋 Steps mein batao", message: "Step by step breakdown do" });
     }
     
-    // If pro tip was given, ask for common mistakes
-    if (hasProTip) {
-      replies.push({ label: "⚠️ Common mistakes", message: "Is topic mein students kya galti karte hain?" });
+    if (hasFormula && !hasNumeric && replies.length < 3) {
+      replies.push({ label: "🔢 Numerical solve karo", message: "Ek numerical problem solve karke dikhao" });
     }
     
-    // JEE/NEET specific
-    replies.push({ label: "🎯 Exam tips", message: "JEE/NEET mein is topic se kaise questions aate hain?" });
+    if (!hasDiagram && (cleanText.includes('circuit') || cleanText.includes('ray') || cleanText.includes('graph')) && replies.length < 3) {
+      replies.push({ label: "📊 Diagram samjhao", message: "Diagram se samjhao isko" });
+    }
     
-    // Return max 4 replies
-    return replies.slice(0, 4);
+    if (hasProTip && replies.length < 3) {
+      replies.push({ label: "⚠️ Common mistakes", message: "Students yahan kya galti karte hain?" });
+    }
+    
+    // If still empty or only 1, add generic contextual ones
+    if (replies.length < 2) {
+      if (response.length > 150) {
+        replies.push({ label: "🔍 Aur detail", message: "Thoda aur detail mein samjhao" });
+      }
+    }
+    
+    return replies;
   };
   
-  // Get dynamic quick replies based on last assistant message
+  // Get dynamic quick replies - recalculates on every message change
   const quickReplies = useMemo(() => {
-    const lastAssistantMsg = messages.filter(m => m.role === "assistant").pop();
-    if (lastAssistantMsg) {
-      return generateQuickReplies(lastAssistantMsg.content);
+    // Only show after first real conversation (skip welcome message)
+    if (messages.length <= 1) return [];
+    
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === "assistant");
+    if (lastAssistantMsg && !lastAssistantMsg.content.includes("Hello Puttar")) {
+      return generateContextualReplies(lastAssistantMsg.content);
     }
-    // Default fallbacks for initial state
-    return [
-      { label: "📖 Concept samjhao", message: "Is concept ko detail mein samjhao" },
-      { label: "📝 Example do", message: "Ek example de do" },
-      { label: "📐 Formula batao", message: "Important formulas batao" },
-      { label: "🎯 Exam tips", message: "JEE/NEET ke liye tips do" },
-    ];
+    return [];
   }, [messages]);
 
   const handleQuickReply = async (message: string) => {
